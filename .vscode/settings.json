@@ -112,7 +112,9 @@
         "renderer_types.h": "c",
         "application_types.h": "c",
         "stdio.h": "c",
-        "windows.h": "c"
+        "windows.h": "c",
+        "application.h": "c",
+        "xlocbuf": "c"
     },
     // File copyright documentation tag.  Array of strings will be converted to one line per element.  Can template {year}.
     "doxdocgen.file.copyrightTag": [

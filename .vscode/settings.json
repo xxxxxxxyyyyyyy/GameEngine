@@ -114,7 +114,13 @@
         "stdio.h": "c",
         "windows.h": "c",
         "application.h": "c",
-        "xlocbuf": "c"
+        "xlocbuf": "c",
+        "xhash": "c",
+        "compare": "c",
+        "format": "c",
+        "memory": "c",
+        "ratio": "c",
+        "xtr1common": "c"
     },
     // File copyright documentation tag.  Array of strings will be converted to one line per element.  Can template {year}.
     "doxdocgen.file.copyrightTag": [

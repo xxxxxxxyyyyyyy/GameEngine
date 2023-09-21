@@ -10,5 +10,6 @@ Trying to build up a cross-platform(Windows/Linux), cross-RenderAPI(Vulkan/DX12/
 2.
 
 # Reading Reference
-1. vulkan documentation \n
+1. vulkan documentation
+
     https://registry.khronos.org/vulkan/specs/1.2-extensions/html/chap3.html#fundamentals-host-environment

@@ -120,7 +120,8 @@
         "format": "c",
         "memory": "c",
         "ratio": "c",
-        "xtr1common": "c"
+        "xtr1common": "c",
+        "renderer_types.inl": "c"
     },
     // File copyright documentation tag.  Array of strings will be converted to one line per element.  Can template {year}.
     "doxdocgen.file.copyrightTag": [

@@ -1,5 +1,5 @@
 # Summary
-Trying to build up a cross-platform(Windows/Linux), cross-RenderAPI(Vulkan/DX12/DX11/OpenGL/OpenGLES)Game Engine for now.
+Trying to build a cross-platform(Windows/Linux), cross-RenderAPI(Vulkan/DX12/DX11/OpenGL/OpenGLES)Game Engine for now.
 
 # Requirements(for now)
 1. [clang](https://llvm.org/builds/)

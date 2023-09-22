@@ -58,6 +58,7 @@
         "isWholeLine": false,
     },
     "files.associations": {
+        "*.lua.txt": "lua",
         "test.h": "c",
         "vulkan.h": "c",
         "vulkan_core.h": "c",
@@ -121,7 +122,8 @@
         "memory": "c",
         "ratio": "c",
         "xtr1common": "c",
-        "renderer_types.inl": "c"
+        "renderer_types.inl": "c",
+        "renderer_backend.h": "c"
     },
     // File copyright documentation tag.  Array of strings will be converted to one line per element.  Can template {year}.
     "doxdocgen.file.copyrightTag": [

@@ -11,9 +11,15 @@
 #include <windowsx.h> // param input extraction
 #include <stdlib.h>
 
+// for surface creation
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_win32.h>
+#include "renderer/k_vulkan/vulkan_types.inl"
+
 typedef struct internal_state {
 	HINSTANCE h_instance; // handle to the instance of the application
 	HWND hwnd; // handle to the window we actually open
+	VkSurfaceKHR surface;
 } internal_state;
 
 // Clock
@@ -184,11 +190,6 @@ f64 platform_get_absolute_time(){
 	return (f64)now_time.QuadPart * clock_frequency;
 }
 
-void platform_get_required_extension_names(const char*** names_darray) {
-	// VK_KHR_win32_surface. operating-system specific
-	darray_push(*names_darray, &"VK_KHR_win32_surface");
-}
-
 void platform_sleep(u64 ms){
 	Sleep(ms);
 }
@@ -275,5 +276,31 @@ LRESULT CALLBACK win32_process_message(HWND hwnd, u32 msg, WPARAM w_param, LPARA
 
 	return DefWindowProcA(hwnd, msg, w_param, l_param);
 }
+
+// vulkan win32 relatively
+void platform_get_required_extension_names(const char*** names_darray) {
+	// VK_KHR_win32_surface. operating-system specific
+	darray_push(*names_darray, &"VK_KHR_win32_surface");
+}
+
+// surface creation for vulkan 
+b8 platform_create_vulkan_surface(platform_state* plat_state, vulkan_context* context) {
+	// simply cold-cast to the known type.
+	internal_state* state = (internal_state*)plat_state->internal_state;
+
+	VkWin32SurfaceCreateInfoKHR create_info = {VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR};
+	create_info.hinstance = state->h_instance;
+	create_info.hwnd = state->hwnd;
+
+	VkResult result = vkCreateWin32SurfaceKHR(context->instance, &create_info, context->allocator, &state->surface);
+	if (result != VK_SUCCESS) {
+		KFATAL("vulakn surface creation failed");
+		return FALSE;
+	}
+
+	context->surface = state->surface;
+	return TRUE;
+}
+
 
 #endif // KPLATFORM_WINDOWS

@@ -2,6 +2,7 @@
 
 #include "core/logger.h"
 #include "core/input.h"
+#include "containers/darray.h"
 
 // Windows platform layer.
 #if KPLATFORM_WINDOWS
@@ -45,7 +46,7 @@ b8 platform_startup(
 	wc.hIcon = icon;
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wc.hbrBackground = NULL; // Transparent
-	wc.lpszClassName = "engine_window_class";
+	wc.lpszClassName = "DOD ENGINE";
 
 	// register window class
 	if (!RegisterClassA(&wc)) {
@@ -86,7 +87,7 @@ b8 platform_startup(
 	window_height += border_rect.bottom - border_rect.top;
 
 	HWND handle = CreateWindowExA(
-		window_ex_style, "engine_window_class", application_name,
+		window_ex_style, "DOD ENGINE", application_name,
 		window_style, window_x, window_y, window_width, window_height,
 		0, 0, state->h_instance, 0);
 
@@ -181,6 +182,11 @@ f64 platform_get_absolute_time(){
 	LARGE_INTEGER now_time;
 	QueryPerformanceCounter(&now_time);
 	return (f64)now_time.QuadPart * clock_frequency;
+}
+
+void platform_get_required_extension_names(const char*** names_darray) {
+	// VK_KHR_win32_surface. operating-system specific
+	darray_push(*names_darray, &"VK_KHR_win32_surface");
 }
 
 void platform_sleep(u64 ms){

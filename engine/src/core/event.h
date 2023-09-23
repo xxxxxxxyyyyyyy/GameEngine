@@ -25,7 +25,7 @@ typedef struct event_context {
 	} data;
 } event_context;
 
-// should return true if handled
+// should return TRUE if handled
 typedef b8 (*PFN_on_event)(u16 code, void* sender, void* listener_inst, event_context data);
 
 b8 event_initialize();
@@ -37,7 +37,7 @@ void event_shutdown();
  * @param code The event code to listen for
  * @param listener A pointer to a listener instance. Can be 0/NULL
  * @param on_event The callback function pointer to be invoked when the event code is fired
- * @returns TRUE if the event is successfully registered. otherwise false
+ * @returns TRUE if the event is successfully registered. otherwise FALSE
  */
 KAPI b8 event_register(u16 code, void* listener, PFN_on_event on_event);
 
@@ -47,7 +47,7 @@ KAPI b8 event_register(u16 code, void* listener, PFN_on_event on_event);
  * @param code The event code to stop listening for
  * @param listener A pointer to a listener instance. Can be 0/NULL
  * @param on_event The callback function pointer to be unregister
- * @returns TRUE if the event is successfully unregistered. otherwise false
+ * @returns TRUE if the event is successfully unregistered. otherwise FALSE
  */
 KAPI b8 event_unregister(u16 code, void* listener, PFN_on_event on_event);
 
@@ -57,7 +57,7 @@ KAPI b8 event_unregister(u16 code, void* listener, PFN_on_event on_event);
  * @param code The event code to fire
  * @param sender A pointer to the sender. Can be 0/NULL
  * @param data The event data
- * @returns TRUE if handled. otherwise false
+ * @returns TRUE if handled. otherwise FALSE
  */
 KAPI b8 event_fire(u16 code, void* sender, event_context context);
 

@@ -126,7 +126,8 @@
         "renderer_backend.h": "c",
         "string.h": "c",
         "stdarg.h": "c",
-        "ctype.h": "c"
+        "ctype.h": "c",
+        "vulkan_swapchain.h": "c"
     },
     // File copyright documentation tag.  Array of strings will be converted to one line per element.  Can template {year}.
     "doxdocgen.file.copyrightTag": [

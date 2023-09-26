@@ -199,7 +199,7 @@ b8 application_on_key(u16 code, void* sender, void* listener_inst, event_context
 		u16 key_code = context.data.u16[0];
 		if (key_code == KEY_ESCAPE) {
 			event_context data = {};
-			event_fire(EVENT_CODE_APPLICATION_QUIT, 0, data);
+			event_execute(EVENT_CODE_APPLICATION_QUIT, 0, data);
 
 			// blocking anything else from processing this.
 			return TRUE;

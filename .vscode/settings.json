@@ -127,7 +127,10 @@
         "string.h": "c",
         "stdarg.h": "c",
         "ctype.h": "c",
-        "vulkan_swapchain.h": "c"
+        "vulkan_swapchain.h": "c",
+        "entry.h": "c",
+        "game_types.h": "c",
+        "event.h": "c"
     },
     // File copyright documentation tag.  Array of strings will be converted to one line per element.  Can template {year}.
     "doxdocgen.file.copyrightTag": [

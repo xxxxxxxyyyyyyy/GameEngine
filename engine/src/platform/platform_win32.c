@@ -206,7 +206,7 @@ LRESULT CALLBACK win32_process_message(HWND hwnd, u32 msg, WPARAM w_param, LPARA
 		case WM_CLOSE:
 			// TODO: Fire an event for the application to quit.
 			event_context data = {};
-			event_fire(EVENT_CODE_APPLICATION_QUIT, 0, data);
+			event_execute(EVENT_CODE_APPLICATION_QUIT, 0, data);
 			return TRUE;
 		case WM_DESTROY:
 			PostQuitMessage(0);
@@ -222,7 +222,7 @@ LRESULT CALLBACK win32_process_message(HWND hwnd, u32 msg, WPARAM w_param, LPARA
 			event_context context;
 			context.data.u16[0] = (u16)width;
 			context.data.u16[1] = (u16)height;
-			event_fire(EVENT_CODE_RESIZED, 0, context);
+			event_execute(EVENT_CODE_RESIZED, 0, context);
 		} break;
 		case WM_KEYDOWN:
 		case WM_SYSKEYDOWN:

@@ -169,7 +169,7 @@ b8 vulkan_renderer_backend_initialize(struct renderer_backend* backend, const ch
         &context,
         &context.main_renderpass,
         0, 0, context.framebuffer_width, context.framebuffer_height,
-        0.0f, 0.0f, 0.2f, 1.0f,
+        0.1f, 0.1f, 0.2f, 1.0f,
         1.0f, 
         0
     );
@@ -211,6 +211,7 @@ b8 vulkan_renderer_backend_initialize(struct renderer_backend* backend, const ch
 }
 
 void vulkan_renderer_backend_shutdown(struct renderer_backend* backend) {
+    // wait until device is not doing anything at all.
     vkDeviceWaitIdle(context.device.logical_device);
 
     // Sync objects
@@ -437,6 +438,7 @@ b8 vulkan_renderer_backend_end_frame(struct renderer_backend* backend, f32 delta
         1,
         &submit_info,
         context.in_flight_fences[context.current_frame].handle);
+
     if (result != VK_SUCCESS) {
         KERROR("vkQueueSubmit failed with result: %s", vulkan_result_string(result, TRUE));
         return FALSE;
@@ -521,6 +523,7 @@ void create_command_buffers(renderer_backend* backend) {
     KDEBUG("Vulkan command buffers created.");
 }
 
+// change window size
 void regenerate_framebuffers(renderer_backend* backend, vulkan_swapchain* swapchain, vulkan_renderpass* renderpass) {
     for (u32 i = 0; i < swapchain->image_count; ++i) {
         // TODO: make this dynamic based on the currently configured attachments
@@ -588,7 +591,7 @@ b8 recreate_swapchain(renderer_backend* backend) {
     // Update framebuffer size generation.
     context.framebuffer_size_last_generation = context.framebuffer_size_generation;
 
-    // cleanup swapchain
+    // cleanup swapchain command buffer
     for (u32 i = 0; i < context.swapchain.image_count; ++i) {
         vulkan_command_buffer_free(&context, context.device.graphics_command_pool, &context.graphics_command_buffers[i]);
     }

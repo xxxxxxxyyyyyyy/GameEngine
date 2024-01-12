@@ -94,6 +94,7 @@ void vulkan_command_buffer_end_single_use(
     VkSubmitInfo submit_info = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
     submit_info.commandBufferCount = 1;
     submit_info.pCommandBuffers = &command_buffer->handle;
+    // submit command buffer to a queue
     VK_CHECK(vkQueueSubmit(queue, 1, &submit_info, 0));
 
     // Wait for it to finish

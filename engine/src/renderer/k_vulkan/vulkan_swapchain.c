@@ -77,7 +77,7 @@ void vulkan_swapchain_present(
     present_info.pSwapchains = &swapchain->handle;
     present_info.pImageIndices = &present_image_index;
     present_info.pResults = 0;
-
+    //present : render from framebuffer to swapchain view
     VkResult result = vkQueuePresentKHR(present_queue, &present_info);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
         // Swapchain is out of date, suboptimal or a framebuffer resize has occurred. Trigger swapchain recreation.

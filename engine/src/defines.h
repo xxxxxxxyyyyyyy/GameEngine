@@ -102,3 +102,12 @@ STATIC_ASSERT(sizeof(b8) ==  1, "Expected b32 to be 1 byte");
 #endif
 
 #define KCLAMP(value, min , max) (value <= min) ? min : (value >= max) ? max : value;
+
+// Inlining
+#ifdef _MSC_VER
+#define KINLINE __forceinline 
+#define KNOINLINE __declspec(noinline)
+#else
+#define KINLINE static inline 
+#define KNOINLINE
+#endif

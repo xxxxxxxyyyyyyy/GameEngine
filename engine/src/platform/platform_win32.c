@@ -21,7 +21,7 @@
 typedef struct internal_state {
 	HINSTANCE h_instance; // handle to the instance of the application
 	HWND hwnd; // handle to the window we actually open
-	VkSurfaceKHR surface;
+	VkSurfaceKHR surface; // a class that connect os window with vulkan
 } internal_state;
 
 // Clock
@@ -295,6 +295,7 @@ b8 platform_create_vulkan_surface(platform_state* plat_state, vulkan_context* co
 	// simply cold-cast to the known type.
 	internal_state* state = (internal_state*)plat_state->internal_state;
 
+	// win32 platform specific surface
 	VkWin32SurfaceCreateInfoKHR create_info = {VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR};
 	create_info.hinstance = state->h_instance;
 	create_info.hwnd = state->hwnd;

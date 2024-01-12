@@ -67,4 +67,4 @@ typedef union vec4_u {
     };
 } vec4;
 
-typedef vec4 quat;
+typedef vec4 quaterion;

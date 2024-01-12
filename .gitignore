@@ -1,9 +1,2 @@
-
-bin/engine.dll
-bin/engine.exp
-bin/engine.ilk
-bin/engine.lib
-bin/engine.pdb
-bin/testbed.exe
-bin/testbed.ilk
-bin/testbed.pdb
+*obj
+*bin

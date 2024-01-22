@@ -2,9 +2,7 @@
 
 #include "defines.h"
 #include "core/asserts.h"
-
-#include <malloc.h>
-#include <string.h>
+#include "core/kmemory.h"
 
 KAPI void swap(void* a, void* b, u32 size);
 

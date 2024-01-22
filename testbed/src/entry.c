@@ -5,12 +5,12 @@
 #include <core/kmemory.h>
 
 #include "stdio.h"
-#include <Algorithm/algorithm.h>
+#include <algorithm/kalgorithm.h>
 
 // Define the function to create a game
 b8 create_game(game* out_game) {
 
-	// algorithm test
+	// kalgorithm test
 	// const i32 N = 10;
 	// u32 n;
 	// i32 q[N];

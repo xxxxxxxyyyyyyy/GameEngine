@@ -1,15 +1,15 @@
-#include "algorithm.h"
+#include "kalgorithm.h"
 
 void swap(void* a, void* b, u32 type_size)
 {
-	void* p = (void*)malloc(type_size);
+	void* p = (void*)kallocate(type_size, MEMORY_TAG_UNKNOWN);
 	KASSERT(p != NULL);
 
-	memcpy(p, a, type_size);
-	memcpy(a, b, type_size);
-	memcpy(b, p, type_size);
+	kcopy_memory(p, a, type_size);
+	kcopy_memory(a, b, type_size);
+	kcopy_memory(b, p, type_size);
 
-	free(p);
+	kfree(p, type_size, MEMORY_TAG_UNKNOWN);
 }
 
 void _quick_sort(i32 q[], i32 l, i32 r)

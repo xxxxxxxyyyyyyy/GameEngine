@@ -135,7 +135,27 @@
         "system_error": "c",
         "vulkan_types.inl": "c",
         "asserts.h": "c",
-        "math_types.h": "c"
+        "math_types.h": "c",
+        "algorithm": "c",
+        "game.h": "c",
+        "algorithm.h": "c",
+        "list": "c",
+        "map": "c",
+        "set": "c",
+        "xtree": "c",
+        "cmath": "c",
+        "concepts": "c",
+        "exception": "c",
+        "ios": "c",
+        "mutex": "c",
+        "optional": "c",
+        "stop_token": "c",
+        "streambuf": "c",
+        "thread": "c",
+        "unordered_map": "c",
+        "unordered_set": "c",
+        "xiosbase": "c",
+        "malloc.h": "c"
     },
     // File copyright documentation tag.  Array of strings will be converted to one line per element.  Can template {year}.
     "doxdocgen.file.copyrightTag": [

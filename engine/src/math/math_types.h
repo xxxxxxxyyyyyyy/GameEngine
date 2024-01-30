@@ -44,7 +44,8 @@ typedef union vec4_u {
     alignas(16) __m128 data;
 #endif
     // An array of x, y, z, w
-    alignas(16) f32 elements[4];
+    // alignas(16) f32 elements[4];
+    f32 elements[4];
     union {
         struct {
             union {
@@ -68,3 +69,11 @@ typedef union vec4_u {
 } vec4;
 
 typedef vec4 quaterion;
+
+typedef union matrix4_u {
+    // alignas(16) f32 data[16];
+    f32 data[16];
+#if defined(KUSE_SIMD)
+    alignas(16) vec4 rows[4];
+#endif        
+} matrix4;

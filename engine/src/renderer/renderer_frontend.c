@@ -18,7 +18,7 @@ b8 renderer_initialize(const char* application_name, struct platform_state* plat
         KFATAL("Renderer backend failed to initialize. Shutting down.");
     }
 
-    return TRUE;
+    return true;
 }
 
 void renderer_shutdown() {
@@ -39,17 +39,16 @@ b8 renderer_end_frame(f32 delta_time) {
 b8 renderer_draw_frame(render_packet* packet) {
     // if the begin frame returned successfully, mid-frame operations may continue.
     if (renderer_begin_frame(packet->delta_time)) {
-
         // End the frame.
         b8 result = renderer_end_frame(packet->delta_time);
 
         if (!result) {
             KERROR("renderer_end_frame failed. Application shutting down");
-            return FALSE;
+            return false;
         }
     }
 
-    return TRUE;
+    return true;
 }
 
 void renderer_on_resize(u16 width, u16 height) {
@@ -59,4 +58,3 @@ void renderer_on_resize(u16 width, u16 height) {
         KWARN("renderer backend does not exist to accept resize: %i %i", width, height);
     }
 }
-

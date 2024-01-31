@@ -17,7 +17,6 @@ void vulkan_image_create(
     b32 create_view,
     VkImageAspectFlags view_aspect_flags,
     vulkan_image* out_image) {
-
     // Copy params
     out_image->width = width;
     out_image->height = height;

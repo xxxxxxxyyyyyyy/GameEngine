@@ -3,13 +3,13 @@
 #include "defines.h"
 
 typedef enum buttons {
-	BUTTON_LEFT,
-	BUTTON_RIGHT,
-	BUTTON_MIDDLE,
-	BUTTON_MAX_BUTTONS
+    BUTTON_LEFT,
+    BUTTON_RIGHT,
+    BUTTON_MIDDLE,
+    BUTTON_MAX_BUTTONS
 } buttons;
 
-#define DEFINE_KEY(name, code) KEY_##name = code 
+#define DEFINE_KEY(name, code) KEY_##name = code
 
 typedef enum keys {
     KEY_BACKSPACE = 0x08,
@@ -168,7 +168,7 @@ void input_initialize();
 void input_shutdown();
 void input_update(f64 delta_time);
 
-// keyboard input 
+// keyboard input
 KAPI b8 input_is_key_down(keys key);
 KAPI b8 input_is_key_up(keys key);
 KAPI b8 input_was_key_down(keys key);

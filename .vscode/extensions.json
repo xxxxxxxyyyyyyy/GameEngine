@@ -1,9 +1,9 @@
 {
 	"recommendations": [
-	    "ms-vscode.cpptools",
-	    "tomphilbin.gruvbox-themes",
-	    "wayou.vscode-todo-highlight",
-	    "slevesque.shader",
-	    "hediet.vscode-drawio"
+		"ms-vscode.cpptools",
+		"tomphilbin.gruvbox-themes",
+		"wayou.vscode-todo-highlight",
+		"slevesque.shader",
+		"hediet.vscode-drawio"
 	]
-    }
+}

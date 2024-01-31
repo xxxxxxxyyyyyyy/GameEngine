@@ -5,9 +5,9 @@
 
 #include <vulkan/vulkan.h>
 
-#define VK_CHECK(expr)                  \
-    {                                   \
-        KASSERT(expr == VK_SUCCESS);    \
+#define VK_CHECK(expr)               \
+    {                                \
+        KASSERT(expr == VK_SUCCESS); \
     }
 
 typedef struct vulkan_swapchain_support_info {
@@ -39,7 +39,7 @@ typedef struct vulkan_device {
     VkPhysicalDeviceMemoryProperties memory;
 
     VkFormat depth_format;
-} vulkan_device;    
+} vulkan_device;
 
 typedef struct vulkan_image {
     VkImage handle;
@@ -112,7 +112,6 @@ typedef struct vulkan_fence {
 } vulkan_fence;
 
 typedef struct vulkan_context {
-
     // the framebuffer's current width
     u32 framebuffer_width;
     // the framebuffer's current height

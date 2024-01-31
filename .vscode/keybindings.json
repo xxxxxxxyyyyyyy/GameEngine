@@ -83,7 +83,7 @@
         "command": "-workbench.action.focusRightGroup"
     },
     {
-        "key": "ctrl+shift+c",
+        "key": "ctrl+alt+c",
         "command": "workbench.action.tasks.runTask",
         "args": "Clean Everything"
     },

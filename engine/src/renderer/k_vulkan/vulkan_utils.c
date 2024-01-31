@@ -74,7 +74,7 @@ const char* vulkan_result_string(VkResult result, b8 get_extended) {
         case VK_ERROR_INVALID_DEVICE_ADDRESS_EXT:
             return !get_extended ? "VK_ERROR_INVALID_DEVICE_ADDRESS_EXT" : "VK_ERROR_INVALID_DEVICE_ADDRESS_EXT A buffer creation failed because the requested address is not available.";
         // NOTE: Same as above
-        //case VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS:
+        // case VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS:
         //    return !get_extended ? "VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS" :"VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS A buffer creation or memory allocation failed because the requested address is not available. A shader group handle assignment failed because the requested shader group handle information is no longer valid.";
         case VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT:
             return !get_extended ? "VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT" : "VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT An operation on a swapchain created with VK_FULL_SCREEN_EXCLUSIVE_APPLICATION_CONTROLLED_EXT failed as it did not have exlusive full-screen access. This may occur due to implementation-dependent reasons, outside of the application’s control.";
@@ -100,7 +100,7 @@ b8 vulkan_result_is_success(VkResult result) {
         case VK_OPERATION_DEFERRED_KHR:
         case VK_OPERATION_NOT_DEFERRED_KHR:
         case VK_PIPELINE_COMPILE_REQUIRED_EXT:
-            return TRUE;
+            return true;
 
         // Error codes
         case VK_ERROR_OUT_OF_HOST_MEMORY:
@@ -125,9 +125,9 @@ b8 vulkan_result_is_success(VkResult result) {
         case VK_ERROR_FRAGMENTATION:
         case VK_ERROR_INVALID_DEVICE_ADDRESS_EXT:
         // NOTE: Same as above
-        //case VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS:
+        // case VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS:
         case VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT:
         case VK_ERROR_UNKNOWN:
-            return FALSE;
+            return false;
     }
 }

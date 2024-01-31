@@ -155,7 +155,10 @@
         "unordered_map": "c",
         "unordered_set": "c",
         "xiosbase": "c",
-        "malloc.h": "c"
+        "malloc.h": "c",
+        "stdbool.h": "c",
+        "linear_allocator_tests.h": "c",
+        "expect.h": "c"
     },
     // File copyright documentation tag.  Array of strings will be converted to one line per element.  Can template {year}.
     "doxdocgen.file.copyrightTag": [

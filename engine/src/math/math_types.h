@@ -75,5 +75,5 @@ typedef union matrix4_u {
     f32 data[16];
 #if defined(KUSE_SIMD)
     alignas(16) vec4 rows[4];
-#endif        
+#endif
 } matrix4;

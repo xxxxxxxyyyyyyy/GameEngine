@@ -1,5 +1,5 @@
 #include "linear_allocator_tests.h"
-#include "../test_manager.h";
+#include "../test_manager.h"
 #include "../expect.h"
 
 #include <defines.h>

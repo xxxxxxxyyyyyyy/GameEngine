@@ -2,23 +2,18 @@
 
 #include "defines.h"
 
-typedef struct platform_state {
-    // typeless, the type of this state should be decide by the
-    // particularly platfrom implementation
-    void* internal_state;
-} platform_state;
-
-b8 platform_startup(
-    platform_state* plat_state,
+b8 platform_system_startup(
+    u64* memory_requirement,
+    void* state,
     const char* application_name,
     i32 x,
     i32 y,
     i32 width,
     i32 height);
 
-void platform_shutdown(platform_state* plat_state);
+void platform_system_shutdown(void* state);
 
-b8 platform_pump_messages(platform_state* plat_state);
+b8 platform_pump_messages();
 
 // dealing with memory
 // custom allocator to define these things.

@@ -4,6 +4,7 @@
 #include "platform/filesystem.h"
 #include "core/kstring.h"
 #include "core/kmemory.h"
+#include <time.h>
 
 // TODO: temp
 #include <stdarg.h>
@@ -74,8 +75,13 @@ void log_output(log_level level, const char* message, ...){
     string_format_v(out_message, message, arg_ptr);
     va_end(arg_ptr);
 
+    // Time
+    time_t tloc;
+    tloc = time(&tloc);
+    struct tm* time = gmtime(&tloc);
+
 	// prepend log level to message.
-    string_format(out_message, "%s%s\n", level_strings[level], out_message);
+    string_format(out_message, "[%d:%d:%d] %s%s\n",time->tm_hour, time->tm_min, time->tm_sec, level_strings[level], out_message);
 
     // platform-specific output
     if (is_error) {

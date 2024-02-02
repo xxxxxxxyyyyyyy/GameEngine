@@ -7,6 +7,10 @@
 
 typedef struct renderer_system_state {
     renderer_backend backend;
+    matrix4 projection;
+    matrix4 view;
+    f32 near_clip;
+    f32 far_clip;
 } renderer_system_state;
 
 static renderer_system_state* state_ptr;
@@ -26,6 +30,13 @@ b8 renderer_system_initialize(u64* memory_requirement, void* state, const char* 
         KFATAL("Renderer backend failed to initialize. Shutting down.");
         return false;
     }
+
+    state_ptr->near_clip = 0.1f;
+    state_ptr->far_clip = 1000.0f;
+    state_ptr->projection = mat4_perspective(deg_to_rad(45.0f), 1280 / 720.0f, state_ptr->near_clip, state_ptr->far_clip);
+
+    state_ptr->view = mat4_translation((vec3){0, 0, -30.0f});
+    state_ptr->view = mat4_inverse(state_ptr->view);
 
     return true;
 }
@@ -56,13 +67,7 @@ b8 renderer_end_frame(f32 delta_time) {
 b8 renderer_draw_frame(render_packet* packet) {
     // if the begin frame returned successfully, mid-frame operations may continue.
     if (renderer_begin_frame(packet->delta_time)) {
-        matrix4 projection = mat4_perspective(deg_to_rad(45.0f), 1280 / 720.0f, 0.1f, 1000.0f);
-        static f32 z = 0.0f;
-        z += 0.01f;
-        matrix4 view = mat4_translation((vec3){0, 0, z});  // -30.0f
-        view = mat4_inverse(view);
-
-        state_ptr->backend.update_global_state(projection, view, vec3_zero(), vec4_one(), 0);
+        state_ptr->backend.update_global_state(state_ptr->projection, state_ptr->view, vec3_zero(), vec4_one(), 0);
 
         // mat4 model = mat4_translation((vec3){0, 0, 0});
         static f32 angle = 0.01f;
@@ -82,8 +87,13 @@ b8 renderer_draw_frame(render_packet* packet) {
     return true;
 }
 
+void renderer_set_view(matrix4 view) {
+    state_ptr->view = view;
+}
+
 void renderer_on_resize(u16 width, u16 height) {
     if (state_ptr) {
+        state_ptr->projection = mat4_perspective(deg_to_rad(45.0f), width / (f32)height, state_ptr->near_clip, state_ptr->far_clip);
         state_ptr->backend.resized(&state_ptr->backend, width, height);
     } else {
         KWARN("renderer backend does not exist to accept resize: %i %i", width, height);

@@ -37,7 +37,7 @@ void _merge_sort(i32 q[], i32 tmp[], i32 l, i32 r) {
     _merge_sort(q, tmp, l, mid);
     _merge_sort(q, tmp, mid + 1, r);
 
-    int k = 0, i = l, j = mid + 1;
+    u32 k = 0, i = l, j = mid + 1;
     while (i <= mid && j <= r) {
         if (q[i] <= q[j])
             tmp[k++] = q[i++];
@@ -47,5 +47,5 @@ void _merge_sort(i32 q[], i32 tmp[], i32 l, i32 r) {
     while (i <= mid) tmp[k++] = q[i++];
     while (j <= r) tmp[k++] = q[j++];
 
-    for (int i = l, j = 0; i <= r; i++, j++) q[i] = tmp[j];
+    for (u32 i = l, j = 0; i <= r; i++, j++) q[i] = tmp[j];
 }

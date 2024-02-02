@@ -108,20 +108,20 @@ char* get_memory_usage_str() {
     u64 offset = strlen(buffer);
     for (u32 i = 0; i < MEMORY_TAG_MAX_TAGS; ++i) {
         char unit[4] = "XiB";
-        float amount = 1.0f;
+        f32 amount = 1.0f;
         if (state_ptr->stats.tagged_allocations[i] >= gib) {
             unit[0] = 'G';
-            amount = state_ptr->stats.tagged_allocations[i] / (float)gib;
+            amount = state_ptr->stats.tagged_allocations[i] / (f32)gib;
         } else if (state_ptr->stats.tagged_allocations[i] >= mib) {
             unit[0] = 'M';
-            amount = state_ptr->stats.tagged_allocations[i] / (float)mib;
+            amount = state_ptr->stats.tagged_allocations[i] / (f32)mib;
         } else if (state_ptr->stats.tagged_allocations[i] >= kib) {
             unit[0] = 'K';
-            amount = state_ptr->stats.tagged_allocations[i] / (float)kib;
+            amount = state_ptr->stats.tagged_allocations[i] / (f32)kib;
         } else {
             unit[0] = 'B';
             unit[1] = 0;
-            amount = (float)state_ptr->stats.tagged_allocations[i];
+            amount = (f32)state_ptr->stats.tagged_allocations[i];
         }
 
         i32 length = snprintf(buffer + offset, 8000, "   %s: %.2f%s\n", memory_tag_strings[i], amount, unit);

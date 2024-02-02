@@ -51,9 +51,9 @@ i32 krandom_in_range(i32 min, i32 max) {
 }
 
 f32 fkrandom() {
-    return (float)krandom() / (f32)RAND_MAX;
+    return (f32)krandom() / (f32)RAND_MAX;
 }
 
 f32 fkrandom_in_range(f32 min, f32 max) {
-    return min + ((float)krandom() / ((f32)RAND_MAX / (max - min)));
+    return min + ((f32)krandom() / ((f32)RAND_MAX / (max - min)));
 }

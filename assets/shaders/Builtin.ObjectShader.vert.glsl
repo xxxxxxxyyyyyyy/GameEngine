@@ -16,5 +16,6 @@ layout(push_constant) uniform push_constant {
 } u_push_constants;
 
 void main() {
+    // right to left
     gl_Position = global_ubo.projection * global_ubo.view * u_push_constants.model * vec4(in_position, 1.0);
 }

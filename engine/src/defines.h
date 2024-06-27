@@ -47,6 +47,12 @@ STATIC_ASSERT(sizeof(b8) == 1, "Expected b32 to be 1 byte");
 #define true 1
 #define false 0
 
+/**
+ * @brief Any id set to this should be considered invalid,
+ * and not actually pointing to a real object. 
+ */
+#define INVALID_ID 4294967295U
+
 // Platform detection
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
 #define KPLATFORM_WINDOWS 1

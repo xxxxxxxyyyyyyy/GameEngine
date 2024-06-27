@@ -71,7 +71,7 @@ b8 renderer_draw_frame(render_packet* packet) {
 
         // mat4 model = mat4_translation((vec3){0, 0, 0});
         static f32 angle = 0.01f;
-        angle += 0.01f;
+        angle += 0.1f;
         quaterion rotation = quat_from_axis_angle(vec3_forward(), angle, false);
         matrix4 model = quat_to_rotation_matrix(rotation, vec3_zero());
         state_ptr->backend.update_object(model);
@@ -98,4 +98,12 @@ void renderer_on_resize(u16 width, u16 height) {
     } else {
         KWARN("renderer backend does not exist to accept resize: %i %i", width, height);
     }
+}
+
+void renderer_create_texture(const char* name, b8 auto_release, i32 width, i32 height, i32 channel_count, const u8* pixels, b8 has_transparency, struct texture* out_texture) {
+    state_ptr->backend.create_texture(name, auto_release, width, height, channel_count, pixels, has_transparency, out_texture);
+}
+
+void renderer_destroy_texture(struct texture* texture) {
+    state_ptr->backend.destroy_texture(texture);
 }

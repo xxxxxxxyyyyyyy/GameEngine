@@ -165,7 +165,7 @@ void vulkan_image_copy_from_buffer(
         command_buffer->handle,
         buffer,
         image->handle,
-        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         1, 
         &region);
 }

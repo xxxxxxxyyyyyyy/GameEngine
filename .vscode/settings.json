@@ -158,7 +158,7 @@
         "stdbool.h": "c",
         "linear_allocator_tests.h": "c",
         "expect.h": "c",
-        "vulkan_object_shader.h": "c",
+        "vulkan_material_shader.h": "c",
         "stat.h": "c"
     },
     // File copyright documentation tag.  Array of strings will be converted to one line per element.  Can template {year}.

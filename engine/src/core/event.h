@@ -39,7 +39,7 @@ void event_system_shutdown(void* state);
  * @param on_event The callback function pointer to be invoked when the event code is fired
  * @returns true if the event is successfully registered. otherwise false
  */
-KAPI b8 event_register(u16 code, void* listener, PFN_on_event on_event);
+API b8 event_register(u16 code, void* listener, PFN_on_event on_event);
 
 /**
  * Unregister from listening for when events are sent with the provied code. if no matching
@@ -49,7 +49,7 @@ KAPI b8 event_register(u16 code, void* listener, PFN_on_event on_event);
  * @param on_event The callback function pointer to be unregister
  * @returns true if the event is successfully unregistered. otherwise false
  */
-KAPI b8 event_unregister(u16 code, void* listener, PFN_on_event on_event);
+API b8 event_unregister(u16 code, void* listener, PFN_on_event on_event);
 
 /**
  * Fires an event to listeners of the given code. If an event handler returns
@@ -59,7 +59,7 @@ KAPI b8 event_unregister(u16 code, void* listener, PFN_on_event on_event);
  * @param data The event data
  * @returns true if handled. otherwise false
  */
-KAPI b8 event_execute(u16 code, void* sender, event_context context);
+API b8 event_execute(u16 code, void* sender, event_context context);
 
 // System internal event codes. Application should use codes beyond 255.
 typedef enum system_event_code {

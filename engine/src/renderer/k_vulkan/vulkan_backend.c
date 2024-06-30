@@ -91,10 +91,10 @@ b8 vulkan_renderer_backend_initialize(struct renderer_backend* backend, const ch
 #if defined(_DEBUG)
     darray_push(required_extensions, &VK_EXT_DEBUG_UTILS_EXTENSION_NAME);  // debug utilities
 
-    KDEBUG("Required extensions:");
+    DEBUG("Required extensions:");
     u32 length = darray_length(required_extensions);
     for (u32 i = 0; i < length; ++i) {
-        KDEBUG(required_extensions[i]);
+        DEBUG(required_extensions[i]);
     }
 #endif
 
@@ -108,7 +108,7 @@ b8 vulkan_renderer_backend_initialize(struct renderer_backend* backend, const ch
     // if validation should be done. get a list of the required validation layer names.
     // and make sure they exist. validation layers should only be enabled on non-release builds.
 #if defined(_DEBUG)
-    KINFO("Validation layers enabled. Enumerating...");
+    INFO("Validation layers enabled. Enumerating...");
 
     // the list of validation layers required.
     required_validation_layer_names = darray_create(const char*);
@@ -123,32 +123,32 @@ b8 vulkan_renderer_backend_initialize(struct renderer_backend* backend, const ch
 
     // verify all required layers are available
     for (u32 i = 0; i < required_validation_layer_count; ++i) {
-        KINFO("Searching for layer: %s...", required_validation_layer_names[i]);
+        INFO("Searching for layer: %s...", required_validation_layer_names[i]);
         b8 found = false;
         for (u32 j = 0; j < available_layer_count; ++j) {
             if (strings_equal(required_validation_layer_names[i], available_layers[j].layerName)) {
                 found = true;
-                KINFO("Found");
+                INFO("Found");
                 break;
             }
         }
 
         if (!found) {
-            KFATAL("Required validation layer is missing: %s", required_validation_layer_names[i]);
+            FATAL("Required validation layer is missing: %s", required_validation_layer_names[i]);
             return false;
         }
     }
-    KINFO("All required validation layers are present");
+    INFO("All required validation layers are present");
 #endif
     create_info.enabledLayerCount = required_validation_layer_count;
     create_info.ppEnabledLayerNames = required_validation_layer_names;
 
     VK_CHECK(vkCreateInstance(&create_info, context.allocator, &context.instance));
-    KINFO("vulkan instance created");
+    INFO("vulkan instance created");
 
     // Debugger
 #if defined(_DEBUG)
-    KDEBUG("Creating Vulkan debugger...");
+    DEBUG("Creating Vulkan debugger...");
     u32 log_severity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
                        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;  // |
                                                                          //    VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;  //|
@@ -164,20 +164,20 @@ b8 vulkan_renderer_backend_initialize(struct renderer_backend* backend, const ch
         (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(context.instance, "vkCreateDebugUtilsMessengerEXT");
     KASSERT_MSG(func, "Failed to create debug messenger!");
     VK_CHECK(func(context.instance, &debug_create_info, context.allocator, &context.debug_messenger));
-    KDEBUG("Vulkan debugger created.");
+    DEBUG("Vulkan debugger created.");
 #endif
 
     // surface
-    KDEBUG("creating vulkan surface");
+    DEBUG("creating vulkan surface");
     if (!platform_create_vulkan_surface(&context)) {
-        KERROR("Failed to create platform surface");
+        ERROR("Failed to create platform surface");
         return false;
     }
-    KDEBUG("vulkan surface created");
+    DEBUG("vulkan surface created");
 
     // Device creation
     if (!vulkan_device_create(&context)) {
-        KERROR("failed to create device.");
+        ERROR("failed to create device.");
         return false;
     }
 
@@ -228,7 +228,7 @@ b8 vulkan_renderer_backend_initialize(struct renderer_backend* backend, const ch
 
     // Create builtin shaders
     if (!vulkan_material_shader_create(&context, &context.material_shader)) {
-        KERROR("Error loading built-in basic_lighting shader.");
+        ERROR("Error loading built-in basic_lighting shader.");
         return false;
     }
 
@@ -268,13 +268,7 @@ b8 vulkan_renderer_backend_initialize(struct renderer_backend* backend, const ch
     upload_data_range(&context, context.device.graphics_command_pool, 0, context.device.graphics_queue, &context.object_index_buffer, 0, sizeof(u32) * index_count, indices);
     // TODO: end test code
 
-    u32 object_id = 0;
-    if (!vulkan_material_shader_acquire_resources(&context, &context.material_shader, &object_id)) {
-        KERROR("Failed to acquire shader resources.");
-        return false;
-    }
-
-    KINFO("vulkan renderer initialized successfully.");
+    INFO("vulkan renderer initialized successfully.");
 
     return true;
 }
@@ -342,17 +336,17 @@ void vulkan_renderer_backend_shutdown(struct renderer_backend* backend) {
     // swapchain
     vulkan_swapchain_destroy(&context, &context.swapchain);
 
-    KDEBUG("destroying vulkan device...");
+    DEBUG("destroying vulkan device...");
     vulkan_device_destroy(&context);
 
-    KDEBUG("destroying vulkan surface...");
+    DEBUG("destroying vulkan surface...");
     if (context.surface) {
         vkDestroySurfaceKHR(context.instance, context.surface, context.allocator);
         context.surface = 0;
     }
 
 #if defined(_DEBUG)
-    KDEBUG("Destroying Vulkan debugger...");
+    DEBUG("Destroying Vulkan debugger...");
     if (context.debug_messenger) {
         PFN_vkDestroyDebugUtilsMessengerEXT func =
             (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(context.instance, "vkDestroyDebugUtilsMessengerEXT");
@@ -360,7 +354,7 @@ void vulkan_renderer_backend_shutdown(struct renderer_backend* backend) {
     }
 #endif
 
-    KDEBUG("Destroying Vulkan instance...");
+    DEBUG("Destroying Vulkan instance...");
     vkDestroyInstance(context.instance, context.allocator);
 }
 
@@ -371,7 +365,7 @@ void vulkan_renderer_backend_on_resized(struct renderer_backend* backend, u16 wi
     cached_framebuffer_height = height;
     context.framebuffer_size_generation++;
 
-    KINFO("Vulkan renderer backend->resized: w/h/gen: %i/%i/%llu", width, height, context.framebuffer_size_generation);
+    INFO("Vulkan renderer backend->resized: w/h/gen: %i/%i/%llu", width, height, context.framebuffer_size_generation);
 }
 
 b8 vulkan_renderer_backend_begin_frame(struct renderer_backend* backend, f32 delta_time) {
@@ -382,10 +376,10 @@ b8 vulkan_renderer_backend_begin_frame(struct renderer_backend* backend, f32 del
     if (context.recreating_swapchain) {
         VkResult result = vkDeviceWaitIdle(device->logical_device);
         if (!vulkan_result_is_success(result)) {
-            KERROR("vulkan_renderer_backend_begin_frame vkDeviceWaitIdle (1) failed: '%s'", vulkan_result_string(result, true));
+            ERROR("vulkan_renderer_backend_begin_frame vkDeviceWaitIdle (1) failed: '%s'", vulkan_result_string(result, true));
             return false;
         }
-        KINFO("Recreating swapchain, booting.");
+        INFO("Recreating swapchain, booting.");
         return false;
     }
 
@@ -393,7 +387,7 @@ b8 vulkan_renderer_backend_begin_frame(struct renderer_backend* backend, f32 del
     if (context.framebuffer_size_generation != context.framebuffer_size_last_generation) {
         VkResult result = vkDeviceWaitIdle(device->logical_device);
         if (!vulkan_result_is_success(result)) {
-            KERROR("vulkan_renderer_backend_begin_frame vkDeviceWaitIdle (2) failed: '%s'", vulkan_result_string(result, true));
+            ERROR("vulkan_renderer_backend_begin_frame vkDeviceWaitIdle (2) failed: '%s'", vulkan_result_string(result, true));
             return false;
         }
 
@@ -403,7 +397,7 @@ b8 vulkan_renderer_backend_begin_frame(struct renderer_backend* backend, f32 del
             return false;
         }
 
-        KINFO("Resized, booting.");
+        INFO("Resized, booting.");
         return false;
     }
 
@@ -412,7 +406,7 @@ b8 vulkan_renderer_backend_begin_frame(struct renderer_backend* backend, f32 del
             &context,
             &context.in_flight_fences[context.current_frame],
             UINT64_MAX)) {
-        KWARN("In-flight fence wait failure!");
+        WARN("In-flight fence wait failure!");
         return false;
     }
 
@@ -527,7 +521,7 @@ b8 vulkan_renderer_backend_end_frame(struct renderer_backend* backend, f32 delta
         context.in_flight_fences[context.current_frame].handle);
 
     if (result != VK_SUCCESS) {
-        KERROR("vkQueueSubmit failed with result: %s", vulkan_result_string(result, true));
+        ERROR("vkQueueSubmit failed with result: %s", vulkan_result_string(result, true));
         return false;
     }
 
@@ -574,16 +568,16 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vk_debug_callback(
     switch (message_severity) {
         default:
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-            KERROR(callback_data->pMessage);
+            ERROR(callback_data->pMessage);
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-            KWARN(callback_data->pMessage);
+            WARN(callback_data->pMessage);
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-            KINFO(callback_data->pMessage);
+            INFO(callback_data->pMessage);
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-            KTRACE(callback_data->pMessage);
+            TRACE(callback_data->pMessage);
             break;
     }
     return VK_FALSE;
@@ -600,7 +594,7 @@ i32 find_memory_index(u32 type_filter, u32 property_flags) {
         }
     }
 
-    KWARN("Unable to find suitable memory type");
+    WARN("Unable to find suitable memory type");
     return -1;
 }
 
@@ -627,7 +621,7 @@ void create_command_buffers(renderer_backend* backend) {
             &context.graphics_command_buffers[i]);
     }
 
-    KDEBUG("Vulkan command buffers created.");
+    DEBUG("Vulkan command buffers created.");
 }
 
 // change window size
@@ -653,13 +647,13 @@ void regenerate_framebuffers(renderer_backend* backend, vulkan_swapchain* swapch
 b8 recreate_swapchain(renderer_backend* backend) {
     // If already being recreated, do not try again.
     if (context.recreating_swapchain) {
-        KDEBUG("recreate_swapchain called when already recreating. Booting.");
+        DEBUG("recreate_swapchain called when already recreating. Booting.");
         return false;
     }
 
     // Detect if the window is too small to be drawn to
     if (context.framebuffer_width == 0 || context.framebuffer_height == 0) {
-        KDEBUG("recreate_swapchain called when window is < 1 in a dimension. Booting.");
+        DEBUG("recreate_swapchain called when window is < 1 in a dimension. Booting.");
         return false;
     }
 
@@ -734,7 +728,7 @@ b8 create_buffers(vulkan_context* context) {
             memory_property_flags,
             true,
             &context->object_vertex_buffer)) {
-        KERROR("Error creating vertex buffer.");
+        ERROR("Error creating vertex buffer.");
         return false;
     }
     context->geometry_vertex_offset = 0;
@@ -747,7 +741,7 @@ b8 create_buffers(vulkan_context* context) {
             memory_property_flags,
             true,
             &context->object_index_buffer)) {
-        KERROR("Error creating vertex buffer.");
+        ERROR("Error creating vertex buffer.");
         return false;
     }
     context->geometry_index_offset = 0;
@@ -755,17 +749,12 @@ b8 create_buffers(vulkan_context* context) {
     return true;
 }
 
-void vulkan_renderer_create_texture(const char* name, i32 width, i32 height, i32 channel_count, const u8* pixels, b8 has_transparency, texture* out_texture) {
-    out_texture->width = width;
-    out_texture->height = height;
-    out_texture->channel_count = channel_count;
-    out_texture->generation = INVALID_ID;
-
+void vulkan_renderer_create_texture(const u8* pixels, texture* texture) {
     // Internal data creation.
     // TODO: Use an allocator for this.
-    out_texture->internal_data = (vulkan_texture_data*)kallocate(sizeof(vulkan_texture_data), MEMORY_TAG_TEXTURE);
-    vulkan_texture_data* data = (vulkan_texture_data*)out_texture->internal_data;
-    VkDeviceSize image_size = width * height * channel_count;
+    texture->internal_data = (vulkan_texture_data*)kallocate(sizeof(vulkan_texture_data), MEMORY_TAG_TEXTURE);
+    vulkan_texture_data* data = (vulkan_texture_data*)texture->internal_data;
+    VkDeviceSize image_size = texture->width * texture->height * texture->channel_count;
 
     // NOTE: Assumes 8 bits per channel.
     VkFormat image_format = VK_FORMAT_R8G8B8A8_UNORM;
@@ -783,8 +772,8 @@ void vulkan_renderer_create_texture(const char* name, i32 width, i32 height, i32
     vulkan_image_create(
         &context,
         VK_IMAGE_TYPE_2D,
-        width,
-        height,
+        texture->width,
+        texture->height,
         image_format,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
@@ -844,12 +833,11 @@ void vulkan_renderer_create_texture(const char* name, i32 width, i32 height, i32
 
     VkResult result = vkCreateSampler(context.device.logical_device, &sampler_info, context.allocator, &data->sampler);
     if (!vulkan_result_is_success(VK_SUCCESS)) {
-        KERROR("Error creating texture sampler: %s", vulkan_result_string(result, true));
+        ERROR("Error creating texture sampler: %s", vulkan_result_string(result, true));
         return;
     }
 
-    out_texture->has_transparency = has_transparency;
-    out_texture->generation++;
+    texture->generation++;
 }
 
 void vulkan_renderer_destroy_texture(struct texture* texture) {
@@ -865,4 +853,31 @@ void vulkan_renderer_destroy_texture(struct texture* texture) {
         kfree(texture->internal_data, sizeof(vulkan_texture_data), MEMORY_TAG_TEXTURE);
     }
     kzero_memory(texture, sizeof(struct texture));
+}
+
+b8 vulkan_renderer_create_material(struct material* material) {
+    if (material) {
+        if (!vulkan_material_shader_acquire_resources(&context, &context.material_shader, material)) {
+            ERROR("vulkan_renderer_create_material - Failed to acquire shader resources.");
+            return false;
+        }
+
+        TRACE("Renderer: Material created.");
+        return true;
+    }
+
+    ERROR("vulkan_renderer_create_material called with nullptr. Creation failed.");
+    return false;
+}
+
+void vulkan_renderer_destroy_material(struct material* material) {
+    if (material) {
+        if (material->internal_id != INVALID_ID) {
+            vulkan_material_shader_release_resources(&context, &context.material_shader, material);
+        } else {
+            WARN("vulkan_renderer_destroy_material called with internal_id=INVALID_ID. Nothing was done.");
+        }
+    } else {
+        WARN("vulkan_renderer_destroy_material called with nullptr. Nothing was done.");
+    }
 }

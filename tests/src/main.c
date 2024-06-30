@@ -12,7 +12,7 @@ int main() {
 
     hashtable_register_tests();
 
-    KDEBUG("Starting tests");
+    DEBUG("Starting tests");
 
     test_manager_run_tests();
 

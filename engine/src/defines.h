@@ -55,32 +55,32 @@ STATIC_ASSERT(sizeof(b8) == 1, "Expected b32 to be 1 byte");
 
 // Platform detection
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
-#define KPLATFORM_WINDOWS 1
+#define PLATFORM_WINDOWS 1
 #ifndef _WIN64
 #error "64-bit is required on Windows!"
 #endif
 #elif defined(__linux__) || defined(__gnu_linux__)
 // Linux OS
-#define KPLATFORM_LINUX 1
+#define PLATFORM_LINUX 1
 #if defined(__ANDROID__)
-#define KPLATFORM_ANDROID 1
+#define PLATFORM_ANDROID 1
 #endif
 #elif defined(__unix__)
 // Catch anything not caught by the above.
-#define KPLATFORM_UNIX 1
+#define PLATFORM_UNIX 1
 #elif defined(_POSIX_VERSION)
 // Posix
-#define KPLATFORM_POSIX 1
+#define PLATFORM_POSIX 1
 #elif __APPLE__
 // Apple platforms
-#define KPLATFORM_APPLE 1
+#define PLATFORM_APPLE 1
 #include <TargetConditionals.h>
 #if TARGET_IPHONE_SIMULATOR
 // IOS Simulator
-#define KPLATFORM_IOS 1
-#define KPLATFORM_IOS_SIMULATOR 1
+#define PLATFORM_IOS 1
+#define PLATFORM_IOS_SIMULATOR 1
 #elif TARGET_OS_IPHONE
-#define KPLATFORM_IOS 1
+#define PLATFORM_IOS 1
 // IOS device
 #elif TARGET_OS_MAC
 // Other kind of Mac OS
@@ -94,27 +94,27 @@ STATIC_ASSERT(sizeof(b8) == 1, "Expected b32 to be 1 byte");
 #ifdef KEXPORT
 // Exports
 #ifdef _MSC_VER
-#define KAPI __declspec(dllexport)
+#define API __declspec(dllexport)
 #else
-#define KAPI __attribute__((visibility("default")))
+#define API __attribute__((visibility("default")))
 #endif
 #else
 // Imports
 #ifdef _MSC_VER
-#define KAPI __declspec(dllimport)
+#define API __declspec(dllimport)
 #else
-#define KAPI
+#define API
 #endif
 #endif
 
-#define KCLAMP(value, min, max) (value <= min) ? min : (value >= max) ? max \
+#define CLAMP(value, min, max) (value <= min) ? min : (value >= max) ? max \
                                                                       : value;
 
 // Inlining
 #ifdef _MSC_VER
-#define KINLINE __forceinline
-#define KNOINLINE __declspec(noinline)
+#define INLINE __forceinline
+#define NOINLINE __declspec(noinline)
 #else
-#define KINLINE static inline
-#define KNOINLINE
+#define INLINE static inline
+#define NOINLINE
 #endif

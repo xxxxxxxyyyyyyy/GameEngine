@@ -8,8 +8,13 @@
 #include <sys/stat.h>
 
 b8 filesystem_exists(const char* path) {
+#ifdef _MSC_VER
+    struct _stat buffer;
+    return _stat(path, &buffer);
+#else
     struct stat buffer;
     return stat(path, &buffer) == 0;
+#endif
 }
 
 b8 filesystem_open(const char* path, file_modes mode, b8 binary, file_handle* out_handle) {
@@ -24,14 +29,14 @@ b8 filesystem_open(const char* path, file_modes mode, b8 binary, file_handle* ou
     } else if ((mode & FILE_MODE_READ) == 0 && (mode & FILE_MODE_WRITE) != 0) {
         mode_str = binary ? "wb" : "w";
     } else {
-        KERROR("Invalid mode passed while trying to open file: '%s'", path);
+        ERROR("Invalid mode passed while trying to open file: '%s'", path);
         return false;
     }
 
     // Attempt to open the file.
     FILE* file = fopen(path, mode_str);
     if (!file) {
-        KERROR("Error opening file: '%s'", path);
+        ERROR("Error opening file: '%s'", path);
         return false;
     }
 
@@ -49,14 +54,11 @@ void filesystem_close(file_handle* handle) {
     }
 }
 
-b8 filesystem_read_line(file_handle* handle, char** line_buf) {
-    if (handle->handle) {
-        // Since we are reading a single line, it should be safe to assume this is enough characters.
-        char buffer[32000];
-        if (fgets(buffer, 32000, (FILE*)handle->handle) != 0) {
-            u64 length = strlen(buffer);
-            *line_buf = kallocate((sizeof(char) * length) + 1, MEMORY_TAG_STRING);
-            strcpy(*line_buf, buffer);
+b8 filesystem_read_line(file_handle* handle, u64 max_length, char** line_buf, u64* out_line_length) {
+    if (handle->handle && line_buf && out_line_length && max_length > 0) {
+        char* buf = *line_buf;
+        if (fgets(buf, max_length, (FILE*)handle->handle) != 0) {
+            *out_line_length = strlen(*line_buf);
             return true;
         }
     }

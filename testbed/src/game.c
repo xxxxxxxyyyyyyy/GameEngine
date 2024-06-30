@@ -32,13 +32,13 @@ void camera_pitch(game_state* state, f32 amount) {
 
     // Clamp to avoid Gimball lock.
     f32 limit = deg_to_rad(89.0f);
-    state->camera_euler.x = KCLAMP(state->camera_euler.x, -limit, limit);
+    state->camera_euler.x = CLAMP(state->camera_euler.x, -limit, limit);
 
     state->camera_view_dirty = true;
 }
 
 b8 game_initialize(game* game_inst) {
-    KDEBUG("game_initialize() called!");
+    DEBUG("game_initialize() called!");
 
     game_state* state = (game_state*)game_inst->state;
 
@@ -57,12 +57,12 @@ b8 game_update(game* game_inst, f32 delta_time) {
     u64 prev_alloc_count = alloc_count;
     alloc_count = get_memory_alloc_count();
     if (input_is_key_up('M') && input_was_key_down('M')) {
-        KDEBUG("Allocations: %llu (%llu this frame)", alloc_count, alloc_count - prev_alloc_count);
+        DEBUG("Allocations: %llu (%llu this frame)", alloc_count, alloc_count - prev_alloc_count);
     }
 
     // TODO: temp
     if (input_is_key_up('T') && input_was_key_down('T')) {
-        KDEBUG("Swapping texture!");
+        DEBUG("Swapping texture!");
         event_context context = {};
         event_execute(EVENT_CODE_DEBUG0, game_inst, context);
     }

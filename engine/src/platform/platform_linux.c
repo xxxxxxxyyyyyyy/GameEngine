@@ -3,6 +3,6 @@
 
 #include "core/logger.h"
 
-#if KPLATFORM_LINUX
+#if PLATFORM_LINUX
 
 #endif

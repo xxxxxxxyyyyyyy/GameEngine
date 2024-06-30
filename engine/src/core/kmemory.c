@@ -58,7 +58,7 @@ void memory_system_shutdown(void* state) {
 
 void* kallocate(u64 size, memory_tag tag) {
     if (tag == MEMORY_TAG_UNKNOWN) {
-        KWARN("kallocate called using MEMORY_TAG_UNKNOWN. Re-class this allocation");
+        WARN("kallocate called using MEMORY_TAG_UNKNOWN. Re-class this allocation");
     }
 
     if (state_ptr) {
@@ -75,7 +75,7 @@ void* kallocate(u64 size, memory_tag tag) {
 
 void kfree(void* block, u64 size, memory_tag tag) {
     if (tag == MEMORY_TAG_UNKNOWN) {
-        KWARN("kallocate called using MEMORY_TAG_UNKNOWN. Re-class this allocation");
+        WARN("kallocate called using MEMORY_TAG_UNKNOWN. Re-class this allocation");
     }
 
     if (state_ptr) {

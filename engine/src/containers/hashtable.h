@@ -29,14 +29,14 @@ typedef struct hashtable {
  * @param is_pointer_type Indicates if this hashtable will hold pointer types.
  * @param out_hashtable A pointer to a hashtable in which to hold relevant data.
  */
-KAPI void hashtable_create(u64 element_size, u32 element_count, void* memory, b8 is_pointer_type, hashtable* out_hashtable);
+API void hashtable_create(u64 element_size, u32 element_count, void* memory, b8 is_pointer_type, hashtable* out_hashtable);
 
 /**
  * @brief Destroys the provided hashtable. Does not release memory for pointer types.
  * 
  * @param table A pointer to the table to be destroyed.
  */
-KAPI void hashtable_destroy(hashtable* table);
+API void hashtable_destroy(hashtable* table);
 
 /**
  * @brief Stores a copy of the data in value in the provided hashtable. 
@@ -47,7 +47,7 @@ KAPI void hashtable_destroy(hashtable* table);
  * @param value The value to be set. Required.
  * @return True, or false if a null pointer is passed.
  */
-KAPI b8 hashtable_set(hashtable* table, const char* name, void* value);
+API b8 hashtable_set(hashtable* table, const char* name, void* value);
 
 /**
  * @brief Stores a pointer as provided in value in the hashtable.
@@ -58,7 +58,7 @@ KAPI b8 hashtable_set(hashtable* table, const char* name, void* value);
  * @param value A pointer value to be set. Can pass 0 to 'unset' an entry.
  * @return True; or false if a null pointer is passed or if the entry is 0.
  */
-KAPI b8 hashtable_set_ptr(hashtable* table, const char* name, void** value);
+API b8 hashtable_set_ptr(hashtable* table, const char* name, void** value);
 
 /**
  * @brief Obtains a copy of data present in the hashtable.
@@ -69,7 +69,7 @@ KAPI b8 hashtable_set_ptr(hashtable* table, const char* name, void** value);
  * @param value A pointer to store the retrieved value. Required.
  * @return True; or false if a null pointer is passed.
  */
-KAPI b8 hashtable_get(hashtable* table, const char* name, void* out_value);
+API b8 hashtable_get(hashtable* table, const char* name, void* out_value);
 
 /**
  * @brief Obtains a pointer to data present in the hashtable.
@@ -80,7 +80,7 @@ KAPI b8 hashtable_get(hashtable* table, const char* name, void* out_value);
  * @param value A pointer to store the retrieved value. Required.
  * @return True if retrieved successfully; false if a null pointer is passed or is the retrieved value is 0.
  */
-KAPI b8 hashtable_get_ptr(hashtable* table, const char* name, void** out_value);
+API b8 hashtable_get_ptr(hashtable* table, const char* name, void** out_value);
 
 /**
  * @brief Fills all entries in the hashtable with the given value.
@@ -91,4 +91,4 @@ KAPI b8 hashtable_get_ptr(hashtable* table, const char* name, void** out_value);
  * @param value The value to be filled with. Required.
  * @return True if successful; otherwise false.
  */
-KAPI b8 hashtable_fill(hashtable* table, void* value);
+API b8 hashtable_fill(hashtable* table, void* value);

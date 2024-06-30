@@ -53,7 +53,7 @@ b8 vulkan_swapchain_acquire_next_image_index(
         vulkan_swapchain_recreate(context, context->framebuffer_width, context->framebuffer_height, swapchain);
         return false;
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-        KFATAL("Failed to acquire swapchain image!");
+        FATAL("Failed to acquire swapchain image!");
         return false;
     }
 
@@ -81,7 +81,7 @@ void vulkan_swapchain_present(
         // Swapchain is out of date, suboptimal or a framebuffer resize has occurred. Trigger swapchain recreation.
         vulkan_swapchain_recreate(context, context->framebuffer_width, context->framebuffer_height, swapchain);
     } else if (result != VK_SUCCESS) {
-        KFATAL("Failed to present swap chain image!");
+        FATAL("Failed to present swap chain image!");
     }
 
     // increment and loop the index
@@ -131,8 +131,8 @@ void create(vulkan_context* context, u32 width, u32 height, vulkan_swapchain* sw
     // Clamp to the value allowed by the GPU.
     VkExtent2D min = context->device.swapchain_support.capabilities.minImageExtent;
     VkExtent2D max = context->device.swapchain_support.capabilities.maxImageExtent;
-    swapchain_extent.width = KCLAMP(swapchain_extent.width, min.width, max.width);
-    swapchain_extent.height = KCLAMP(swapchain_extent.height, min.height, max.height);
+    swapchain_extent.width = CLAMP(swapchain_extent.width, min.width, max.width);
+    swapchain_extent.height = CLAMP(swapchain_extent.height, min.height, max.height);
 
     u32 image_count = context->device.swapchain_support.capabilities.minImageCount + 1;
     if (context->device.swapchain_support.capabilities.maxImageCount > 0 && image_count > context->device.swapchain_support.capabilities.maxImageCount) {
@@ -205,7 +205,7 @@ void create(vulkan_context* context, u32 width, u32 height, vulkan_swapchain* sw
     // Depth resources
     if (!vulkan_device_detect_depth_format(&context->device)) {
         context->device.depth_format = VK_FORMAT_UNDEFINED;
-        KFATAL("Failed to find a supported format!");
+        FATAL("Failed to find a supported format!");
     }
 
     // Create depth image and its view.
@@ -222,7 +222,7 @@ void create(vulkan_context* context, u32 width, u32 height, vulkan_swapchain* sw
         VK_IMAGE_ASPECT_DEPTH_BIT,
         &swapchain->depth_attachment);
 
-    KINFO("Swapchain created successfully.");
+    INFO("Swapchain created successfully.");
 }
 
 void destroy(vulkan_context* context, vulkan_swapchain* swapchain) {

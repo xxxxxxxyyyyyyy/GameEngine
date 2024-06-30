@@ -15,6 +15,7 @@
 
 // systems
 #include "systems/texture_system.h"
+#include "systems/material_system.h"
 
 typedef struct application_state {
     game* game_inst;
@@ -46,6 +47,9 @@ typedef struct application_state {
 
     u64 texture_system_memory_requirement;
     void* texture_system_state;
+
+    u64 material_system_memory_requirement;
+    void* material_system_state;
 } application_state;
 
 // safety check, the application initialize times
@@ -60,7 +64,7 @@ b8 application_on_resized(u16 code, void* sender, void* listener_inst, event_con
 
 b8 application_create(game* game_inst) {
     if (game_inst->application_state) {
-        KERROR("application_create called more than once");
+        ERROR("application_create called more than once");
         return false;
     }
 
@@ -89,7 +93,7 @@ b8 application_create(game* game_inst) {
     logging_system_initialize(&app_state->logging_system_memory_requirement, 0);
     app_state->logging_system_state = linear_allocator_allocate(&app_state->systems_allocator, app_state->logging_system_memory_requirement);
     if (!logging_system_initialize(&app_state->logging_system_memory_requirement, app_state->logging_system_state)) {
-        KERROR("Failed to initialize logging system; shutting down.");
+        ERROR("Failed to initialize logging system; shutting down.");
         return false;
     }
 
@@ -117,7 +121,7 @@ b8 application_create(game* game_inst) {
     renderer_system_initialize(&app_state->renderer_system_memory_requirement, 0, 0);
     app_state->renderer_system_state = linear_allocator_allocate(&app_state->systems_allocator, app_state->renderer_system_memory_requirement);
     if (!renderer_system_initialize(&app_state->renderer_system_memory_requirement, app_state->renderer_system_state, game_inst->app_config.name)) {
-        KFATAL("Failed to initialize renderer. Aborting application");
+        FATAL("Failed to initialize renderer. Aborting application");
         return false;
     }
 
@@ -127,13 +131,23 @@ b8 application_create(game* game_inst) {
     texture_system_initialize(&app_state->texture_system_memory_requirement, 0, texture_sys_config);
     app_state->texture_system_state = linear_allocator_allocate(&app_state->systems_allocator, app_state->texture_system_memory_requirement);
     if (!texture_system_initialize(&app_state->texture_system_memory_requirement, app_state->texture_system_state, texture_sys_config)) {
-        KFATAL("Failed to initialize texture system. Application cannot continue.");
+        FATAL("Failed to initialize texture system. Application cannot continue.");
+        return false;
+    }
+
+    // Material system.
+    material_system_config material_sys_config;
+    material_sys_config.max_material_count = 4096;
+    material_system_initialize(&app_state->material_system_memory_requirement, 0, material_sys_config);
+    app_state->material_system_state = linear_allocator_allocate(&app_state->systems_allocator, app_state->material_system_memory_requirement);
+    if (!material_system_initialize(&app_state->material_system_memory_requirement, app_state->material_system_state, material_sys_config)) {
+        FATAL("Failed to initialize material system. Application cannot continue.");
         return false;
     }
 
     // Initialize the game.
     if (!app_state->game_inst->initialize(app_state->game_inst)) {
-        KFATAL("Game failed to initialize");
+        FATAL("Game failed to initialize");
         return false;
     }
 
@@ -153,7 +167,7 @@ b8 application_run() {
     u8 frame_count = 0;
     f64 target_frame_seconds = 1.0f / 30;
 
-    KINFO(get_memory_usage_str());
+    INFO(get_memory_usage_str());
 
     while (app_state->is_running) {
         if (!platform_pump_messages()) {
@@ -168,14 +182,14 @@ b8 application_run() {
             f64 frame_start_time = platform_get_absolute_time();
 
             if (!app_state->game_inst->update(app_state->game_inst, (f32)delta)) {
-                KFATAL("Game update failed, shutting down");
+                FATAL("Game update failed, shutting down");
                 app_state->is_running = false;
                 break;
             }
 
             // Call the game's render routine
             if (!app_state->game_inst->render(app_state->game_inst, (f32)delta)) {
-                KFATAL("Game render failed, shutting down");
+                FATAL("Game render failed, shutting down");
                 app_state->is_running = false;
                 break;
             }
@@ -224,6 +238,7 @@ b8 application_run() {
 
     input_system_shutdown(app_state->input_system_state);
 
+    material_system_shutdown(app_state->material_system_state);
     texture_system_shutdown(app_state->texture_system_state);
     renderer_system_shutdown(app_state->renderer_system_state);
 
@@ -246,7 +261,7 @@ void application_get_framebuffer_size(u32* width, u32* height) {
 b8 application_on_event(u16 code, void* sender, void* listener_inst, event_context context) {
     switch (code) {
         case EVENT_CODE_APPLICATION_QUIT: {
-            KINFO("EVENT_CODE_APPLICATION_QUIT received, shutting down. \n");
+            INFO("EVENT_CODE_APPLICATION_QUIT received, shutting down. \n");
             app_state->is_running = false;
             return true;
         }
@@ -265,16 +280,16 @@ b8 application_on_key(u16 code, void* sender, void* listener_inst, event_context
             // blocking anything else from processing this.
             return true;
         } else if (key_code == KEY_A) {
-            KDEBUG("Explicit - A key pressed!");
+            DEBUG("Explicit - A key pressed!");
         } else {
-            KDEBUG("'%c' key pressed in window", key_code);
+            DEBUG("'%c' key pressed in window", key_code);
         }
     } else if (code == EVENT_CODE_KEY_RELEASED) {
         u16 key_code = context.data.u16[0];
         if (key_code == KEY_B) {
-            KDEBUG("Explicit - B key released!");
+            DEBUG("Explicit - B key released!");
         } else {
-            KDEBUG("'%c' key released in window", key_code);
+            DEBUG("'%c' key released in window", key_code);
         }
     }
     return false;
@@ -290,16 +305,16 @@ b8 application_on_resized(u16 code, void* sender, void* listener_inst, event_con
             app_state->width = width;
             app_state->height = height;
 
-            KDEBUG("Window resize: %i, %i", width, height);
+            DEBUG("Window resize: %i, %i", width, height);
 
             // Handle minimization
             if (width == 0 || height == 0) {
-                KINFO("Window minimized, suspending application.");
+                INFO("Window minimized, suspending application.");
                 app_state->is_suspended = true;
                 return true;
             } else {
                 if (app_state->is_suspended) {
-                    KINFO("Window restored, resuming application.");
+                    INFO("Window restored, resuming application.");
                     app_state->is_suspended = false;
                 }
                 app_state->game_inst->on_resize(app_state->game_inst, width, height);

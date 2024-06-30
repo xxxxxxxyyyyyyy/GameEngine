@@ -59,7 +59,7 @@ b8 event_register(u16 code, void* listener, PFN_on_event on_event) {
     u64 register_count = darray_length(state_ptr->registered[code].events);
     for (u64 i = 0; i < register_count; ++i) {
         if (state_ptr->registered[code].events[i].listener == listener) {
-            KWARN("you are trying to register a event with same listener!");
+            WARN("you are trying to register a event with same listener!");
             return false;
         }
     }
@@ -79,7 +79,7 @@ b8 event_unregister(u16 code, void* listener, PFN_on_event on_event) {
 
     // on nothing is registered for the code.
     if (state_ptr->registered[code].events == 0) {
-        KWARN("you are trying to unregister a unregistered event!");
+        WARN("you are trying to unregister a unregistered event!");
         return false;
     }
 

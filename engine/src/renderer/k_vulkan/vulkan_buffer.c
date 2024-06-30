@@ -31,7 +31,7 @@ b8 vulkan_buffer_create(
     vkGetBufferMemoryRequirements(context->device.logical_device, out_buffer->handle, &requirements);
     out_buffer->memory_index = context->find_memory_index(requirements.memoryTypeBits, out_buffer->memory_property_flags);
     if (out_buffer->memory_index == -1) {
-        KERROR("Unable to create vulkan buffer because the required memory type index was not found.");
+        ERROR("Unable to create vulkan buffer because the required memory type index was not found.");
         return false;
     }
 
@@ -48,7 +48,7 @@ b8 vulkan_buffer_create(
         &out_buffer->memory);
 
     if (result != VK_SUCCESS) {
-        KERROR("Unable to create vulkan buffer because the required memory allocation failed. Error: %i", result);
+        ERROR("Unable to create vulkan buffer because the required memory allocation failed. Error: %i", result);
         return false;
     }
 
@@ -101,7 +101,7 @@ b8 vulkan_buffer_resize(
     VkDeviceMemory new_memory;
     VkResult result = vkAllocateMemory(context->device.logical_device, &allocate_info, context->allocator, &new_memory);
     if (result != VK_SUCCESS) {
-        KERROR("Unable to resize vulkan buffer because the required memory allocation failed. Error: %i", result);
+        ERROR("Unable to resize vulkan buffer because the required memory allocation failed. Error: %i", result);
         return false;
     }
 

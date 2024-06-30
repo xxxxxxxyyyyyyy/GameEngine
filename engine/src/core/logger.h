@@ -8,7 +8,7 @@
 #define LOG_TRACE_ENABLED 1
 
 // disable debug and trace logging for release builds
-#if KRELEASE == 1
+#if RELEASE == 1
 #define LOG_DEBUG_ENABLED 0
 #define LOG_TRACE_ENABLED 0
 #endif
@@ -33,44 +33,44 @@ typedef enum log_level {
 b8 logging_system_initialize(u64* memory_requirement, void* state);
 void logging_system_shutdown(void* state);
 
-KAPI void log_output(log_level level, const char* message, ...);
+API void log_output(log_level level, const char* message, ...);
 
 // Logs a fatal level message
-#define KFATAL(message, ...) log_output(LOG_LEVEL_FATAL, message, ##__VA_ARGS__);
+#define FATAL(message, ...) log_output(LOG_LEVEL_FATAL, message, ##__VA_ARGS__);
 
-#ifndef KERROR
+#ifndef ERROR
 // Logs a error level message
-#define KERROR(message, ...) log_output(LOG_LEVEL_ERROR, message, ##__VA_ARGS__);
-#endif  // !KERROR
+#define ERROR(message, ...) log_output(LOG_LEVEL_ERROR, message, ##__VA_ARGS__);
+#endif  // !ERROR
 
 #if LOG_WARN_ENABLED == 1
 // Logs a warning level message
-#define KWARN(message, ...) log_output(LOG_LEVEL_WARN, message, ##__VA_ARGS__);
+#define WARN(message, ...) log_output(LOG_LEVEL_WARN, message, ##__VA_ARGS__);
 #else
 // Does nothing when LOG_WARN_ENABLED != 1
-#define KWARN(message, ...)  // allows to compile but compile to nothing`
+#define WARN(message, ...)  // allows to compile but compile to nothing`
 #endif
 
 #if LOG_INFO_ENABLED == 1
 // Logs a info level message
-#define KINFO(message, ...) log_output(LOG_LEVEL_INFO, message, ##__VA_ARGS__);
+#define INFO(message, ...) log_output(LOG_LEVEL_INFO, message, ##__VA_ARGS__);
 #else
 // Does nothing when LOG_INFO_ENABLED != 1
-#define KINFO(message, ...)  // allows to compile but compile to nothing`
+#define INFO(message, ...)  // allows to compile but compile to nothing`
 #endif
 
 #if LOG_DEBUG_ENABLED == 1
 // Logs a debug level message
-#define KDEBUG(message, ...) log_output(LOG_LEVEL_DEBUG, message, ##__VA_ARGS__);
+#define DEBUG(message, ...) log_output(LOG_LEVEL_DEBUG, message, ##__VA_ARGS__);
 #else
 // Does nothing when LOG_DEBUG_ENABLED != 1
-#define KDEBUG(message, ...)  // allows to compile but compile to nothing`
+#define DEBUG(message, ...)  // allows to compile but compile to nothing`
 #endif
 
 #if LOG_TRACE_ENABLED == 1
 // Logs a debug level message
-#define KTRACE(message, ...) log_output(LOG_LEVEL_TRACE, message, ##__VA_ARGS__);
+#define TRACE(message, ...) log_output(LOG_LEVEL_TRACE, message, ##__VA_ARGS__);
 #else
 // Does nothing when LOG_TRACE_ENABLED != 1
-#define KTRACE(message, ...)  // allows to compile but compile to nothing`
+#define TRACE(message, ...)  // allows to compile but compile to nothing`
 #endif

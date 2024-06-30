@@ -159,7 +159,10 @@
         "linear_allocator_tests.h": "c",
         "expect.h": "c",
         "vulkan_material_shader.h": "c",
-        "stat.h": "c"
+        "stat.h": "c",
+        "xlocale": "c",
+        "algorithm": "c",
+        "*.rh": "c"
     },
     // File copyright documentation tag.  Array of strings will be converted to one line per element.  Can template {year}.
     "doxdocgen.file.copyrightTag": [

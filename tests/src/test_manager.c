@@ -42,19 +42,19 @@ void test_manager_run_tests() {
         if (result == true) {
             ++passed;
         } else if (result == BYPASS) {
-            KWARN("[SKIPPED]: %s", tests[i].desc);
+            WARN("[SKIPPED]: %s", tests[i].desc);
             ++skipped;
         } else {
-            KERROR("[FAILED]: %s", tests[i].desc);
+            ERROR("[FAILED]: %s", tests[i].desc);
             ++failed;
         }
         char status[20];
         string_format(status, failed ? "*** %d FAILED ***" : "SUCCESS", failed);
         clock_update(&total_time);
-        KINFO("Executed %d of %d (skipped %d) %s (%.6f sec / %.6f sec total", i + 1, count, skipped, status, test_time.elapsed, total_time.elapsed);
+        INFO("Executed %d of %d (skipped %d) %s (%.6f sec / %.6f sec total", i + 1, count, skipped, status, test_time.elapsed, total_time.elapsed);
     }
 
     clock_stop(&total_time);
 
-    KINFO("Results: %d passed, %d failed, %d skipped.", passed, failed, skipped);
+    INFO("Results: %d passed, %d failed, %d skipped.", passed, failed, skipped);
 }

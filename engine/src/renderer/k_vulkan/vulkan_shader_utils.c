@@ -23,7 +23,7 @@ b8 create_shader_module(
     // Obtain file handle.
     file_handle handle;
     if (!filesystem_open(file_name, FILE_MODE_READ, true, &handle)) {
-        KERROR("Unable to read shader module: %s.", file_name);
+        ERROR("Unable to read shader module: %s.", file_name);
         return false;
     }
 
@@ -31,7 +31,7 @@ b8 create_shader_module(
     u64 size = 0;
     u8* file_buffer = 0;
     if (!filesystem_read_all_bytes(&handle, &file_buffer, &size)) {
-        KERROR("Unable to binary read shader module: %s.", file_name);
+        ERROR("Unable to binary read shader module: %s.", file_name);
         return false;
     }
     shader_stages[stage_index].create_info.codeSize = size;

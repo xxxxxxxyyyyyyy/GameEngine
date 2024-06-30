@@ -25,7 +25,7 @@
 #define debugBreak() __builtin_trap()
 #endif
 
-KAPI void report_assertion_failure(const char* expression, const char* message, const char* file, i32 line);
+API void report_assertion_failure(const char* expression, const char* message, const char* file, i32 line);
 
 #define KASSERT(expr)                                                \
     {                                                                \

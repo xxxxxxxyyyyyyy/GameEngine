@@ -31,7 +31,7 @@ void input_system_initialize(u64* memory_requirement, void* state) {
     kzero_memory(state, sizeof(input_state));
     state_ptr = state;
 
-    KINFO("Input subsystem initialized.");
+    INFO("Input subsystem initialized.");
 }
 
 void input_system_shutdown(void* state) {
@@ -56,21 +56,21 @@ void input_process_key(keys key, b8 pressed) {
         state_ptr->keyboard_current.keys[key] = pressed;
 
         if (key == KEY_LALT) {
-            KINFO("Left alt %s.", pressed ? "pressed" : "released");
+            INFO("Left alt %s.", pressed ? "pressed" : "released");
         } else if (key == KEY_RALT) {
-            KINFO("Right alt %s.", pressed ? "pressed" : "released");
+            INFO("Right alt %s.", pressed ? "pressed" : "released");
         }
 
         if (key == KEY_LCONTROL) {
-            KINFO("Left ctrl %s.", pressed ? "pressed" : "released");
+            INFO("Left ctrl %s.", pressed ? "pressed" : "released");
         } else if (key == KEY_RCONTROL) {
-            KINFO("Right ctrl %s.", pressed ? "pressed" : "released");
+            INFO("Right ctrl %s.", pressed ? "pressed" : "released");
         }
 
         if (key == KEY_LSHIFT) {
-            KINFO("Left shift %s.", pressed ? "pressed" : "released");
+            INFO("Left shift %s.", pressed ? "pressed" : "released");
         } else if (key == KEY_RSHIFT) {
-            KINFO("Right shift %s.", pressed ? "pressed" : "released");
+            INFO("Right shift %s.", pressed ? "pressed" : "released");
         }
 
         // fire off an event for immediate processing
@@ -96,7 +96,7 @@ void input_process_mouse_move(i16 x, i16 y) {
     // only process if actually different
     if (state_ptr->mouse_current.x != x || state_ptr->mouse_current.y != y) {
         // NOTE: enable this if debugging
-        // KDEBUG("Mouse pos: %i, %i.", x, y);
+        // DEBUG("Mouse pos: %i, %i.", x, y);
 
         // update internal state
         state_ptr->mouse_current.x = x;

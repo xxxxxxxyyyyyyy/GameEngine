@@ -33,10 +33,11 @@ static texture_system_state* state_ptr = 0;
 b8 create_default_textures(texture_system_state* state);
 void destroy_default_textures(texture_system_state* state);
 b8 load_texture(const char* texture_name, texture* t);
+void destroy_texture(texture* t);
 
 b8 texture_system_initialize(u64* memory_requirement, void* state, texture_system_config config) {
     if (config.max_texture_count == 0) {
-        KFATAL("texture_system_initialize - config.max_texture_count must be > 0.");
+        FATAL("texture_system_initialize - config.max_texture_count must be > 0.");
         return false;
     }
 
@@ -102,7 +103,7 @@ void texture_system_shutdown(void* state) {
 texture* texture_system_acquire(const char* name, b8 auto_release) {
     // Return default texture, but warn about it since this should be returned via get_default_texture();
     if (strings_equali(name, DEFAULT_TEXTURE_NAME)) {
-        KWARN("texture_system_acquire called for default texture. Use texture_system_get_default_texture for texture 'default'.");
+        WARN("texture_system_acquire called for default texture. Use texture_system_get_default_texture for texture 'default'.");
         return &state_ptr->default_texture;
     }
 
@@ -128,21 +129,21 @@ texture* texture_system_acquire(const char* name, b8 auto_release) {
 
             // Make sure an empty slot was actually found.
             if (!t || ref.handle == INVALID_ID) {
-                KFATAL("texture_system_acquire - Texture system cannot hold anymore textures. Adjust configuration to allow more.");
+                FATAL("texture_system_acquire - Texture system cannot hold anymore textures. Adjust configuration to allow more.");
                 return 0;
             }
 
             // Create new texture.
             if (!load_texture(name, t)) {
-                KERROR("Failed to load texture '%s'.", name);
+                ERROR("Failed to load texture '%s'.", name);
                 return 0;
             }
 
             // Also use the handle as the texture id.
             t->id = ref.handle;
-            KTRACE("Texture '%s' does not yet exist. Created, and ref_count is now %i.", name, ref.reference_count);
+            TRACE("Texture '%s' does not yet exist. Created, and ref_count is now %i.", name, ref.reference_count);
         } else {
-            KTRACE("Texture '%s' already exists, ref_count increased to %i.", name, ref.reference_count);
+            TRACE("Texture '%s' already exists, ref_count increased to %i.", name, ref.reference_count);
         }
 
         // Update the entry.
@@ -151,7 +152,7 @@ texture* texture_system_acquire(const char* name, b8 auto_release) {
     }
 
     // NOTE: This would only happen in the event something went wrong with the state.
-    KERROR("texture_system_acquire failed to acquire texture '%s'. Null pointer will be returned.", name);
+    ERROR("texture_system_acquire failed to acquire texture '%s'. Null pointer will be returned.", name);
     return 0;
 }
 
@@ -163,33 +164,34 @@ void texture_system_release(const char* name) {
     texture_reference ref;
     if (state_ptr && hashtable_get(&state_ptr->registered_texture_table, name, &ref)) {
         if (ref.reference_count == 0) {
-            KWARN("Tried to release non-existent texture: '%s'", name);
+            WARN("Tried to release non-existent texture: '%s'", name);
             return;
         }
+
+        // Take a copy of the name since it will be wiped out by destroy,
+        // (as passed in name is generally a pointer to the actual texture's name).
+        char name_copy[TEXTURE_NAME_MAX_LENGTH];
+        string_ncopy(name_copy, name, TEXTURE_NAME_MAX_LENGTH);
+
         ref.reference_count--;
         if (ref.reference_count == 0 && ref.auto_release) {
             texture* t = &state_ptr->registered_textures[ref.handle];
 
-            // Release texture.
-            renderer_destroy_texture(t);
-
-            // Reset the array entry, ensure invalid ids are set.
-            kzero_memory(t, sizeof(texture));
-            t->id = INVALID_ID;
-            t->generation = INVALID_ID;
+            // Destroy/reset texture.
+            destroy_texture(t);
 
             // Reset the reference.
             ref.handle = INVALID_ID;
             ref.auto_release = false;
-            KTRACE("Released texture '%s'., Texture unloaded because reference count=0 and auto_release=true.", name);
+            TRACE("Released texture '%s'., Texture unloaded because reference count=0 and auto_release=true.", name_copy);
         } else {
-            KTRACE("Released texture '%s', now has a reference count of '%i' (auto_release=%s).", name, ref.reference_count, ref.auto_release ? "true" : "false");
+            TRACE("Released texture '%s', now has a reference count of '%i' (auto_release=%s).", name_copy, ref.reference_count, ref.auto_release ? "true" : "false");
         }
 
         // Update the entry.
-        hashtable_set(&state_ptr->registered_texture_table, name, &ref);
+        hashtable_set(&state_ptr->registered_texture_table, name_copy, &ref);
     } else {
-        KERROR("texture_system_release failed to release texture '%s'.", name);
+        ERROR("texture_system_release failed to release texture '%s'.", name);
     }
 }
 
@@ -198,14 +200,14 @@ texture* texture_system_get_default_texture() {
         return &state_ptr->default_texture;
     }
 
-    KERROR("texture_system_get_default_texture called before texture system initialization! Null pointer returned.");
+    ERROR("texture_system_get_default_texture called before texture system initialization! Null pointer returned.");
     return 0;
 }
 
 b8 create_default_textures(texture_system_state* state) {
     // NOTE: Create default texture, a 256x256 blue/white checkerboard pattern.
     // This is done in code to eliminate asset dependencies.
-    KTRACE("Creating default texture...");
+    TRACE("Creating default texture...");
     const u32 tex_dimension = 256;
     const u32 channels = 4;
     const u32 pixel_count = tex_dimension * tex_dimension;
@@ -230,7 +232,13 @@ b8 create_default_textures(texture_system_state* state) {
             }
         }
     }
-    renderer_create_texture(DEFAULT_TEXTURE_NAME, tex_dimension, tex_dimension, 4, pixels, false, &state->default_texture);
+    string_ncopy(state->default_texture.name, DEFAULT_TEXTURE_NAME, TEXTURE_NAME_MAX_LENGTH);
+    state->default_texture.width = tex_dimension;
+    state->default_texture.height = tex_dimension;
+    state->default_texture.channel_count = 4;
+    state->default_texture.generation = INVALID_ID;
+    state->default_texture.has_transparency = false;
+    renderer_create_texture(pixels, &state->default_texture);
     // Manually set the texture generation to invalid since this is a default texture.
     state->default_texture.generation = INVALID_ID;
 
@@ -239,7 +247,7 @@ b8 create_default_textures(texture_system_state* state) {
 
 void destroy_default_textures(texture_system_state* state) {
     if (state) {
-        renderer_destroy_texture(&state->default_texture);
+        destroy_texture(&state->default_texture);
     }
 }
 
@@ -281,17 +289,20 @@ b8 load_texture(const char* texture_name, texture* t) {
         }
 
         if (stbi_failure_reason()) {
-            KWARN("load_texture() failed to load file '%s': %s", full_file_path, stbi_failure_reason());
+            WARN("load_texture() failed to load file '%s': %s", full_file_path, stbi_failure_reason());
+            // Clear the error so the next load doesn't fail.
+            stbi__err(0, 0);
+            return false;
         }
+        
+        // Take a copy of the name.
+        string_ncopy(temp_texture.name, texture_name, TEXTURE_NAME_MAX_LENGTH);
+        temp_texture.generation = INVALID_ID;
+        temp_texture.has_transparency = has_transparency;
 
         // Acquire internal texture resources and upload to GPU.
         renderer_create_texture(
-            texture_name,
-            temp_texture.width,
-            temp_texture.height,
-            temp_texture.channel_count,
             data,
-            has_transparency,
             &temp_texture);
 
         // Take a copy of the old texture.
@@ -314,8 +325,20 @@ b8 load_texture(const char* texture_name, texture* t) {
         return true;
     } else {
         if (stbi_failure_reason()) {
-            KWARN("load_texture() failed to load file '%s': %s", full_file_path, stbi_failure_reason());
+            WARN("load_texture() failed to load file '%s': %s", full_file_path, stbi_failure_reason());
+            // Clear the error so the next load doesn't fail.
+            stbi__err(0, 0);
         }
         return false;
     }
+}
+
+    void destroy_texture(texture* t) {
+        // Clean up backend resources.
+        renderer_destroy_texture(t);
+
+        kzero_memory(t->name, sizeof(char) * TEXTURE_NAME_MAX_LENGTH);
+        kzero_memory(t, sizeof(texture));
+        t->id = INVALID_ID;
+        t->generation = INVALID_ID;
 }

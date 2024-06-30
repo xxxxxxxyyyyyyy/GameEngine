@@ -7,7 +7,7 @@
 #include "containers/darray.h"
 
 // Windows platform layer.
-#if KPLATFORM_WINDOWS
+#if PLATFORM_WINDOWS
 
 #include <Windows.h>
 #include <windowsx.h>  // param input extraction
@@ -112,7 +112,7 @@ b8 platform_system_startup(
     if (handle == 0) {
         MessageBoxA(NULL, "window creation failed!", "Error", MB_ICONEXCLAMATION | MB_OK);
 
-        KFATAL("Window creation failed");
+        FATAL("Window creation failed");
         return false;
     } else {
         state_ptr->hwnd = handle;
@@ -325,7 +325,7 @@ b8 platform_create_vulkan_surface(vulkan_context* context) {
 
     VkResult result = vkCreateWin32SurfaceKHR(context->instance, &create_info, context->allocator, &state_ptr->surface);
     if (result != VK_SUCCESS) {
-        KFATAL("vulakn surface creation failed");
+        FATAL("vulakn surface creation failed");
         return false;
     }
 
@@ -333,4 +333,4 @@ b8 platform_create_vulkan_surface(vulkan_context* context) {
     return true;
 }
 
-#endif  // KPLATFORM_WINDOWS
+#endif  // PLATFORM_WINDOWS

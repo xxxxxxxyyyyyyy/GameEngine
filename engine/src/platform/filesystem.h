@@ -19,7 +19,7 @@ typedef enum file_modes {
  * @param path The path of the file to be checked.
  * @returns True if exists; otherwise false.
  */
-KAPI b8 filesystem_exists(const char* path);
+API b8 filesystem_exists(const char* path);
 
 /** 
  * Attempt to open file located at path.
@@ -29,21 +29,23 @@ KAPI b8 filesystem_exists(const char* path);
  * @param out_handle A pointer to a file_handle structure which holds the handle information.
  * @returns True if opened successfully; otherwise false.
  */
-KAPI b8 filesystem_open(const char* path, file_modes mode, b8 binary, file_handle* out_handle);
+API b8 filesystem_open(const char* path, file_modes mode, b8 binary, file_handle* out_handle);
 
 /** 
  * Closes the provided handle to a file.
  * @param handle A pointer to a file_handle structure which holds the handle to be closed.
  */
-KAPI void filesystem_close(file_handle* handle);
+API void filesystem_close(file_handle* handle);
 
 /** 
- * Reads up to a newline or EOF. Allocates *line_buf, which must be freed by the caller.
+ * Reads up to a newline or EOF.
  * @param handle A pointer to a file_handle structure.
- * @param line_buf A pointer to a character array which will be allocated and populated by this method.
+ * @param max_length The maximum length to be read from the line.
+ * @param line_buf A pointer to a character array populated by this method. Must already be allocated.
+ * @param out_line_length A pointer to hold the line length read from the file.
  * @returns True if successful; otherwise false.
  */
-KAPI b8 filesystem_read_line(file_handle* handle, char** line_buf);
+API b8 filesystem_read_line(file_handle* handle, u64 max_length, char** line_buf, u64* out_line_length);
 
 /** 
  * Writes text to the provided file, appending a '\n' afterward.
@@ -51,7 +53,7 @@ KAPI b8 filesystem_read_line(file_handle* handle, char** line_buf);
  * @param text The text to be written.
  * @returns True if successful; otherwise false.
  */
-KAPI b8 filesystem_write_line(file_handle* handle, const char* text);
+API b8 filesystem_write_line(file_handle* handle, const char* text);
 
 /** 
  * Reads up to data_size bytes of data into out_bytes_read. 
@@ -62,7 +64,7 @@ KAPI b8 filesystem_write_line(file_handle* handle, const char* text);
  * @param out_bytes_read A pointer to a number which will be populated with the number of bytes actually read from the file.
  * @returns True if successful; otherwise false.
  */
-KAPI b8 filesystem_read(file_handle* handle, u64 data_size, void* out_data, u64* out_bytes_read);
+API b8 filesystem_read(file_handle* handle, u64 data_size, void* out_data, u64* out_bytes_read);
 
 /** 
  * Reads up to data_size bytes of data into out_bytes_read. 
@@ -72,7 +74,7 @@ KAPI b8 filesystem_read(file_handle* handle, u64 data_size, void* out_data, u64*
  * @param out_bytes_read A pointer to a number which will be populated with the number of bytes actually read from the file.
  * @returns True if successful; otherwise false.
  */
-KAPI b8 filesystem_read_all_bytes(file_handle* handle, u8** out_bytes, u64* out_bytes_read);
+API b8 filesystem_read_all_bytes(file_handle* handle, u8** out_bytes, u64* out_bytes_read);
 
 /** 
  * Writes provided data to the file.
@@ -82,4 +84,4 @@ KAPI b8 filesystem_read_all_bytes(file_handle* handle, u8** out_bytes, u64* out_
  * @param out_bytes_written A pointer to a number which will be populated with the number of bytes actually written to the file.
  * @returns True if successful; otherwise false.
  */
-KAPI b8 filesystem_write(file_handle* handle, u64 data_size, const void* data, u64* out_bytes_written);
+API b8 filesystem_write(file_handle* handle, u64 data_size, const void* data, u64* out_bytes_written);

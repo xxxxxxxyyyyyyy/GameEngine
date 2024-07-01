@@ -47,6 +47,9 @@ STATIC_ASSERT(sizeof(b8) == 1, "Expected b32 to be 1 byte");
 #define true 1
 #define false 0
 
+// universal methods
+#define ARRAY_LENGTH(arr) (sizeof(arr) / sizeof(arr[0]))
+
 /**
  * @brief Any id set to this should be considered invalid,
  * and not actually pointing to a real object. 

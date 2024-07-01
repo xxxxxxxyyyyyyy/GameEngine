@@ -11,10 +11,12 @@ typedef struct geometry_system_config {
 } geometry_system_config;
 
 typedef struct geometry_config {
+    u32 vertex_size;
     u32 vertex_count;
-    vertex_3d* vertices;
+    void* vertices;
+    u32 index_size;
     u32 index_count;
-    u32* indices;
+    void* indices;
     char name[GEOMETRY_NAME_MAX_LENGTH];
     char material_name[MATERIAL_NAME_MAX_LENGTH];
 } geometry_config;
@@ -47,6 +49,13 @@ geometry* geometry_system_acquire_from_config(geometry_config config, b8 auto_re
  * @param geometry The geometry to be released.
  */
 void geometry_system_release(geometry* geometry);
+
+/**
+ * @brief Obtains a pointer to the default geometry.
+ * 
+ * @return A pointer to the default geometry. 
+ */
+geometry* geometry_system_get_default_2d();
 
 /**
  * @brief Obtains a pointer to the default geometry.

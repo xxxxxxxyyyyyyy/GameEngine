@@ -163,7 +163,8 @@
         "xlocale": "c",
         "algorithm": "c",
         "*.rh": "c",
-        "vulkan_ui_shader.h": "c"
+        "vulkan_ui_shader.h": "c",
+        "material_system.h": "c"
     },
     // File copyright documentation tag.  Array of strings will be converted to one line per element.  Can template {year}.
     "doxdocgen.file.copyrightTag": [

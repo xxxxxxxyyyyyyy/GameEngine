@@ -16,7 +16,7 @@ struct memory_stats {
 static const char* memory_tag_strings[MEMORY_TAG_MAX_TAGS] = {
     "UNKNOWN    ",
     "LINEAR_ALLOC",
-    "ALGORITHM",
+    "ALGORITHM  ",
     "ARRAY      ",
     "DARRAY     ",
     "DICT       ",
@@ -32,7 +32,8 @@ static const char* memory_tag_strings[MEMORY_TAG_MAX_TAGS] = {
     "TRANSFORM  ",
     "ENTITY     ",
     "ENTITY_NODE",
-    "SCENE      "
+    "SCENE      ",
+    "RESOURCE   "
 };
 
 typedef struct memory_system_state {

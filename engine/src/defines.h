@@ -20,6 +20,14 @@ typedef double f64;
 typedef int b32;
 typedef _Bool b8;
 
+/** @brief A range, typically of memory */
+typedef struct range {
+    /** @brief The offset in bytes. */
+    u64 offset;
+    /** @brief The size in bytes. */
+    u64 size;
+} range;
+
 // Properly define static assertions
 #if defined(__clang__) || defined(__gcc__)
 #define STATIC_ASSERT _Static_assert
@@ -47,7 +55,7 @@ STATIC_ASSERT(sizeof(b8) == 1, "Expected b32 to be 1 byte");
 #define true 1
 #define false 0
 
-// universal methods
+// generic methods
 #define ARRAY_LENGTH(arr) (sizeof(arr) / sizeof(arr[0]))
 
 /**
@@ -55,6 +63,8 @@ STATIC_ASSERT(sizeof(b8) == 1, "Expected b32 to be 1 byte");
  * and not actually pointing to a real object. 
  */
 #define INVALID_ID 4294967295U
+#define INVALID_ID_U16 65535U
+#define INVALID_ID_U8 255U
 
 // Platform detection
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
@@ -134,3 +144,11 @@ STATIC_ASSERT(sizeof(b8) == 1, "Expected b32 to be 1 byte");
 #define MEGABYTES(amount) amount * 1000 * 1000
 // GB
 #define KIGABYTES(amount) amount * 1000
+
+INLINE u64 get_aligned(u64 operand, u64 granularity) {
+    return ((operand + (granularity - 1)) & ~(granularity - 1));
+}
+
+INLINE range get_aligned_range(offset, size, granularity) {
+    return (range){get_aligned(offset, granularity), get_aligned(size, granularity)};
+}

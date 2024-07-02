@@ -121,3 +121,16 @@ STATIC_ASSERT(sizeof(b8) == 1, "Expected b32 to be 1 byte");
 #define INLINE static inline
 #define NOINLINE
 #endif
+
+// GiB
+#define GIBIBYTES(amount) amount * 1024 * 1024 * 1024
+// MiB
+#define MEBIBYTES(amount) amount * 1024 * 1024
+// KiB
+#define KIBIBYTES(amount) amount * 1024
+// GB
+#define GIGABYTES(amount) amount * 1000 * 1000 * 1000
+// GB
+#define MEGABYTES(amount) amount * 1000 * 1000
+// GB
+#define KIGABYTES(amount) amount * 1000

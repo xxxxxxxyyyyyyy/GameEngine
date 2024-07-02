@@ -27,9 +27,15 @@ typedef enum memory_tag {
     MEMORY_TAG_MAX_TAGS
 } memory_tag;
 
-API void memory_system_initialize(u64* memory_requirement, void* state);
+/** @brief The configuration for the memory system. */
+typedef struct memory_system_configuration {
+    /** @brief The total memory size in bytes used by the internal allocator for this system. */
+    u64 total_alloc_size;
+} memory_system_configuration;
 
-API void memory_system_shutdown(void* state);
+API b8 memory_system_initialize(memory_system_configuration config);
+
+API void memory_system_shutdown();
 
 API void* kallocate(u64 size, memory_tag tag);
 

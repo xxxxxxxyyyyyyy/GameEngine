@@ -12,6 +12,6 @@ API b8 dynamic_allocator_destroy(dynamic_allocator* allocator);
 
 API void* dynamic_allocator_allocate(dynamic_allocator* allocator, u64 size);
 
-API void dynamic_allocator_free(dynamic_allocator* allocator, void* block, u64 size);
+API b8 dynamic_allocator_free(dynamic_allocator* allocator, void* block, u64 size);
 
 API u64 dynamic_allocator_free_space(dynamic_allocator* allocator);

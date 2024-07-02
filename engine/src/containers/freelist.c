@@ -114,57 +114,68 @@ b8 freelist_free_block(freelist* list, u64 size, u64 offset) {
     internal_state* state = list->memory;
     freelist_node* node = state->head;
     freelist_node* previous = 0;
-    while (node) {
-        if (node->offset == offset) {
-            // Can just be appended to this node.
-            node->size += size;
+    if (!node) {
+        // Check for the case where the entire thing is allocated.
+        // In this case a new node is needed at the head.
+        freelist_node* new_node = get_node(list);
+        new_node->offset = offset;
+        new_node->size = size;
+        new_node->next = 0;
+        state->head = new_node;
+        return true;
+    } else {
+        while (node) {
+            if (node->offset == offset) {
+                // Can just be appended to this node.
+                node->size += size;
 
-            // Check if this then connects the range between this and the next
-            // node, and if so, combine them and return the second node..
-            if (node->next && node->next->offset == node->offset + node->size) {
-                node->size += node->next->size;
-                freelist_node* next = node->next;
-                node->next = node->next->next;
-                return_node(list, next);
+                // Check if this then connects the range between this and the next
+                // node, and if so, combine them and return the second node..
+                if (node->next && node->next->offset == node->offset + node->size) {
+                    node->size += node->next->size;
+                    freelist_node* next = node->next;
+                    node->next = node->next->next;
+                    return_node(list, next);
+                }
+                return true;
+            } else if (node->offset > offset) {
+                // Iterated beyond the space to be freed. Need a new node.
+                freelist_node* new_node = get_node(list);
+                new_node->offset = offset;
+                new_node->size = size;
+
+                // If there is a previous node, the new node should be inserted between this and it.
+                if (previous) {
+                    previous->next = new_node;
+                    new_node->next = node;
+                } else {
+                    // Otherwise, the new node becomes the head.
+                    new_node->next = node;
+                    state->head = new_node;
+                }
+
+                // Double-check next node to see if it can be joined.
+                if (new_node->next && new_node->offset + new_node->size == new_node->next->offset) {
+                    new_node->size += new_node->next->size;
+                    freelist_node* rubbish = new_node->next;
+                    new_node->next = rubbish->next;
+                    return_node(list, rubbish);
+                }
+
+                // Double-check previous node to see if the new_node can be joined to it.
+                if (previous && previous->offset + previous->size == new_node->offset) {
+                    previous->size += new_node->size;
+                    freelist_node* rubbish = new_node;
+                    previous->next = rubbish->next;
+                    return_node(list, rubbish);
+                }
+
+                return true;
             }
-            return true;
-        } else if (node->offset > offset) {
-            // Iterated beyond the space to be freed. Need a new node.
-            freelist_node* new_node = get_node(list);
-            new_node->offset = offset;
-            new_node->size = size;
 
-            // If there is a previous node, the new node should be inserted between this and it.
-            if (previous) {
-                previous->next = new_node;
-                new_node->next = node;
-            } else {
-                // Otherwise, the new node becomes the head.
-                new_node->next = node;
-                state->head = new_node;
-            }
-
-            // Double-check next node to see if it can be joined.
-            if (new_node->next && new_node->offset + new_node->size == new_node->next->offset) {
-                new_node->size += new_node->next->size;
-                freelist_node* rubbish = new_node->next;
-                new_node->next = rubbish->next;
-                return_node(list, rubbish);
-            }
-
-            // Double-check previous node to see if the new_node can be joined to it.
-            if (previous && previous->offset + previous->size == new_node->offset) {
-                previous->size += new_node->size;
-                freelist_node* rubbish = new_node;
-                previous->next = rubbish->next;
-                return_node(list, rubbish);
-            }
-
-            return true;
+            previous = node;
+            node = node->next;
         }
-
-        previous = node;
-        node = node->next;
     }
 
     WARN("Unable to find block to be freed. Corruption possible?");
@@ -204,6 +215,93 @@ u64 freelist_free_space(freelist* list) {
     }
 
     return running_total;
+}
+
+b8 freelist_resize(freelist* list, u64* memory_requirement, void* new_memory, u64 new_size, void** out_old_memory) {
+    if (!list || !memory_requirement || ((internal_state*)list->memory)->total_size > new_size) {
+        return false;
+    }
+
+    // Enough space to hold state, plus array for all nodes.
+    u64 max_entries = (new_size / sizeof(void*));  //NOTE: This might have a remainder, but that's ok.
+    *memory_requirement = sizeof(internal_state) + (sizeof(freelist_node) * max_entries);
+    if (!new_memory) {
+        return true;
+    }
+
+    // Assign the old memory pointer so it can be freed.
+    *out_old_memory = list->memory;
+
+    // Copy over the old state to the new.
+    internal_state* old_state = (internal_state*)list->memory;
+    u64 size_diff = new_size - old_state->total_size;
+
+    // Setup the new memory
+    list->memory = new_memory;
+
+    // The block's layout is head* first, then array of available nodes.
+    kzero_memory(list->memory, *memory_requirement);
+
+    // Setup the new state.
+    internal_state* state = (internal_state*)list->memory;
+    state->nodes = (void*)(list->memory + sizeof(internal_state));
+    state->max_entries = max_entries;
+    state->total_size = new_size;
+
+    // Invalidate the offset and size for all but the first node. The invalid
+    // value will be checked for when seeking a new node from the list.
+    for (u64 i = 1; i < state->max_entries; ++i) {
+        state->nodes[i].offset = INVALID_ID;
+        state->nodes[i].size = INVALID_ID;
+    }
+
+    state->head = &state->nodes[0];
+
+    // Copy over the nodes.
+    freelist_node* new_list_node = state->head;
+    freelist_node* old_node = old_state->head;
+    if (!old_node) {
+        // If there is no head, then the entire list is allocated. In this case,
+        // the head should be set to the difference of the space now available, and
+        // at the end of the list.
+        state->head->offset = old_state->total_size;
+        state->head->size = size_diff;
+        state->head->next = 0;
+    } else {
+        // Iterate the old nodes.
+        while (old_node) {
+            // Get a new node, copy the offset/size, and set next to it.
+            freelist_node* new_node = get_node(list);
+            new_node->offset = old_node->offset;
+            new_node->size = old_node->size;
+            new_node->next = 0;
+            new_list_node->next = new_node;
+            // Move to the next entry.
+            new_list_node = new_list_node->next;
+
+            if (old_node->next) {
+                // If there is another node, move on.
+                old_node = old_node->next;
+            } else {
+                // Reached the end of the list.
+                // Check if it extends to the end of the block. If so,
+                // just append to the size. Otherwise, create a new node and
+                // attach to it.
+                if (old_node->offset + old_node->size == old_state->total_size) {
+                    new_node->size += size_diff;
+                } else {
+                    freelist_node* new_node_end = get_node(list);
+                    new_node_end->offset = old_state->total_size;
+                    new_node_end->size = size_diff;
+                    new_node_end->next = 0;
+                    new_node->next = new_node_end;
+                }
+                break;
+            }
+        }
+    }
+
+    return true;
 }
 
 freelist_node* get_node(freelist* list) {

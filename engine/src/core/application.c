@@ -87,24 +87,39 @@ b8 event_on_debug_event(u16 code, void* sender, void* listener_inst, event_conte
         "cobblestone",
         "paving",
         "paving2"};
+    const char* spec_names[3] = {
+            "cobblestone_SPEC",
+            "paving_SPEC",
+            "paving2_SPEC"};
     static i8 choice = 2;
 
     // Save off the old name.
     const char* old_name = names[choice];
+    const char* old_spec_name = names[choice];
 
     choice++;
     choice %= 3;
 
-    // Acquire the new texture.
     if (app_state->test_geometry) {
+        // Acquire the new diffuse texture.
         app_state->test_geometry->material->diffuse_map.texture = texture_system_acquire(names[choice], true);
         if (!app_state->test_geometry->material->diffuse_map.texture) {
-            WARN("event_on_debug_event no texture! using default");
+            WARN("event_on_debug_event no diffuse texture! using default");
             app_state->test_geometry->material->diffuse_map.texture = texture_system_get_default_texture();
         }
 
-        // Release the old texture.
+        // Release the old diffuse texture.
         texture_system_release(old_name);
+
+        // Acquire the new spec texture.
+        app_state->test_geometry->material->specular_map.texture = texture_system_acquire(spec_names[choice], true);
+        if (!app_state->test_geometry->material->specular_map.texture) {
+            WARN("event_on_debug_event no spec texture! using default");
+            app_state->test_geometry->material->specular_map.texture = texture_system_get_default_specular_texture();
+        }
+
+        // Release the old spec texture.
+        texture_system_release(old_spec_name);
     }
 
     return true;
@@ -348,11 +363,11 @@ b8 application_run() {
             // TODO: temp
             geometry_render_data test_render;
             test_render.geometry = app_state->test_geometry;
-            test_render.model = mat4_identity();
-            // static f32 angle = 0;
-            // angle += (1.0f * delta);
-            // quaterion rotation = quat_from_axis_angle((vec3){0, 1, 0}, angle, true);
-            // test_render.model = quat_to_mat4(rotation);  //  quat_to_rotation_matrix(rotation, vec3_zero());
+            //test_render.model = mat4_identity();
+            static f32 angle = 0;
+            angle += (0.5f * delta);
+            quaterion rotation = quat_from_axis_angle((vec3){0, 1, 0}, angle, true);
+            test_render.model = quat_to_mat4(rotation);  //  quat_to_rotation_matrix(rotation, vec3_zero());
 
             packet.geometry_count = 1;
             packet.geometries = &test_render;

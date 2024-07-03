@@ -14,7 +14,7 @@ void renderer_on_resize(u16 width, u16 height);
 b8 renderer_draw_frame(render_packet* packet);
 
 // HACK: this should not be exposed outside the engine.
-API void renderer_set_view(matrix4 view);
+API void renderer_set_view(matrix4 view, vec3 view_position);
 
 void renderer_create_texture(const u8* pixels, struct texture* texture);
 

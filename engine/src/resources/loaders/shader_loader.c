@@ -232,7 +232,7 @@ b8 shader_loader_load(struct resource_loader* self, const char* name, resource* 
                     uniform.type = SHADER_UNIFORM_TYPE_SAMPLER;
                     uniform.size = 0;  // Samplers don't have a size.
                 } else {
-                    ERROR("shader_loader_load: Invalid file layout. Uniform type must be f32, vec2, vec3, vec4, i8, i16, i32, u8, u16, u32 or mat4.");
+                    ERROR("shader_loader_load: Invalid file layout. Uniform type must be f32, vec2, vec3, vec4, i8, i16, i32, u8, u16, u32 or matrix4.");
                     WARN("Defaulting to f32.");
                     uniform.type = SHADER_UNIFORM_TYPE_FLOAT32;
                     uniform.size = 4;

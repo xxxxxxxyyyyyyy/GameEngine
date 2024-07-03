@@ -80,6 +80,8 @@ typedef union matrix4_u {
 
 typedef struct vertex_3d {
     vec3 position;
+    /** @brief The normal of the vertex. */
+    vec3 normal;
     vec2 texcoord;
 } vertex_3d;
 

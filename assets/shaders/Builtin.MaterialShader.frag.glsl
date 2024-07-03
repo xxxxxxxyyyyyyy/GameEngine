@@ -7,6 +7,17 @@ layout(set = 1, binding = 0) uniform local_uniform_object {
     float shininess;
 } object_ubo;
 
+struct point_light {
+    vec3 position;
+    vec4 colour;
+    // Usually 1, make sure denominator never gets smaller than 1
+    float constant;
+    // Reduces light intensity linearly
+    float linear;
+    // Makes the light fall off slower at longer distances.
+    float quadratic;
+};
+
 struct directional_light {
     vec3 direction;
     vec4 colour;
@@ -15,7 +26,25 @@ struct directional_light {
 // TODO: feed in from cpu
 directional_light dir_light = {
     vec3(-0.57735, -0.57735, -0.57735),
-    vec4(0.8, 0.8, 0.8, 1.0)
+    vec4(0.7, 0.7, 0.4, 1.0)
+};
+
+// TODO: feed in from cpu
+point_light p_light_0 = {
+    vec3(-5.5, 0.0, -5.5),
+    vec4(0.0, 1.0, 0.0, 1.0),
+    1.0, // Constant
+    0.35, // Linear
+    0.44  // Quadratic
+};
+
+// TODO: feed in from cpu
+point_light p_light_1 = {
+    vec3(5.5, 0.0, -5.5),
+    vec4(1.0, 0.0, 0.0, 1.0),
+    1.0, // Constant
+    0.35, // Linear
+    0.44  // Quadratic
 };
 
 // Samplers, diffuse, spec
@@ -23,6 +52,9 @@ const int SAMP_DIFFUSE = 0;
 const int SAMP_SPECULAR = 1;
 const int SAMP_NORMAL = 2;
 layout(set = 1, binding = 1) uniform sampler2D samplers[3];
+
+// no interpolate, always same value.
+layout(location = 0) flat in int in_mode;
 
 // Data Transfer Object
 layout(location = 1) in struct dto {
@@ -38,6 +70,7 @@ layout(location = 1) in struct dto {
 mat3 TBN;
 
 vec4 calculate_directional_light(directional_light light, vec3 normal, vec3 view_direction);
+vec4 calculate_point_light(point_light light, vec3 normal, vec3 world_position, vec3 view_direction);
 
 void main() {
     vec3 normal = in_dto.normal;
@@ -50,9 +83,16 @@ void main() {
     vec3 localNormal = 2.0 * texture(samplers[SAMP_NORMAL], in_dto.tex_coord).rgb - 1.0;
     normal = normalize(TBN * localNormal);
 
-    vec3 view_direction = normalize(in_dto.view_position - in_dto.world_position);
+    if(in_mode == 0 || in_mode == 1) {
+        vec3 view_direction = normalize(in_dto.view_position - in_dto.world_position);
 
-    out_colour = calculate_directional_light(dir_light, normal, view_direction);
+        out_colour = calculate_directional_light(dir_light, normal, view_direction);
+
+        out_colour += calculate_point_light(p_light_0, normal, in_dto.world_position, view_direction);
+        out_colour += calculate_point_light(p_light_1, normal, in_dto.world_position, view_direction);
+    } else if(in_mode == 2) {
+        out_colour = vec4(abs(normal), 1.0);
+    }
 }
 
 vec4 calculate_directional_light(directional_light light, vec3 normal, vec3 view_direction) {
@@ -65,10 +105,40 @@ vec4 calculate_directional_light(directional_light light, vec3 normal, vec3 view
     vec4 ambient = vec4(vec3(in_dto.ambient * object_ubo.diffuse_colour), diffuse_col.a);
     vec4 diffuse = vec4(vec3(light.colour * diffuse_factor), diffuse_col.a);
     vec4 specular = vec4(vec3(light.colour * specular_factor), diffuse_col.a);
+    
+    if(in_mode == 0) {
+        diffuse *= diffuse_col;
+        ambient *= diffuse_col;
+        specular *= vec4(texture(samplers[SAMP_SPECULAR], in_dto.tex_coord).rgb, diffuse.a);
+    }
 
-    diffuse *= diffuse_col;
-    ambient *= diffuse_col;
-    specular *= vec4(texture(samplers[SAMP_SPECULAR], in_dto.tex_coord).rgb, diffuse.a);
+    return (ambient + diffuse + specular);
+}
 
+vec4 calculate_point_light(point_light light, vec3 normal, vec3 world_position, vec3 view_direction) {
+    vec3 light_direction =  normalize(light.position - world_position);
+    float diff = max(dot(normal, light_direction), 0.0);
+
+    vec3 reflect_direction = reflect(-light_direction, normal);
+    float spec = pow(max(dot(view_direction, reflect_direction), 0.0), object_ubo.shininess);
+
+    // Calculate attenuation, or light falloff over distance.
+    float distance = length(light.position - world_position);
+    float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
+
+    vec4 ambient = in_dto.ambient;
+    vec4 diffuse = light.colour * diff;
+    vec4 specular = light.colour * spec;
+
+    if(in_mode == 0) {
+        vec4 diffuse_col = texture(samplers[SAMP_DIFFUSE], in_dto.tex_coord);
+        diffuse *= diffuse_col;
+        ambient *= diffuse_col;
+        specular *= vec4(texture(samplers[SAMP_SPECULAR], in_dto.tex_coord).rgb, diffuse.a);
+    }
+
+    ambient *= attenuation;
+    diffuse *= attenuation;
+    specular *= attenuation;
     return (ambient + diffuse + specular);
 }

@@ -7,6 +7,8 @@ typedef struct texture_system_config {
 } texture_system_config;
 
 #define DEFAULT_TEXTURE_NAME "default"
+/** @brief The default diffuse texture name. */
+#define DEFAULT_DIFFUSE_TEXTURE_NAME "default_DIFF"
 /** @brief The default specular texture name. */
 #define DEFAULT_SPECULAR_TEXTURE_NAME "default_SPEC"
 /** @brief The default normal texture name. */
@@ -25,6 +27,12 @@ texture* texture_system_get_default_texture();
  * done for default textures.
  */
 texture* texture_system_get_default_specular_texture();
+
+/**
+ * @brief Gets a pointer to the default diffuse texture. No reference counting is 
+ * done for default textures.
+ */
+texture* texture_system_get_default_diffuse_texture();
 
 /**
  * @brief Gets a pointer to the default normal texture. No reference counting is 

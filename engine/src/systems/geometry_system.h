@@ -17,6 +17,9 @@ typedef struct geometry_config {
     u32 index_size;
     u32 index_count;
     void* indices;
+    vec3 center;
+    vec3 min_extents;
+    vec3 max_extents;
     char name[GEOMETRY_NAME_MAX_LENGTH];
     char material_name[MATERIAL_NAME_MAX_LENGTH];
 } geometry_config;
@@ -42,6 +45,13 @@ geometry* geometry_system_acquire_by_id(u32 id);
  * @return A pointer to the acquired geometry or nullptr if failed. 
  */
 geometry* geometry_system_acquire_from_config(geometry_config config, b8 auto_release);
+
+/**
+ * @brief Frees resources held by the provided configuration.
+ *
+ * @param config A pointer to the configuration to be disposed.
+ */
+void geometry_system_config_dispose(geometry_config* config);
 
 /**
  * @brief Releases a reference to the provided geometry.

@@ -4,6 +4,7 @@
 #include "core/kmemory.h"
 #include "core/kstring.h"
 #include "systems/material_system.h"
+#include "math/geometry_utils.h"
 #include "renderer/renderer_frontend.h"
 
 typedef struct geometry_reference {
@@ -105,6 +106,18 @@ geometry* geometry_system_acquire_from_config(geometry_config config, b8 auto_re
     }
 
     return g;
+}
+
+void geometry_system_config_dispose(geometry_config* config) {
+    if (config) {
+        if (config->vertices) {
+            kfree(config->vertices, config->vertex_size * config->vertex_count, MEMORY_TAG_ARRAY);
+        }
+        if (config->indices) {
+            kfree(config->indices, config->index_size * config->index_count, MEMORY_TAG_ARRAY);
+        }
+        kzero_memory(config, sizeof(geometry_config));
+    }
 }
 
 void geometry_system_release(geometry* geometry) {
@@ -523,6 +536,8 @@ geometry_config geometry_system_generate_cube_config(f32 width, f32 height, f32 
     } else {
         string_ncopy(config.material_name, DEFAULT_MATERIAL_NAME, MATERIAL_NAME_MAX_LENGTH);
     }
+
+    geometry_generate_tangents(config.vertex_count, config.vertices, config.index_count, config.indices);
 
     return config;
 }

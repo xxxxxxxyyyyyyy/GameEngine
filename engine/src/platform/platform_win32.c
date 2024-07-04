@@ -16,7 +16,7 @@
 // for surface creation
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_win32.h>
-#include "renderer/k_vulkan/vulkan_types.inl"
+#include "renderer/vulkan/vulkan_types.inl"
 
 typedef struct platform_state {
     HINSTANCE h_instance;  // handle to the instance of the application

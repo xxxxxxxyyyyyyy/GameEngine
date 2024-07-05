@@ -1,13 +1,12 @@
 /**
  * @file shader_system.h
- * @author Travis Vroman (travis@kohiengine.com)
+ * @author DOD
  * @brief A system to manage shaders. Respondible for working with the
  * renderer to create, destroy, bind/unbind and set shader properties
  * such as uniforms.
  * @version 1.0
- * @date 2022-03-09
  * 
- * @copyright Kohi Game Engine is Copyright (c) Travis Vroman 2021-2022
+ * @copyright DOD Game Engine is Copyright (c) DOD 2024
  * 
  */
 
@@ -84,13 +83,6 @@ typedef struct shader {
     u32 id;
 
     char* name;
-    /**
-     * @brief Indicates if the shader uses instances. If not, it is assumed
-     * that only global uniforms and samplers are used.
-     */
-    b8 use_instances;
-    /** @brief Indicates if locals are used (typically for model matrices, etc.).*/
-    b8 use_locals;
 
     /**
      * @brief The amount of bytes that are required for UBO alignment.
@@ -124,7 +116,7 @@ typedef struct shader {
     u64 push_constant_stride;
 
     /** @brief An array of global texture pointers. Darray */
-    texture** global_textures;
+    texture_map** global_texture_maps;
 
     /** @brief The number of instance textures. */
     u8 instance_texture_count;
@@ -156,7 +148,8 @@ typedef struct shader {
     range push_constant_ranges[32];
     /** @brief The size of all attributes combined, a.k.a. the size of a vertex. */
     u16 attribute_stride;
-
+    /** @brief aUsed to ensure the shader's globals are only updated once per frame. */
+    u64 render_frame_number;
     /** @brief An opaque pointer to hold renderer API specific data. Renderer is responsible for creation and destruction of this.  */
     void* internal_data;
 } shader;

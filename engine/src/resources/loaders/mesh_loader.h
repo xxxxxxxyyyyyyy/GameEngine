@@ -1,11 +1,10 @@
 /**
  * @file mesh_loader.h
- * @author Travis Vroman (travis@kohiengine.com)
+ * @author DOD
  * @brief A resource loader that handles mesh resources.
  * @version 1.0
- * @date 2022-03-19
  * 
- * @copyright Kohi Game Engine is Copyright (c) Travis Vroman 2021-2022
+ * @copyright DOD Game Engine is Copyright (c) DOD 2024
  * 
  */
 

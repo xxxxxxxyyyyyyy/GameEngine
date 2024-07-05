@@ -42,7 +42,7 @@ API void filesystem_close(file_handle* handle);
  * 
  * @param handle The file handle.
  * @param out_size A pointer to hold the file size.
- * @return KAPI 
+ * @return API 
  */
 API b8 filesystem_size(file_handle* handle, u64* out_size);
 

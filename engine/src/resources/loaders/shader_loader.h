@@ -1,11 +1,10 @@
 /**
  * @file shader_loader.h
- * @author Travis Vroman (travis@kohiengine.com)
+ * @author DOD
  * @brief A resource loader that handles shader config resources.
  * @version 1.0
- * @date 2022-02-28
  * 
- * @copyright Kohi Game Engine is Copyright (c) Travis Vroman 2021-2022
+ * @copyright DOD Game Engine is Copyright (c) DOD 2024
  * 
  */
 

@@ -30,18 +30,76 @@ typedef struct image_resource_data {
     u8* pixels;
 } image_resource_data;
 
+/** @brief Parameters used when loading an image. */
+typedef struct image_resource_params {
+    /** @brief Indicates if the image should be flipped on the y-axis when loaded. */
+    b8 flip_y;
+} image_resource_params;
+
+/** @brief Determines face culling mode during rendering. */
+typedef enum face_cull_mode {
+    /** @brief No faces are culled. */
+    FACE_CULL_MODE_NONE = 0x0,
+    /** @brief Only front faces are culled. */
+    FACE_CULL_MODE_FRONT = 0x1,
+    /** @brief Only back faces are culled. */
+    FACE_CULL_MODE_BACK = 0x2,
+    /** @brief Both front and back faces are culled. */
+    FACE_CULL_MODE_FRONT_AND_BACK = 0x3
+} face_cull_mode;
+
 #define TEXTURE_NAME_MAX_LENGTH 512
+
+typedef enum texture_flag {
+    /** @brief Indicates if the texture has transparency. */
+    TEXTURE_FLAG_HAS_TRANSPARENCY = 0x1,
+    /** @brief Indicates if the texture can be written (rendered) to. */
+    TEXTURE_FLAG_IS_WRITEABLE = 0x2,
+    /** @brief Indicates if the texture was created via wrapping vs traditional creation. */
+    TEXTURE_FLAG_IS_WRAPPED = 0x4,
+} texture_flag;
+
+/** @brief Holds bit flags for textures.. */
+typedef u8 texture_flag_bits;
+
+/**
+ * @brief Represents various types of textures.
+ */
+typedef enum texture_type {
+    /** @brief A standard two-dimensional texture. */
+    TEXTURE_TYPE_2D,
+    /** @brief A cube texture, used for cubemaps. */
+    TEXTURE_TYPE_CUBE
+} texture_type;
 
 typedef struct texture {
     u32 id;
+    /** @brief The texture type. */
+    texture_type type;
     u32 width;
     u32 height;
     u8 channel_count;
-    b8 has_transparency;
+    /** @brief Holds various flags for this texture. */
+    texture_flag_bits flags;
     u32 generation;
     char name[TEXTURE_NAME_MAX_LENGTH];
     void* internal_data;
 } texture;
+
+/** @brief Represents supported texture filtering modes. */
+typedef enum texture_filter {
+    /** @brief Nearest-neighbor filtering. */
+    TEXTURE_FILTER_MODE_NEAREST = 0x0,
+    /** @brief Linear (i.e. bilinear) filtering.*/
+    TEXTURE_FILTER_MODE_LINEAR = 0x1
+} texture_filter;
+
+typedef enum texture_repeat {
+    TEXTURE_REPEAT_REPEAT = 0x1,
+    TEXTURE_REPEAT_MIRRORED_REPEAT = 0x2,
+    TEXTURE_REPEAT_CLAMP_TO_EDGE = 0x3,
+    TEXTURE_REPEAT_CLAMP_TO_BORDER = 0x4
+} texture_repeat;
 
 typedef enum texture_use {
     /** @brief An unknown use. This is default, but should never actually be used. */
@@ -51,12 +109,26 @@ typedef enum texture_use {
     /** @brief The texture is used as a specular map. */
     TEXTURE_USE_MAP_SPECULAR = 0x02,
     /** @brief The texture is used as a normal map. */
-    TEXTURE_USE_MAP_NORMAL = 0x03
+    TEXTURE_USE_MAP_NORMAL = 0x03,
+    /** @brief The texture is used as a cube map. */
+    TEXTURE_USE_MAP_CUBEMAP = 0x04,
 } texture_use;
 
 typedef struct texture_map {
     texture* texture;
     texture_use use;
+    /** @brief Texture filtering mode for minification. */
+    texture_filter filter_minify;
+    /** @brief Texture filtering mode for magnification. */
+    texture_filter filter_magnify;
+    /** @brief The repeat mode on the U axis (or X, or S) */
+    texture_repeat repeat_u;
+    /** @brief The repeat mode on the V axis (or Y, or T) */
+    texture_repeat repeat_v;
+    /** @brief The repeat mode on the W axis (or Z, or U) */
+    texture_repeat repeat_w;
+    /** @brief A pointer to internal, render API-specific data. Typically the internal sampler. */
+    void* internal_data;
 } texture_map;
 
 #define MATERIAL_NAME_MAX_LENGTH 256
@@ -102,7 +174,11 @@ typedef struct material {
 typedef struct geometry {
     u32 id;
     u32 internal_id;
-    u32 generation;
+    u16 generation;
+    /** @brief The center of the geometry in local coordinates. */
+    vec3 center;
+    /** @brief The extents of the geometry in local coordinates. */
+    extents_3d extents;
     char name[GEOMETRY_NAME_MAX_LENGTH];
     material* material;
 } geometry;
@@ -112,6 +188,14 @@ typedef struct mesh {
     geometry** geometries;
     transform transform;
 } mesh;
+
+typedef struct skybox {
+    texture_map cubemap;
+    geometry* g;
+    u32 instance_id;
+    /** @brief Synced to the renderer's current frame number when the material has been applied that frame. */
+    u64 render_frame_number;
+} skybox;
 
 /** @brief Shader stages available in the system. */
 typedef enum shader_stage {
@@ -203,10 +287,8 @@ typedef struct shader_config {
     /** @brief The name of the shader to be created. */
     char* name;
 
-    /** @brief Indicates if the shader uses instance-level uniforms. */
-    b8 use_instances;
-    /** @brief Indicates if the shader uses local-level uniforms. */
-    b8 use_local;
+    /** @brief The face cull mode to be used. Default is BACK if not supplied. */
+    face_cull_mode cull_mode;
 
     /** @brief The count of attributes. */
     u8 attribute_count;

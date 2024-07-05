@@ -62,6 +62,7 @@ STATIC_ASSERT(sizeof(b8) == 1, "Expected b32 to be 1 byte");
  * @brief Any id set to this should be considered invalid,
  * and not actually pointing to a real object. 
  */
+#define INVALID_ID_U64 18446744073709551615UL
 #define INVALID_ID 4294967295U
 #define INVALID_ID_U16 65535U
 #define INVALID_ID_U8 255U
@@ -120,8 +121,8 @@ STATIC_ASSERT(sizeof(b8) == 1, "Expected b32 to be 1 byte");
 #endif
 #endif
 
-#define CLAMP(value, min, max) (value <= min) ? min : (value >= max) ? max \
-                                                                      : value;
+#define CLAMP(value, min, max) ((value <= min) ? min : (value >= max) ? max \
+                                                                      : value)
 
 // Inlining
 #ifdef _MSC_VER

@@ -3,7 +3,6 @@
  * @author your name (you@domain.com)
  * @brief This file contains a free list, used for custom memory allocation tracking.
  * @version 0.1
- * @date 2024-01-12
  * 
  * @copyright Copyright (c) 2024
  * 

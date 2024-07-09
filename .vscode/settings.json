@@ -165,14 +165,15 @@
         "*.rh": "c",
         "vulkan_ui_shader.h": "c",
         "material_system.h": "c",
-        "camera.h": "c"
+        "camera.h": "c",
+        "array": "c"
     },
     // File copyright documentation tag.  Array of strings will be converted to one line per element.  Can template {year}.
     "doxdocgen.file.copyrightTag": [
         "@copyright DOD Game Engine is Copyright (c) DOD {year}"
     ],
     "doxdocgen.file.versionTag": "@version 1.0",
-    "doxdocgen.generic.authorEmail": "travis@kohiengine.com",
+    "doxdocgen.generic.authorEmail": "nearedward@qq.com",
     "doxdocgen.generic.authorName": "DOD",
     "doxdocgen.generic.authorTag": "@author {author} ({email})",
     // The order to use for the file comment. Values can be used multiple times. Valid values are shown in default setting.

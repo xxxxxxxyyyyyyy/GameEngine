@@ -21,7 +21,7 @@ b8 create_shader_module(
     resource binary_resource;
     if (!resource_system_load(file_name, RESOURCE_TYPE_BINARY, 0, &binary_resource)) {
         // Obtain file handle.
-        ERROR("Unable to read shader module: %s.", file_name);
+        DERROR("Unable to read shader module: %s.", file_name);
         return false;
     }
 

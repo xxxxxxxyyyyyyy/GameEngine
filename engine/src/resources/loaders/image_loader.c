@@ -10,6 +10,8 @@
 
 // TODO: resource loader.
 #define STB_IMAGE_IMPLEMENTATION
+// Use our own filesystem.
+#define STBI_NO_STDIO
 #include "thirdlib/stb_image/stb_image.h"
 
 b8 image_loader_load(struct resource_loader* self, const char* name, void* params, resource* out_resource) {
@@ -21,11 +23,11 @@ b8 image_loader_load(struct resource_loader* self, const char* name, void* param
 
     char* format_str = "%s/%s/%s%s";
     const i32 required_channel_count = 4;
-    stbi_set_flip_vertically_on_load(typed_params->flip_y);
+    stbi_set_flip_vertically_on_load_thread(typed_params->flip_y);
     char full_file_path[512];
 
-    // Try different extensions.
-    #define IMAGE_EXTENSION_COUNT 4
+    // Try different extensions
+#define IMAGE_EXTENSION_COUNT 4
     b8 found = false;
     char* extensions[IMAGE_EXTENSION_COUNT] = {".tga", ".png", ".jpg", ".bmp"};
     for (u32 i = 0; i < IMAGE_EXTENSION_COUNT; ++i) {
@@ -36,8 +38,26 @@ b8 image_loader_load(struct resource_loader* self, const char* name, void* param
         }
     }
 
+    // Take a copy of the resource full path and name first.
+    out_resource->full_path = string_duplicate(full_file_path);
+    out_resource->name = name;
+
     if (!found) {
-        ERROR("Image resource loader failed find file '%s'.", full_file_path);
+        DERROR("Image resource loader failed find file '%s'.", full_file_path);
+        return false;
+    }
+
+    file_handle f;
+    if (!filesystem_open(full_file_path, FILE_MODE_READ, true, &f)) {
+        DERROR("Unable to read file: %s.", full_file_path);
+        filesystem_close(&f);
+        return false;
+    }
+
+    u64 file_size = 0;
+    if (!filesystem_size(&f, &file_size)) {
+        DERROR("Unable to get size of file: %s.", full_file_path);
+        filesystem_close(&f);
         return false;
     }
 
@@ -45,24 +65,35 @@ b8 image_loader_load(struct resource_loader* self, const char* name, void* param
     i32 height;
     i32 channel_count;
 
-    // For now, assume 8 bits per channel, 4 channels.
-    // TODO: extend this to make it configurable.
-    u8* data = stbi_load(
-        full_file_path,
-        &width,
-        &height,
-        &channel_count,
-        required_channel_count);
-
-    if (!data) {
-        ERROR("Image resource loader failed to load file '%s'.", full_file_path);
+    u8* raw_data = kallocate(file_size, MEMORY_TAG_TEXTURE);
+    if (!raw_data) {
+        DERROR("Unable to read file '%s'.", full_file_path);
+        filesystem_close(&f);
         return false;
     }
 
-    // TODO: Should be using an allocator here.
-    out_resource->full_path = string_duplicate(full_file_path);
+    u64 bytes_read = 0;
+    b8 read_result = filesystem_read_all_bytes(&f, raw_data, &bytes_read);
+    filesystem_close(&f);
 
-    // TODO: Should be using an allocator here.
+    if (!read_result) {
+        DERROR("Unable to read file: '%s'", full_file_path);
+        return false;
+    }
+
+    if (bytes_read != file_size) {
+        DERROR("File size if %llu does not match expected: %llu", bytes_read, file_size);
+        return false;
+    }
+
+    u8* data = stbi_load_from_memory(raw_data, file_size, &width, &height, &channel_count, required_channel_count);
+    if (!data) {
+        DERROR("Image resource loader failed to load file '%s'.", full_file_path);
+        return false;
+    }
+
+    kfree(raw_data, file_size, MEMORY_TAG_TEXTURE);
+
     image_resource_data* resource_data = kallocate(sizeof(image_resource_data), MEMORY_TAG_TEXTURE);
     resource_data->pixels = data;
     resource_data->width = width;
@@ -79,7 +110,7 @@ b8 image_loader_load(struct resource_loader* self, const char* name, void* param
 void image_loader_unload(struct resource_loader* self, resource* resource) {
     stbi_image_free(((image_resource_data*)resource->data)->pixels);
     if (!resource_unload(self, resource, MEMORY_TAG_TEXTURE)) {
-        WARN("image_loader_unload called with nullptr for self or resource.");
+        DWARN("image_loader_unload called with nullptr for self or resource.");
         return;
     }
 }

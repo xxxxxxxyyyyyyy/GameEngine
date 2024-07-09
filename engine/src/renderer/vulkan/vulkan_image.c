@@ -53,7 +53,7 @@ void vulkan_image_create(
 
     i32 memory_type = context->find_memory_index(memory_requirements.memoryTypeBits, memory_flags);
     if (memory_type == -1) {
-        ERROR("Required memory type not found. Image not valid.");
+        DERROR("Required memory type not found. Image not valid.");
     }
 
     // Allocate memory
@@ -145,7 +145,7 @@ void vulkan_image_transition_layout(
         // The fragment stage.
         dest_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     } else {
-        FATAL("unsupported layout transition!");
+        DFATAL("unsupported layout transition!");
         return;
     }
 

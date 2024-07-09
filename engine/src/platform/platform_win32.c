@@ -3,6 +3,8 @@
 #include "core/logger.h"
 #include "core/input.h"
 #include "core/event.h"
+#include "core/thread.h"
+#include "core/mutex.h"
 
 #include "containers/darray.h"
 
@@ -112,7 +114,7 @@ b8 platform_system_startup(
     if (handle == 0) {
         MessageBoxA(NULL, "window creation failed!", "Error", MB_ICONEXCLAMATION | MB_OK);
 
-        FATAL("Window creation failed");
+        DFATAL("Window creation failed");
         return false;
     } else {
         state_ptr->hwnd = handle;
@@ -170,7 +172,7 @@ void* platform_set_memory(void* dest, i32 value, u64 size) {
 
 void platform_console_write(const char* message, u8 colour) {
     HANDLE console_handle = GetStdHandle(STD_OUTPUT_HANDLE);
-    // FATAL, ERROR, WARN, INFO, DEBUG, TRACE
+    // DFATAL, DERROR, DWARN, DINFO, DDEBUG, DTRACE
     static u8 levels[6] = {64, 4, 6, 2, 1, 8};
     SetConsoleTextAttribute(console_handle, levels[colour]);
 
@@ -182,7 +184,7 @@ void platform_console_write(const char* message, u8 colour) {
 
 void platform_console_write_error(const char* message, u8 colour) {
     HANDLE console_handle = GetStdHandle(STD_ERROR_HANDLE);
-    // FATAL, ERROR, WARN, INFO, DEBUG, TRACE
+    // DFATAL, DERROR, DWARN, DINFO, DDEBUG, DTRACE
     static u8 levels[6] = {64, 4, 6, 2, 1, 8};
     SetConsoleTextAttribute(console_handle, levels[colour]);
 
@@ -204,6 +206,132 @@ f64 platform_get_absolute_time() {
 void platform_sleep(u64 ms) {
     Sleep(ms);
 }
+
+i32 platform_get_processor_count() {
+    SYSTEM_INFO sysinfo;
+    GetSystemInfo(&sysinfo);
+    DINFO("%i processor cores detected.", sysinfo.dwNumberOfProcessors);
+    
+    return sysinfo.dwNumberOfProcessors;
+}
+
+// begin threads
+b8 kthread_create(pfn_thread_start start_func_ptr, void* params, b8 auto_detach, kthread *out_thread) {
+    if (!start_func_ptr) {
+        return false;
+    }
+
+    out_thread->internal_data = CreateThread(
+    0, 
+    0,
+    (LPTHREAD_START_ROUTINE)start_func_ptr,
+    params,
+    0,
+    (DWORD*)&out_thread->thread_id);
+    DDEBUG("Starting processor on thread id: %#x", out_thread->thread_id);
+
+    if (!out_thread->internal_data) {
+        return false;
+    }
+
+    if (auto_detach) {
+        CloseHandle(out_thread->internal_data);
+    }
+    
+    return true;
+}
+
+void kthread_destroy(kthread* thread) {
+    if (thread && thread->internal_data) {
+        DWORD exit_code;
+        GetExitCodeThread(thread->internal_data, &exit_code);
+        CloseHandle((HANDLE)thread->internal_data);
+        thread->internal_data = 0;
+        thread->thread_id = 0;
+    }
+}
+
+void kthread_cancel(kthread *thread) {
+    if (thread && thread->internal_data) {
+        TerminateThread(thread->internal_data, 0);
+        thread->internal_data = 0;
+    }
+}
+
+b8 kthread_is_active(kthread *thread) {
+    if (thread && thread->internal_data) {
+        DWORD exit_code = WaitForSingleObject(thread->internal_data, 0);
+        if (exit_code == WAIT_TIMEOUT) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void kthread_sleep(kthread *thread, u64 ms) {
+    platform_sleep(ms);
+}
+
+u64 get_thread_id() {
+    return (u64)GetCurrentThreadId();
+}
+
+// NOTE: End threads.
+
+// NOTE: Begin mutexes
+b8 kmutex_create(kmutex *out_mutex) {
+    if (!out_mutex) {
+        return false;
+    }
+
+    out_mutex->internal_data = CreateMutex(0, 0, 0);
+    if (!out_mutex->internal_data) {
+        DERROR("Unable to create mutex.");
+        return false;
+    }
+    DTRACE("Created mutex.");
+    return true;
+}
+
+void kmutex_destroy(kmutex *mutex) {
+    if (mutex && mutex->internal_data) {
+        CloseHandle(mutex->internal_data);
+        DTRACE("Destroyed mutex.");
+        mutex->internal_data = 0;
+    }
+}
+
+b8 kmutex_lock(kmutex *mutex) {
+    if (!mutex) {
+        return false;
+    }
+
+    DWORD result = WaitForSingleObject(mutex->internal_data, INFINITE);
+    switch (result) {
+        // The thread got ownership of the mutex
+        case WAIT_OBJECT_0:
+            // DTRACE("Mutex locked.");
+            return true;
+
+            // The thread got ownership of an abandoned mutex.
+        case WAIT_ABANDONED:
+            DERROR("Mutex lock failed.");
+            return false;
+    }
+    // DTRACE("Mutex locked.");
+    return true;
+}
+
+b8 kmutex_unlock(kmutex *mutex) {
+    if (!mutex || !mutex->internal_data) {
+        return false;
+    }
+    i32 result = ReleaseMutex(mutex->internal_data);
+    // DTRACE("Mutex unlocked.");
+    return result != 0;  // 0 is a failure
+}
+
+// NOTE: End mutexes.
 
 LRESULT CALLBACK win32_process_message(HWND hwnd, u32 msg, WPARAM w_param, LPARAM l_param) {
     switch (msg) {
@@ -325,7 +453,7 @@ b8 platform_create_vulkan_surface(vulkan_context* context) {
 
     VkResult result = vkCreateWin32SurfaceKHR(context->instance, &create_info, context->allocator, &state_ptr->surface);
     if (result != VK_SUCCESS) {
-        FATAL("vulakn surface creation failed");
+        DFATAL("vulakn surface creation failed");
         return false;
     }
 

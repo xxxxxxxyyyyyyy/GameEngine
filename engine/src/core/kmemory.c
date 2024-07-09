@@ -1,6 +1,7 @@
 #include "kmemory.h"
 
 #include "core/logger.h"
+#include "core/mutex.h"
 #include "platform/platform.h"
 #include "memory/dynamic_allocator.h"
 
@@ -43,6 +44,8 @@ typedef struct memory_system_state {
     u64 allocator_memory_requirement;
     dynamic_allocator allocator;
     void* allocator_block;
+    // A mutex for allocations/frees
+    kmutex allocation_mutex;
 } memory_system_state;
 
 static memory_system_state* state_ptr;
@@ -59,7 +62,7 @@ b8 memory_system_initialize(memory_system_configuration config) {
     // TODO: memory alignment
     void* block = platform_allocate(state_memory_requirement + alloc_requirement, false);
     if (!block) {
-        FATAL("Memory system allocation failed and the system cannot continue.");
+        DFATAL("Memory system allocation failed and the system cannot continue.");
         return false;
     }
 
@@ -77,16 +80,24 @@ b8 memory_system_initialize(memory_system_configuration config) {
             &state_ptr->allocator_memory_requirement,
             state_ptr->allocator_block,
             &state_ptr->allocator)) {
-        FATAL("Memory system is unable to setup internal allocator. Application cannot continue.");
+        DFATAL("Memory system is unable to setup internal allocator. Application cannot continue.");
+        return false;
+    }
+    
+    // Create allocation mutex
+    if (!kmutex_create(&state_ptr->allocation_mutex)) {
+        DFATAL("Unable to create allocation mutex!");
         return false;
     }
 
-    DEBUG("Memory system successfully allocated %llu bytes.", config.total_alloc_size);
+    DDEBUG("Memory system successfully allocated %llu bytes.", config.total_alloc_size);
     return true;
 }
 
 void memory_system_shutdown() {
     if (state_ptr) {
+        // Destroy allocation mutex
+        kmutex_destroy(&state_ptr->allocation_mutex);
         dynamic_allocator_destroy(&state_ptr->allocator);
         // Free the entire block.
         platform_free(state_ptr, state_ptr->allocator_memory_requirement + sizeof(memory_system_state));
@@ -96,21 +107,27 @@ void memory_system_shutdown() {
 
 void* kallocate(u64 size, memory_tag tag) {
     if (tag == MEMORY_TAG_UNKNOWN) {
-        WARN("kallocate called using MEMORY_TAG_UNKNOWN. Re-class this allocation");
+        DWARN("kallocate called using MEMORY_TAG_UNKNOWN. Re-class this allocation");
     }
 
     // Either allocate from the system's allocator or the OS. The latter shouldn't ever
     // really happen.
     void* block = 0;
     if (state_ptr) {
+        // Make sure multithreaded requests don't trample each other.
+        if (!kmutex_lock(&state_ptr->allocation_mutex)) {
+            DFATAL("Error obtaining mutex lock during allocation.");
+            return 0;
+        }
         state_ptr->stats.total_allocated += size;
         state_ptr->stats.tagged_allocations[tag] += size;
         state_ptr->alloc_count++;
 
         block = dynamic_allocator_allocate(&state_ptr->allocator, size);
+        kmutex_unlock(&state_ptr->allocation_mutex);
     } else {
         // If the system is not up yet, warn about it but give memory for now.
-        WARN("kallocate called before the memory system is initialized.");
+        DWARN("kallocate called before the memory system is initialized.");
         // TODO: Memory alignment
         block = platform_allocate(size, false);
     }
@@ -120,20 +137,26 @@ void* kallocate(u64 size, memory_tag tag) {
         return block;
     }
 
-    FATAL("kallocate failed to allocate successfully.");
+    DFATAL("kallocate failed to allocate successfully.");
     return 0;
 }
 
 void kfree(void* block, u64 size, memory_tag tag) {
     if (tag == MEMORY_TAG_UNKNOWN) {
-        WARN("kallocate called using MEMORY_TAG_UNKNOWN. Re-class this allocation");
+        DWARN("kallocate called using MEMORY_TAG_UNKNOWN. Re-class this allocation");
     }
 
     if (state_ptr) {
+        // Make sure multithreaded requests don't trample each other.
+        if (!kmutex_lock(&state_ptr->allocation_mutex)) {
+            DFATAL("Unable to obtain mutex lock for free operation. Heap corruption is likely.");
+            return;
+        }
         state_ptr->stats.total_allocated -= size;
         state_ptr->stats.tagged_allocations[tag] -= size;
         b8 result = dynamic_allocator_free(&state_ptr->allocator, block, size);
 
+        kmutex_unlock(&state_ptr->allocation_mutex);
         // If the free failed, it's possible this is because the allocation was made
         // before this system was started up. Since this absolutely should be an exception
         // to the rule, try freeing it on the platform level. If this fails, some other

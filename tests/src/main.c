@@ -15,7 +15,7 @@ int main() {
     freelist_register_tests();
     dynamic_allocator_register_tests();
 
-    DEBUG("Starting tests");
+    DDEBUG("Starting tests");
 
     test_manager_run_tests();
 

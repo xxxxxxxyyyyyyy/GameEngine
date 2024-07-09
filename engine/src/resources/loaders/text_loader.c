@@ -21,7 +21,7 @@ b8 text_loader_load(struct resource_loader* self, const char* name, void* params
 
     file_handle f;
     if (!filesystem_open(full_file_path, FILE_MODE_READ, false, &f)) {
-        ERROR("text_loader_load - unable to open file for text reading: '%s'.", full_file_path);
+        DERROR("text_loader_load - unable to open file for text reading: '%s'.", full_file_path);
         return false;
     }
 
@@ -30,7 +30,7 @@ b8 text_loader_load(struct resource_loader* self, const char* name, void* params
 
     u64 file_size = 0;
     if (!filesystem_size(&f, &file_size)) {
-        ERROR("Unable to text read file: %s.", full_file_path);
+        DERROR("Unable to text read file: %s.", full_file_path);
         filesystem_close(&f);
         return false;
     }
@@ -39,7 +39,7 @@ b8 text_loader_load(struct resource_loader* self, const char* name, void* params
     char* resource_data = kallocate(sizeof(char) * file_size, MEMORY_TAG_ARRAY);
     u64 read_size = 0;
     if (!filesystem_read_all_text(&f, resource_data, &read_size)) {
-        ERROR("Unable to text read file: %s.", full_file_path);
+        DERROR("Unable to text read file: %s.", full_file_path);
         filesystem_close(&f);
         return false;
     }
@@ -55,7 +55,7 @@ b8 text_loader_load(struct resource_loader* self, const char* name, void* params
 
 void text_loader_unload(struct resource_loader* self, resource* resource) {
     if (!resource_unload(self, resource, MEMORY_TAG_TEXTURE)) {
-        WARN("text_loader_unload called with nullptr for self or resource.");
+        DWARN("text_loader_unload called with nullptr for self or resource.");
         return;
     }
 }

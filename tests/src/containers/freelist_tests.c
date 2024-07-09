@@ -8,7 +8,7 @@
 
 u8 freelist_should_create_and_destroy() {
     // NOTE: creating a small size list, which will trigger a warning.
-    DEBUG("The following warning message is intentional.");
+    DDEBUG("The following warning message is intentional.");
 
     freelist list;
 
@@ -267,7 +267,7 @@ u8 freelist_should_allocate_to_full_and_fail_to_allocate_more() {
 
     // Now try allocating some more
     u64 offset2 = INVALID_ID;  // Start with invalid id, which is a good default since it should never happen.
-    DEBUG("The following warning message is intentional.");
+    DDEBUG("The following warning message is intentional.");
     result = freelist_allocate_block(&list, 64, &offset2);
     // Verify that result is false
     expect_to_be_false(result);

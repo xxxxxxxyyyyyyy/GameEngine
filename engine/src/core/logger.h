@@ -36,41 +36,41 @@ void logging_system_shutdown(void* state);
 API void log_output(log_level level, const char* message, ...);
 
 // Logs a fatal level message
-#define FATAL(message, ...) log_output(LOG_LEVEL_FATAL, message, ##__VA_ARGS__);
+#define DFATAL(message, ...) log_output(LOG_LEVEL_FATAL, message, ##__VA_ARGS__);
 
-#ifndef ERROR
+#ifndef DERROR
 // Logs a error level message
-#define ERROR(message, ...) log_output(LOG_LEVEL_ERROR, message, ##__VA_ARGS__);
-#endif  // !ERROR
+#define DERROR(message, ...) log_output(LOG_LEVEL_ERROR, message, ##__VA_ARGS__);
+#endif  // !DERROR
 
 #if LOG_WARN_ENABLED == 1
 // Logs a warning level message
-#define WARN(message, ...) log_output(LOG_LEVEL_WARN, message, ##__VA_ARGS__);
+#define DWARN(message, ...) log_output(LOG_LEVEL_WARN, message, ##__VA_ARGS__);
 #else
 // Does nothing when LOG_WARN_ENABLED != 1
-#define WARN(message, ...)  // allows to compile but compile to nothing`
+#define DWARN(message, ...)  // allows to compile but compile to nothing`
 #endif
 
 #if LOG_INFO_ENABLED == 1
 // Logs a info level message
-#define INFO(message, ...) log_output(LOG_LEVEL_INFO, message, ##__VA_ARGS__);
+#define DINFO(message, ...) log_output(LOG_LEVEL_INFO, message, ##__VA_ARGS__);
 #else
 // Does nothing when LOG_INFO_ENABLED != 1
-#define INFO(message, ...)  // allows to compile but compile to nothing`
+#define DINFO(message, ...)  // allows to compile but compile to nothing`
 #endif
 
 #if LOG_DEBUG_ENABLED == 1
 // Logs a debug level message
-#define DEBUG(message, ...) log_output(LOG_LEVEL_DEBUG, message, ##__VA_ARGS__);
+#define DDEBUG(message, ...) log_output(LOG_LEVEL_DEBUG, message, ##__VA_ARGS__);
 #else
 // Does nothing when LOG_DEBUG_ENABLED != 1
-#define DEBUG(message, ...)  // allows to compile but compile to nothing`
+#define DDEBUG(message, ...)  // allows to compile but compile to nothing`
 #endif
 
 #if LOG_TRACE_ENABLED == 1
 // Logs a debug level message
-#define TRACE(message, ...) log_output(LOG_LEVEL_TRACE, message, ##__VA_ARGS__);
+#define DTRACE(message, ...) log_output(LOG_LEVEL_TRACE, message, ##__VA_ARGS__);
 #else
 // Does nothing when LOG_TRACE_ENABLED != 1
-#define TRACE(message, ...)  // allows to compile but compile to nothing`
+#define DTRACE(message, ...)  // allows to compile but compile to nothing`
 #endif

@@ -51,7 +51,7 @@ b8 vulkan_buffer_create(
     vkGetBufferMemoryRequirements(context->device.logical_device, out_buffer->handle, &requirements);
     out_buffer->memory_index = context->find_memory_index(requirements.memoryTypeBits, out_buffer->memory_property_flags);
     if (out_buffer->memory_index == -1) {
-        ERROR("Unable to create vulkan buffer because the required memory type index was not found.");
+        DERROR("Unable to create vulkan buffer because the required memory type index was not found.");
 
         // Make sure to destroy the freelist.
         cleanup_freelist(out_buffer);
@@ -71,7 +71,7 @@ b8 vulkan_buffer_create(
         &out_buffer->memory);
 
     if (result != VK_SUCCESS) {
-        ERROR("Unable to create vulkan buffer because the required memory allocation failed. Error: %i", result);
+        DERROR("Unable to create vulkan buffer because the required memory allocation failed. Error: %i", result);
         // Make sure to destroy the freelist.
         cleanup_freelist(out_buffer);
         return false;
@@ -110,7 +110,7 @@ b8 vulkan_buffer_resize(
     VkCommandPool pool) {
     // Sanity check.
     if (new_size < buffer->total_size) {
-        ERROR("vulkan_buffer_resize requires that new size be larger than the old. Not doing this could lead to data loss.");
+        DERROR("vulkan_buffer_resize requires that new size be larger than the old. Not doing this could lead to data loss.");
         return false;
     }
 
@@ -121,7 +121,7 @@ b8 vulkan_buffer_resize(
         void* new_block = kallocate(new_memory_requirement, MEMORY_TAG_RENDERER);
         void* old_block = 0;
         if (!freelist_resize(&buffer->buffer_freelist, &new_memory_requirement, new_block, new_size, &old_block)) {
-            ERROR("vulkan_buffer_resize failed to resize internal free list.");
+            DERROR("vulkan_buffer_resize failed to resize internal free list.");
             kfree(new_block, new_memory_requirement, MEMORY_TAG_RENDERER);
             return false;
         }
@@ -155,7 +155,7 @@ b8 vulkan_buffer_resize(
     VkDeviceMemory new_memory;
     VkResult result = vkAllocateMemory(context->device.logical_device, &allocate_info, context->allocator, &new_memory);
     if (result != VK_SUCCESS) {
-        ERROR("Unable to resize vulkan buffer because the required memory allocation failed. Error: %i", result);
+        DERROR("Unable to resize vulkan buffer because the required memory allocation failed. Error: %i", result);
         return false;
     }
 
@@ -202,12 +202,12 @@ void vulkan_buffer_unlock_memory(vulkan_context* context, vulkan_buffer* buffer)
 
 b8 vulkan_buffer_allocate(vulkan_buffer* buffer, u64 size, u64* out_offset) {
     if (!buffer || !size || !out_offset) {
-        ERROR("vulkan_buffer_allocate requires valid buffer, a nonzero size and valid pointer to hold offset.");
+        DERROR("vulkan_buffer_allocate requires valid buffer, a nonzero size and valid pointer to hold offset.");
         return false;
     }
 
     if (!buffer->has_freelist) {
-        WARN("vulkan_buffer_allocate called on a buffer not using freelists. Offset will not be valid. Call vulkan_buffer_load_data instead.");
+        DWARN("vulkan_buffer_allocate called on a buffer not using freelists. Offset will not be valid. Call vulkan_buffer_load_data instead.");
         *out_offset = 0;
         return true;
     }
@@ -217,12 +217,12 @@ b8 vulkan_buffer_allocate(vulkan_buffer* buffer, u64 size, u64* out_offset) {
 
 b8 vulkan_buffer_free(vulkan_buffer* buffer, u64 size, u64 offset) {
     if (!buffer || !size) {
-        ERROR("vulkan_buffer_free requires valid buffer and a nonzero size.");
+        DERROR("vulkan_buffer_free requires valid buffer and a nonzero size.");
         return false;
     }
 
     if (!buffer->has_freelist) {
-        WARN("vulkan_buffer_allocate called on a buffer not using freelists. Nothing was done.");
+        DWARN("vulkan_buffer_allocate called on a buffer not using freelists. Nothing was done.");
         return true;
     }
 

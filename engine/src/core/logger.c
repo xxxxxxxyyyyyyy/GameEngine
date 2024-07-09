@@ -21,7 +21,7 @@ void append_to_log_file(const char* message) {
         u64 length = string_length(message);
         u64 written = 0;
         if (!filesystem_write(&state_ptr->log_file_handle, length, message, &written)) {
-            platform_console_write_error("ERROR writing to console.log.", LOG_LEVEL_ERROR);
+            platform_console_write_error("DERROR writing to console.log.", LOG_LEVEL_ERROR);
         }
     }
 }
@@ -36,17 +36,17 @@ b8 logging_system_initialize(u64* memory_requirement, void* state) {
 
     // Create new/wipe existing log file, then open it.
     if (!filesystem_open("console.log", FILE_MODE_WRITE, false, &state_ptr->log_file_handle)) {
-        platform_console_write_error("ERROR: Unable to open console.log for writing.", LOG_LEVEL_ERROR);
+        platform_console_write_error("DERROR: Unable to open console.log for writing.", LOG_LEVEL_ERROR);
         return false;
     }
 
     // TODO: Remove this
-    FATAL("A test message: %f", 3.14f);
-    ERROR("A test message: %f", 3.14f);
-    WARN("A test message: %f", 3.14f);
-    INFO("A test message: %f", 3.14f);
-    DEBUG("A test message: %f", 3.14f);
-    TRACE("A test message: %f", 3.14f);
+    DFATAL("A test message: %f", 3.14f);
+    DERROR("A test message: %f", 3.14f);
+    DWARN("A test message: %f", 3.14f);
+    DINFO("A test message: %f", 3.14f);
+    DDEBUG("A test message: %f", 3.14f);
+    DTRACE("A test message: %f", 3.14f);
 
     // TODO: create log file.
     return true;
@@ -61,7 +61,7 @@ void log_output(log_level level, const char* message, ...){
     // TODO: These string operations are all pretty slow. This needs to be
     // moved to another thread eventually, along with the file writes, to
     // avoid slowing things down while the engine is trying to run.
-    const char* level_strings[6] = {"[FATAL]: ", "[ERROR]: ", "[WARN]: ", "[INFO]: ", "[DEBUG]: ", "[TRACE]: "};
+    const char* level_strings[6] = {"[DFATAL]: ", "[DERROR]: ", "[DWARN]: ", "[DINFO]: ", "[DDEBUG]: ", "[DTRACE]: "};
     b8 is_error = level < LOG_LEVEL_WARN;
 
     // Technically imposes a 32k char limit on a single log entry, but...

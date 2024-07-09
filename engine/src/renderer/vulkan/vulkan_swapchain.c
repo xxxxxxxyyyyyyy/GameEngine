@@ -58,7 +58,7 @@ b8 vulkan_swapchain_acquire_next_image_index(
         vulkan_swapchain_recreate(context, context->framebuffer_width, context->framebuffer_height, swapchain);
         return false;
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-        FATAL("Failed to acquire swapchain image!");
+        DFATAL("Failed to acquire swapchain image!");
         return false;
     }
 
@@ -68,7 +68,6 @@ b8 vulkan_swapchain_acquire_next_image_index(
 void vulkan_swapchain_present(
     vulkan_context* context,
     vulkan_swapchain* swapchain,
-    VkQueue graphics_queue,
     VkQueue present_queue,
     VkSemaphore render_complete_semaphore,
     u32 present_image_index) {
@@ -85,9 +84,9 @@ void vulkan_swapchain_present(
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
         // Swapchain is out of date, suboptimal or a framebuffer resize has occurred. Trigger swapchain recreation.
         vulkan_swapchain_recreate(context, context->framebuffer_width, context->framebuffer_height, swapchain);
-        DEBUG("Swapchain recreated because swapchain returned out of date or suboptimal.");
+        DDEBUG("Swapchain recreated because swapchain returned out of date or suboptimal.");
     } else if (result != VK_SUCCESS) {
-        FATAL("Failed to present swap chain image!");
+        DFATAL("Failed to present swap chain image!");
     }
 
     // increment and loop the index
@@ -204,7 +203,7 @@ void create(vulkan_context* context, u32 width, u32 height, vulkan_swapchain* sw
                 false,
                 internal_data);
             if (!swapchain->render_textures[i]) {
-                FATAL("Failed to generate new swapchain image texture!");
+                DFATAL("Failed to generate new swapchain image texture!");
                 return;
             }
         }
@@ -243,7 +242,7 @@ void create(vulkan_context* context, u32 width, u32 height, vulkan_swapchain* sw
     // Depth resources
     if (!vulkan_device_detect_depth_format(&context->device)) {
         context->device.depth_format = VK_FORMAT_UNDEFINED;
-        FATAL("Failed to find a supported format!");
+        DFATAL("Failed to find a supported format!");
     }
 
     // Create depth image and its view.
@@ -263,7 +262,7 @@ void create(vulkan_context* context, u32 width, u32 height, vulkan_swapchain* sw
 
     // Wrap it in a texture.
     context->swapchain.depth_texture = texture_system_wrap_internal(
-        "__kohi_default_depth_texture__",
+        "__internal_default_depth_texture__",
         swapchain_extent.width,
         swapchain_extent.height,
         context->device.depth_channel_count,
@@ -272,7 +271,7 @@ void create(vulkan_context* context, u32 width, u32 height, vulkan_swapchain* sw
         false,
         image);
 
-    INFO("Swapchain created successfully.");
+    DINFO("Swapchain created successfully.");
 }
 
 void destroy(vulkan_context* context, vulkan_swapchain* swapchain) {

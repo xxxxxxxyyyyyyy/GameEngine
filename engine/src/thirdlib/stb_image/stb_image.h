@@ -6227,7 +6227,7 @@ static void *stbi__psd_load(stbi__context *s, int *x, int *y, int *comp, int req
 // Softimage PIC loader
 // by Tom Seddon
 //
-// See http://softimage.wiki.softimage.com/index.php/INFO:_PIC_file_format
+// See http://softimage.wiki.softimage.com/index.php/DINFO:_PIC_file_format
 // See http://ozviz.wasp.uwa.edu.au/~pbourke/dataformats/softimagepic/
 
 #ifndef STBI_NO_PIC

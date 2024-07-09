@@ -29,14 +29,14 @@ b8 filesystem_open(const char* path, file_modes mode, b8 binary, file_handle* ou
     } else if ((mode & FILE_MODE_READ) == 0 && (mode & FILE_MODE_WRITE) != 0) {
         mode_str = binary ? "wb" : "w";
     } else {
-        ERROR("Invalid mode passed while trying to open file: '%s'", path);
+        DERROR("Invalid mode passed while trying to open file: '%s'", path);
         return false;
     }
 
     // Attempt to open the file.
     FILE* file = fopen(path, mode_str);
     if (!file) {
-        ERROR("Error opening file: '%s'", path);
+        DERROR("Error opening file: '%s'", path);
         return false;
     }
 

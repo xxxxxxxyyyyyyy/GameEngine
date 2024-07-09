@@ -21,7 +21,6 @@ void vulkan_swapchain_destroy(
 void vulkan_swapchain_present(
     vulkan_context* context,
     vulkan_swapchain* swapchain,
-    VkQueue graphics_queue,
     VkQueue present_queue,
     VkSemaphore render_complete_semaphore,
     u32 present_image_index);

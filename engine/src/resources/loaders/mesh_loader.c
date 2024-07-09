@@ -83,7 +83,7 @@ b8 mesh_loader_load(struct resource_loader* self, const char* name, void* params
     }
 
     if (type == MESH_FILE_TYPE_NOT_FOUND) {
-        ERROR("Unable to find mesh of supported type called '%s'.", name);
+        DERROR("Unable to find mesh of supported type called '%s'.", name);
         return false;
     }
 
@@ -105,7 +105,7 @@ b8 mesh_loader_load(struct resource_loader* self, const char* name, void* params
             result = load_ksm_file(&f, &resource_data);
             break;
         case MESH_FILE_TYPE_NOT_FOUND:
-            ERROR("Unable to find mesh of supported type called '%s'.", name);
+            DERROR("Unable to find mesh of supported type called '%s'.", name);
             result = false;
             break;
     }
@@ -113,7 +113,7 @@ b8 mesh_loader_load(struct resource_loader* self, const char* name, void* params
     filesystem_close(&f);
 
     if (!result) {
-        ERROR("Failed to process mesh file '%s'.", full_file_path);
+        DERROR("Failed to process mesh file '%s'.", full_file_path);
         darray_destroy(resource_data);
         out_resource->data = 0;
         out_resource->data_size = 0;
@@ -198,12 +198,12 @@ b8 load_ksm_file(file_handle* ksm_file, geometry_config** out_geometries_darray)
 
 b8 write_ksm_file(const char* path, const char* name, u32 geometry_count, geometry_config* geometries) {
     if (filesystem_exists(path)) {
-        INFO("File '%s' already exists and will be overwritten.", path);
+        DINFO("File '%s' already exists and will be overwritten.", path);
     }
 
     file_handle f;
     if (!filesystem_open(path, FILE_MODE_WRITE, true, &f)) {
-        ERROR("Unable to open file '%s' for writing. KSM write failed.", path);
+        DERROR("Unable to open file '%s' for writing. KSM write failed.", path);
         return false;
     }
 
@@ -283,6 +283,7 @@ b8 import_obj_file(file_handle* obj_file, const char* out_ksm_filename, geometry
     // b8 hit_name = false;
 
     char name[512];
+    kzero_memory(name, sizeof(char) * 512);
     u8 current_mat_name_count = 0;
     char material_names[32][64];
 
@@ -494,12 +495,13 @@ b8 import_obj_file(file_handle* obj_file, const char* out_ksm_filename, geometry
     if (string_length(material_file_name) > 0) {
         // Load up the material file
         char full_mtl_path[512];
+        kzero_memory(full_mtl_path, sizeof(char) * 512);
         string_directory_from_path(full_mtl_path, out_ksm_filename);
         string_append_string(full_mtl_path, full_mtl_path, material_file_name);
 
         // Process material library file.
         if (!import_obj_material_library_file(full_mtl_path)) {
-            ERROR("Error reading obj mtl file.");
+            DERROR("Error reading obj mtl file.");
         }
     }
 
@@ -507,7 +509,7 @@ b8 import_obj_file(file_handle* obj_file, const char* out_ksm_filename, geometry
     u32 count = darray_length(*out_geometries_darray);
     for (u64 i = 0; i < count; ++i) {
         geometry_config* g = &((*out_geometries_darray)[i]);
-        DEBUG("Geometry de-duplication process starting on geometry object named '%s'...", g->name);
+        DDEBUG("Geometry de-duplication process starting on geometry object named '%s'...", g->name);
 
         u32 new_vert_count = 0;
         vertex_3d* unique_verts = 0;
@@ -549,11 +551,11 @@ void process_subobject(vec3* positions, vec3* normals, vec2* tex_coords, mesh_fa
     b8 skip_normals = false;
     b8 skip_tex_coords = false;
     if (normal_count == 0) {
-        WARN("No normals are present in this model.");
+        DWARN("No normals are present in this model.");
         skip_normals = true;
     }
     if (tex_coord_count == 0) {
-        WARN("No texture coordinates are present in this model.");
+        DWARN("No texture coordinates are present in this model.");
         skip_tex_coords = true;
     }
     for (u64 f = 0; f < face_count; ++f) {
@@ -629,11 +631,11 @@ void process_subobject(vec3* positions, vec3* normals, vec2* tex_coords, mesh_fa
 // reinforcement of the message for material uniqueness.
 // Material configs should not be returned or used here.
 b8 import_obj_material_library_file(const char* mtl_file_path) {
-    DEBUG("Importing obj .mtl file '%s'...", mtl_file_path);
+    DDEBUG("Importing obj .mtl file '%s'...", mtl_file_path);
     // Grab the .mtl file, if it exists, and read the material information.
     file_handle mtl_file;
     if (!filesystem_open(mtl_file_path, FILE_MODE_READ, false, &mtl_file)) {
-        ERROR("Unable to open mtl file: %s", mtl_file_path);
+        DERROR("Unable to open mtl file: %s", mtl_file_path);
         return false;
     }
 
@@ -775,7 +777,7 @@ b8 import_obj_material_library_file(const char* mtl_file_path) {
                     if (hit_name) {
                         //  Write out a mt file and move on.
                         if (!write_mt_file(mtl_file_path, &current_config)) {
-                            ERROR("Unable to write mt file.");
+                            DERROR("Unable to write mt file.");
                             return false;
                         }
 
@@ -802,7 +804,7 @@ b8 import_obj_material_library_file(const char* mtl_file_path) {
         current_config.shininess = 8.0f;
     }
     if (!write_mt_file(mtl_file_path, &current_config)) {
-        ERROR("Unable to write mt file.");
+        DERROR("Unable to write mt file.");
         return false;
     }
 
@@ -811,7 +813,7 @@ b8 import_obj_material_library_file(const char* mtl_file_path) {
 }
 
 /**
- * @brief Write out a kohi material file from config. This gets loaded by name later when the mesh
+ * @brief Write out a material file from config. This gets loaded by name later when the mesh
  * is requested for load.
  *
  * @param mtl_file_path The filepath of the material library file which originally contained the material definition.
@@ -830,10 +832,10 @@ b8 write_mt_file(const char* mtl_file_path, material_config* config) {
 
     string_format(full_file_path, format_str, directory, config->name, ".mt");
     if (!filesystem_open(full_file_path, FILE_MODE_WRITE, false, &f)) {
-        ERROR("Error opening material file for writing: '%s'", full_file_path);
+        DERROR("Error opening material file for writing: '%s'", full_file_path);
         return false;
     }
-    DEBUG("Writing .mt file '%s'...", full_file_path);
+    DDEBUG("Writing .mt file '%s'...", full_file_path);
 
     char line_buffer[512];
     filesystem_write_line(&f, "#material file");

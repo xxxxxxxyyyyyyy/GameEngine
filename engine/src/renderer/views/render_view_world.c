@@ -56,15 +56,15 @@ static b8 render_view_on_event(u16 code, void* sender, void* listener_inst, even
             switch (mode) {
                 default:
                 case RENDERER_VIEW_MODE_DEFAULT:
-                    DEBUG("Renderer mode set to default.");
+                    DDEBUG("Renderer mode set to default.");
                     data->render_mode = RENDERER_VIEW_MODE_DEFAULT;
                     break;
                 case RENDERER_VIEW_MODE_LIGHTING:
-                    DEBUG("Renderer mode set to lighting.");
+                    DDEBUG("Renderer mode set to lighting.");
                     data->render_mode = RENDERER_VIEW_MODE_LIGHTING;
                     break;
                 case RENDERER_VIEW_MODE_NORMALS:
-                    DEBUG("Renderer mode set to normals.");
+                    DDEBUG("Renderer mode set to normals.");
                     data->render_mode = RENDERER_VIEW_MODE_NORMALS;
                     break;
             }
@@ -97,13 +97,13 @@ b8 render_view_world_on_create(struct render_view* self) {
 
         // Listen for mode changes.
         if (!event_register(EVENT_CODE_SET_RENDER_MODE, self, render_view_on_event)) {
-            ERROR("Unable to listen for render mode set event, creation failed.");
+            DERROR("Unable to listen for render mode set event, creation failed.");
             return false;
         }
         return true;
     }
 
-    ERROR("render_view_world_on_create - Requires a valid pointer to a view.");
+    DERROR("render_view_world_on_create - Requires a valid pointer to a view.");
     return false;
 }
 
@@ -136,7 +136,7 @@ void render_view_world_on_resize(struct render_view* self, u32 width, u32 height
 
 b8 render_view_world_on_build_packet(const struct render_view* self, void* data, struct render_view_packet* out_packet) {
     if (!self || !data || !out_packet) {
-        WARN("render_view_world_on_build_packet requires valid pointer to view, packet, and data.");
+        DWARN("render_view_world_on_build_packet requires valid pointer to view, packet, and data.");
         return false;
     }
 
@@ -156,7 +156,7 @@ b8 render_view_world_on_build_packet(const struct render_view* self, void* data,
     // Iterate all meshes and add them to the packet's geometries collection
     geometry_distance* geometry_distances = darray_create(geometry_distance);
     for (u32 i = 0; i < mesh_data->mesh_count; ++i) {
-        mesh* m = &mesh_data->meshes[i];
+        mesh* m = mesh_data->meshes[i];
         matrix4 model = transform_get_world(&m->transform);
         for (u32 j = 0; j < m->geometry_count; ++j) {
             geometry_render_data render_data;
@@ -207,12 +207,12 @@ b8 render_view_world_on_render(const struct render_view* self, const struct rend
     for (u32 p = 0; p < self->renderpass_count; ++p) {
         renderpass* pass = self->passes[p];
         if (!renderer_renderpass_begin(pass, &pass->targets[render_target_index])) {
-            ERROR("render_view_world_on_render pass index %u failed to start.", p);
+            DERROR("render_view_world_on_render pass index %u failed to start.", p);
             return false;
         }
 
         if (!shader_system_use_by_id(shader_id)) {
-            ERROR("Failed to use material shader. Render frame failed.");
+            DERROR("Failed to use material shader. Render frame failed.");
             return false;
         }
 
@@ -220,7 +220,7 @@ b8 render_view_world_on_render(const struct render_view* self, const struct rend
         // TODO: Find a generic way to request data such as ambient colour (which should be from a scene),
         // and mode (from the renderer)
         if (!material_system_apply_global(shader_id, frame_number, &packet->projection_matrix, &packet->view_matrix, &packet->ambient_colour, &packet->view_position, data->render_mode)) {
-            ERROR("Failed to use apply globals for material shader. Render frame failed.");
+            DERROR("Failed to use apply globals for material shader. Render frame failed.");
             return false;
         }
 
@@ -240,7 +240,7 @@ b8 render_view_world_on_render(const struct render_view* self, const struct rend
             // updates the internal shader bindings and binds them, or only binds them.
             b8 needs_update = m->render_frame_number != frame_number;
             if (!material_system_apply_instance(m, needs_update)) {
-                WARN("Failed to apply material '%s'. Skipping draw.", m->name);
+                DWARN("Failed to apply material '%s'. Skipping draw.", m->name);
                 continue;
             } else {
                 // Sync the frame number.
@@ -255,7 +255,7 @@ b8 render_view_world_on_render(const struct render_view* self, const struct rend
         }
 
         if (!renderer_renderpass_end(pass)) {
-            ERROR("render_view_world_on_render pass index %u failed to end.", p);
+            DERROR("render_view_world_on_render pass index %u failed to end.", p);
             return false;
         }
     }

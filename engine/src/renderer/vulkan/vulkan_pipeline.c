@@ -131,7 +131,7 @@ b8 vulkan_graphics_pipeline_create(
 	// Push constants
     if (push_constant_range_count > 0) {
         if (push_constant_range_count > 32) {
-            ERROR("vulkan_graphics_pipeline_create: cannot have more than 32 push constant ranges. Passed count: %i", push_constant_range_count);
+            DERROR("vulkan_graphics_pipeline_create: cannot have more than 32 push constant ranges. Passed count: %i", push_constant_range_count);
             return false;
         }
 
@@ -192,11 +192,11 @@ b8 vulkan_graphics_pipeline_create(
         &out_pipeline->handle);
 
     if (vulkan_result_is_success(result)) {
-        DEBUG("Graphics pipeline created!");
+        DDEBUG("Graphics pipeline created!");
         return true;
     }
 
-    ERROR("vkCreateGraphicsPipelines failed with %s.", vulkan_result_string(result, true));
+    DERROR("vkCreateGraphicsPipelines failed with %s.", vulkan_result_string(result, true));
     return false;
 }
 

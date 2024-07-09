@@ -36,7 +36,7 @@ void freelist_create(u64 total_size, u64* memory_requirement, void* memory, free
     // If the memory required is too small, should warn about it being wasteful to use.
     u64 mem_min = (sizeof(internal_state) + sizeof(freelist_node)) * 8;
     if (total_size < mem_min) {
-        WARN(
+        DWARN(
             "Freelists are very inefficient with amounts of memory less than %iB; it is recommended to not use this structure in this case.",
             mem_min);
     }
@@ -109,7 +109,7 @@ b8 freelist_allocate_block(freelist* list, u64 size, u64* out_offset) {
     }
 
     u64 free_space = freelist_free_space(list);
-    WARN("freelist_find_block, no block with enough free space found (requested: %uB, available: %lluB).", size, free_space);
+    DWARN("freelist_find_block, no block with enough free space found (requested: %uB, available: %lluB).", size, free_space);
     return false;
 }
 
@@ -184,7 +184,7 @@ b8 freelist_free_block(freelist* list, u64 size, u64 offset) {
         }
     }
 
-    WARN("Unable to find block to be freed. Corruption possible?");
+    DWARN("Unable to find block to be freed. Corruption possible?");
     return false;
 }
 

@@ -41,11 +41,11 @@ b8 shader_system_initialize(u64* memory_requirement, void* memory, shader_system
     // Verify configuration.
     if (config.max_shader_count < 512) {
         if (config.max_shader_count == 0) {
-            ERROR("shader_system_initialize - config.max_shader_count must be greater than 0");
+            DERROR("shader_system_initialize - config.max_shader_count must be greater than 0");
             return false;
         } else {
             // This is to help avoid hashtable collisions.
-            WARN("shader_system_initialize - config.max_shader_count is recommended to be at least 512.");
+            DWARN("shader_system_initialize - config.max_shader_count is recommended to be at least 512.");
         }
     }
 
@@ -77,7 +77,7 @@ b8 shader_system_initialize(u64* memory_requirement, void* memory, shader_system
     // Fill the table with invalid ids.
     u32 invalid_fill_id = INVALID_ID;
     if (!hashtable_fill(&state_ptr->lookup, &invalid_fill_id)) {
-        ERROR("hashtable_fill failed.");
+        DERROR("hashtable_fill failed.");
         return false;
     }
 
@@ -112,7 +112,7 @@ b8 shader_system_create(const shader_config* config) {
     kzero_memory(out_shader, sizeof(shader));
     out_shader->id = id;
     if (out_shader->id == INVALID_ID) {
-        ERROR("Unable to find free slot to create new shader. Aborting.");
+        DERROR("Unable to find free slot to create new shader. Aborting.");
         return false;
     }
     out_shader->state = SHADER_STATE_NOT_CREATED;
@@ -152,12 +152,12 @@ b8 shader_system_create(const shader_config* config) {
 
     renderpass* pass = renderer_renderpass_get(config->renderpass_name);
     if (!pass) {
-        ERROR("Unable to find renderpass '%s'", config->renderpass_name);
+        DERROR("Unable to find renderpass '%s'", config->renderpass_name);
         return false;
     }
 
     if (!renderer_shader_create(out_shader, config, pass, config->stage_count, (const char**)config->stage_filenames, config->stages)) {
-        ERROR("Error creating shader.");
+        DERROR("Error creating shader.");
         return false;
     }
 
@@ -180,7 +180,7 @@ b8 shader_system_create(const shader_config* config) {
 
     // Initialize the shader.
     if (!renderer_shader_initialize(out_shader)) {
-        ERROR("shader_system_create: initialization failed for shader '%s'.", config->name);
+        DERROR("shader_system_create: initialization failed for shader '%s'.", config->name);
         // NOTE: initialize automatically destroys the shader if it fails.
         return false;
     }
@@ -261,11 +261,11 @@ b8 shader_system_use_by_id(u32 shader_id) {
         shader* next_shader = shader_system_get_by_id(shader_id);
         state_ptr->current_shader_id = shader_id;
         if (!renderer_shader_use(next_shader)) {
-            ERROR("Failed to use shader '%s'.", next_shader->name);
+            DERROR("Failed to use shader '%s'.", next_shader->name);
             return false;
         }
         if (!renderer_shader_bind_globals(next_shader)) {
-            ERROR("Failed to bind globals for shader '%s'.", next_shader->name);
+            DERROR("Failed to bind globals for shader '%s'.", next_shader->name);
             return false;
         }
     }
@@ -274,13 +274,13 @@ b8 shader_system_use_by_id(u32 shader_id) {
 
 u16 shader_system_uniform_index(shader* s, const char* uniform_name) {
     if (!s || s->id == INVALID_ID) {
-        ERROR("shader_system_uniform_location called with invalid shader.");
+        DERROR("shader_system_uniform_location called with invalid shader.");
         return INVALID_ID_U16;
     }
 
     u16 index = INVALID_ID_U16;
     if (!hashtable_get(&s->uniform_lookup, uniform_name, &index) || index == INVALID_ID_U16) {
-        ERROR("Shader '%s' does not have a registered uniform named '%s'", s->name, uniform_name);
+        DERROR("Shader '%s' does not have a registered uniform named '%s'", s->name, uniform_name);
         return INVALID_ID_U16;
     }
     return s->uniforms[index].index;
@@ -288,7 +288,7 @@ u16 shader_system_uniform_index(shader* s, const char* uniform_name) {
 
 b8 shader_system_uniform_set(const char* uniform_name, const void* value) {
     if (state_ptr->current_shader_id == INVALID_ID) {
-        ERROR("shader_system_uniform_set called without a shader in use.");
+        DERROR("shader_system_uniform_set called without a shader in use.");
         return false;
     }
     shader* s = &state_ptr->shaders[state_ptr->current_shader_id];
@@ -359,7 +359,7 @@ b8 add_attribute(shader* shader, const shader_attribute_config* config) {
             size = 16;
             break;
         default:
-            ERROR("Unrecognized type %d, defaulting to size of 4. This probably is not what is desired.");
+            DERROR("Unrecognized type %d, defaulting to size of 4. This probably is not what is desired.");
             size = 4;
             break;
     }
@@ -379,7 +379,7 @@ b8 add_attribute(shader* shader, const shader_attribute_config* config) {
 b8 add_sampler(shader* shader, shader_uniform_config* config) {
     // Samples can't be used for push constants.
     if (config->scope == SHADER_SCOPE_LOCAL) {
-        ERROR("add_sampler cannot add a sampler at local scope.");
+        DERROR("add_sampler cannot add a sampler at local scope.");
         return false;
     }
 
@@ -393,7 +393,7 @@ b8 add_sampler(shader* shader, shader_uniform_config* config) {
     if (config->scope == SHADER_SCOPE_GLOBAL) {
         u32 global_texture_count = darray_length(shader->global_texture_maps);
         if (global_texture_count + 1 > state_ptr->config.max_global_textures) {
-            ERROR("Shader global texture count %i exceeds max of %i", global_texture_count, state_ptr->config.max_global_textures);
+            DERROR("Shader global texture count %i exceeds max of %i", global_texture_count, state_ptr->config.max_global_textures);
             return false;
         }
         location = global_texture_count;
@@ -405,7 +405,7 @@ b8 add_sampler(shader* shader, shader_uniform_config* config) {
         default_map.repeat_u = default_map.repeat_v = default_map.repeat_w = TEXTURE_REPEAT_REPEAT;
         default_map.use = TEXTURE_USE_UNKNOWN;
         if (!renderer_texture_map_acquire_resources(&default_map)) {
-            ERROR("Failed to acquire resources for global texture map during shader creation.");
+            DERROR("Failed to acquire resources for global texture map during shader creation.");
             return false;
         }
 
@@ -418,7 +418,7 @@ b8 add_sampler(shader* shader, shader_uniform_config* config) {
     } else {
         // Otherwise, it's instance-level, so keep count of how many need to be added during the resource acquisition.
         if (shader->instance_texture_count + 1 > state_ptr->config.max_instance_textures) {
-            ERROR("Shader instance texture count %i exceeds max of %i", shader->instance_texture_count, state_ptr->config.max_instance_textures);
+            DERROR("Shader instance texture count %i exceeds max of %i", shader->instance_texture_count, state_ptr->config.max_instance_textures);
             return false;
         }
         location = shader->instance_texture_count;
@@ -430,7 +430,7 @@ b8 add_sampler(shader* shader, shader_uniform_config* config) {
     // This allows location lookups for samplers as if they were uniforms as well (since technically they are).
     // TODO: might need to store this elsewhere
     if (!uniform_add(shader, config->name, 0, config->type, config->scope, location, true)) {
-        ERROR("Unable to add sampler uniform.");
+        DERROR("Unable to add sampler uniform.");
         return false;
     }
 
@@ -447,7 +447,7 @@ b8 add_uniform(shader* shader, shader_uniform_config* config) {
 u32 get_shader_id(const char* shader_name) {
     u32 shader_id = INVALID_ID;
     if (!hashtable_get(&state_ptr->lookup, shader_name, &shader_id)) {
-        ERROR("There is no shader registered named '%s'.", shader_name);
+        DERROR("There is no shader registered named '%s'.", shader_name);
         return INVALID_ID;
     }
     return shader_id;
@@ -465,7 +465,7 @@ u32 new_shader_id() {
 b8 uniform_add(shader* shader, const char* uniform_name, u32 size, shader_uniform_type type, shader_scope scope, u32 set_location, b8 is_sampler) {
     u32 uniform_count = darray_length(shader->uniforms);
     if (uniform_count + 1 > state_ptr->config.max_uniform_count) {
-        ERROR("A shader can only accept a combined maximum of %d uniforms and samplers at global, instance and local scopes.", state_ptr->config.max_uniform_count);
+        DERROR("A shader can only accept a combined maximum of %d uniforms and samplers at global, instance and local scopes.", state_ptr->config.max_uniform_count);
         return false;
     }
     shader_uniform entry;
@@ -502,7 +502,7 @@ b8 uniform_add(shader* shader, const char* uniform_name, u32 size, shader_unifor
     }
 
     if (!hashtable_set(&shader->uniform_lookup, uniform_name, &entry.index)) {
-        ERROR("Failed to add uniform.");
+        DERROR("Failed to add uniform.");
         return false;
     }
     darray_push(shader->uniforms, entry);
@@ -520,12 +520,12 @@ b8 uniform_add(shader* shader, const char* uniform_name, u32 size, shader_unifor
 
 b8 uniform_name_valid(shader* shader, const char* uniform_name) {
     if (!uniform_name || !string_length(uniform_name)) {
-        ERROR("Uniform name must exist.");
+        DERROR("Uniform name must exist.");
         return false;
     }
     u16 location;
     if (hashtable_get(&shader->uniform_lookup, uniform_name, &location) && location != INVALID_ID_U16) {
-        ERROR("A uniform by the name '%s' already exists on shader '%s'.", uniform_name, shader->name);
+        DERROR("A uniform by the name '%s' already exists on shader '%s'.", uniform_name, shader->name);
         return false;
     }
     return true;
@@ -533,7 +533,7 @@ b8 uniform_name_valid(shader* shader, const char* uniform_name) {
 
 b8 shader_uniform_add_state_valid(shader* shader) {
     if (shader->state != SHADER_STATE_UNINITIALIZED) {
-        ERROR("Uniforms may only be added to shaders before initialization.");
+        DERROR("Uniforms may only be added to shaders before initialization.");
         return false;
     }
     return true;

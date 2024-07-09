@@ -22,7 +22,7 @@ b8 load(const char* name, resource_loader* loader, void* params, resource* out_r
 
 b8 resource_system_initialize(u64* memory_requirement, void* state, resource_system_config config) {
     if (config.max_loader_count == 0) {
-        FATAL("resource_system_initialize failed because config.max_loader_count==0.");
+        DFATAL("resource_system_initialize failed because config.max_loader_count==0.");
         return false;
     }
 
@@ -52,7 +52,7 @@ b8 resource_system_initialize(u64* memory_requirement, void* state, resource_sys
     resource_system_register_loader(shader_resource_loader_create());
     resource_system_register_loader(mesh_resource_loader_create());
 
-    INFO("Resource system initialized with base path '%s'.", config.asset_base_path);
+    DINFO("Resource system initialized with base path '%s'.", config.asset_base_path);
 
     return true;
 }
@@ -71,10 +71,10 @@ b8 resource_system_register_loader(resource_loader loader) {
             resource_loader* l = &state_ptr->registered_loaders[i];
             if (l->id != INVALID_ID) {
                 if (l->type == loader.type) {
-                    ERROR("resource_system_register_loader - Loader of type %d already exists and will not be registered.", loader.type);
+                    DERROR("resource_system_register_loader - Loader of type %d already exists and will not be registered.", loader.type);
                     return false;
                 } else if (loader.custom_type && string_length(loader.custom_type) > 0 && strings_equali(l->custom_type, loader.custom_type)) {
-                    ERROR("resource_system_register_loader - Loader of custom type %s already exists and will not be registered.", loader.custom_type);
+                    DERROR("resource_system_register_loader - Loader of custom type %s already exists and will not be registered.", loader.custom_type);
                     return false;
                 }
             }
@@ -83,7 +83,7 @@ b8 resource_system_register_loader(resource_loader loader) {
             if (state_ptr->registered_loaders[i].id == INVALID_ID) {
                 state_ptr->registered_loaders[i] = loader;
                 state_ptr->registered_loaders[i].id = i;
-                TRACE("Loader registered.");
+                DTRACE("Loader registered.");
                 return true;
             }
         }
@@ -105,7 +105,7 @@ b8 resource_system_load(const char* name, resource_type type, void* params, reso
     }
 
     out_resource->loader_id = INVALID_ID;
-    ERROR("resource_system_load - No loader for type %d was found.", type);
+    DERROR("resource_system_load - No loader for type %d was found.", type);
     return false;
 }
 
@@ -122,7 +122,7 @@ b8 resource_system_load_custom(const char* name, const char* custom_type, void* 
     }
 
     out_resource->loader_id = INVALID_ID;
-    ERROR("resource_system_load_custom - No loader for type %s was found.", custom_type);
+    DERROR("resource_system_load_custom - No loader for type %s was found.", custom_type);
     return false;
 }
 
@@ -142,7 +142,7 @@ const char* resource_system_base_path() {
         return state_ptr->config.asset_base_path;
     }
 
-    ERROR("resource_system_base_path called before initialization, returning empty string.");
+    DERROR("resource_system_base_path called before initialization, returning empty string.");
     return "";
 }
 

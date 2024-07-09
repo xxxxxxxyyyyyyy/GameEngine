@@ -178,7 +178,7 @@ typedef struct renderer_backend {
      * @param stages A array of shader_stages indicating what render stages (vertex, fragment, etc.) used in this shader.
      * @return b8 True on success; otherwise false.
      */
-b8 (*shader_create)(struct shader* shader, const shader_config* config, renderpass* pass, u8 stage_count, const char** stage_filenames, shader_stage* stages);
+    b8 (*shader_create)(struct shader* shader, const shader_config* config, renderpass* pass, u8 stage_count, const char** stage_filenames, shader_stage* stages);
 
     /**
      * @brief Destroys the given shader and releases any resources held by it.
@@ -336,6 +336,11 @@ b8 (*shader_create)(struct shader* shader, const shader_config* config, renderpa
      * @brief Returns the current window attachment index.
      */
     u8 (*window_attachment_index_get)();
+
+    /**
+     * @brief Indicates if the renderer is capable of multi-threading.
+     */
+    b8 (*is_multithreaded)();
 } renderer_backend;
 
 /** @brief Known render view types, which have logic associated with them. */
@@ -497,7 +502,7 @@ typedef struct render_view_packet {
 
 typedef struct mesh_packet_data {
     u32 mesh_count;
-    mesh* meshes;
+    mesh** meshes;
 } mesh_packet_data;
 
 typedef struct skybox_packet_data {

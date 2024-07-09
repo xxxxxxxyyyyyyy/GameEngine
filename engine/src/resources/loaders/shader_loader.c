@@ -22,7 +22,7 @@ b8 shader_loader_load(struct resource_loader* self, const char* name, void* para
 
     file_handle f;
     if (!filesystem_open(full_file_path, FILE_MODE_READ, false, &f)) {
-        ERROR("shader_loader_load - unable to open shader file for reading: '%s'.", full_file_path);
+        DERROR("shader_loader_load - unable to open shader file for reading: '%s'.", full_file_path);
         return false;
     }
 
@@ -65,7 +65,7 @@ b8 shader_loader_load(struct resource_loader* self, const char* name, void* para
         // Split into var/value
         i32 equal_index = string_index_of(trimmed, '=');
         if (equal_index == -1) {
-            WARN("Potential formatting issue found in file '%s': '=' token not found. Skipping line %ui.", full_file_path, line_number);
+            DWARN("Potential formatting issue found in file '%s': '=' token not found. Skipping line %ui.", full_file_path, line_number);
             line_number++;
             continue;
         }
@@ -98,7 +98,7 @@ b8 shader_loader_load(struct resource_loader* self, const char* name, void* para
             if (resource_data->stage_count == 0) {
                 resource_data->stage_count = count;
             } else if (resource_data->stage_count != count) {
-                ERROR("shader_loader_load: Invalid file layout. Count mismatch between stage names and stage filenames.");
+                DERROR("shader_loader_load: Invalid file layout. Count mismatch between stage names and stage filenames.");
             }
             // Parse each stage and add the right type to the array.
             for (u8 i = 0; i < resource_data->stage_count; ++i) {
@@ -111,7 +111,7 @@ b8 shader_loader_load(struct resource_loader* self, const char* name, void* para
                 } else if (strings_equali(stage_names[i], "comp") || strings_equali(stage_names[i], "compute")) {
                     darray_push(resource_data->stages, SHADER_STAGE_COMPUTE);
                 } else {
-                    ERROR("shader_loader_load: Invalid file layout. Unrecognized stage '%s'", stage_names[i]);
+                    DERROR("shader_loader_load: Invalid file layout. Unrecognized stage '%s'", stage_names[i]);
                 }
             }
         } else if (strings_equali(trimmed_var_name, "stagefiles")) {
@@ -122,7 +122,7 @@ b8 shader_loader_load(struct resource_loader* self, const char* name, void* para
             if (resource_data->stage_count == 0) {
                 resource_data->stage_count = count;
             } else if (resource_data->stage_count != count) {
-                ERROR("shader_loader_load: Invalid file layout. Count mismatch between stage names and stage filenames.");
+                DERROR("shader_loader_load: Invalid file layout. Count mismatch between stage names and stage filenames.");
             }
         } else if (strings_equali(trimmed_var_name, "cull_mode")) {
             if (strings_equali(trimmed_value, "front")) {
@@ -138,7 +138,7 @@ b8 shader_loader_load(struct resource_loader* self, const char* name, void* para
             char** fields = darray_create(char*);
             u32 field_count = string_split(trimmed_value, ',', &fields, true, true);
             if (field_count != 2) {
-                ERROR("shader_loader_load: Invalid file layout. Attribute fields must be 'type,name'. Skipping.");
+                DERROR("shader_loader_load: Invalid file layout. Attribute fields must be 'type,name'. Skipping.");
             } else {
                 shader_attribute_config attribute;
                 // Parse field type
@@ -173,8 +173,8 @@ b8 shader_loader_load(struct resource_loader* self, const char* name, void* para
                     attribute.type = SHADER_ATTRIB_TYPE_INT32;
                     attribute.size = 4;
                 } else {
-                    ERROR("shader_loader_load: Invalid file layout. Attribute type must be f32, vec2, vec3, vec4, i8, i16, i32, u8, u16, or u32.");
-                    WARN("Defaulting to f32.");
+                    DERROR("shader_loader_load: Invalid file layout. Attribute type must be f32, vec2, vec3, vec4, i8, i16, i32, u8, u16, or u32.");
+                    DWARN("Defaulting to f32.");
                     attribute.type = SHADER_ATTRIB_TYPE_FLOAT32;
                     attribute.size = 4;
                 }
@@ -195,7 +195,7 @@ b8 shader_loader_load(struct resource_loader* self, const char* name, void* para
             char** fields = darray_create(char*);
             u32 field_count = string_split(trimmed_value, ',', &fields, true, true);
             if (field_count != 3) {
-                ERROR("shader_loader_load: Invalid file layout. Uniform fields must be 'type,scope,name'. Skipping.");
+                DERROR("shader_loader_load: Invalid file layout. Uniform fields must be 'type,scope,name'. Skipping.");
             } else {
                 shader_uniform_config uniform;
                 // Parse field type
@@ -236,8 +236,8 @@ b8 shader_loader_load(struct resource_loader* self, const char* name, void* para
                     uniform.type = SHADER_UNIFORM_TYPE_SAMPLER;
                     uniform.size = 0;  // Samplers don't have a size.
                 } else {
-                    ERROR("shader_loader_load: Invalid file layout. Uniform type must be f32, vec2, vec3, vec4, i8, i16, i32, u8, u16, u32 or matrix4.");
-                    WARN("Defaulting to f32.");
+                    DERROR("shader_loader_load: Invalid file layout. Uniform type must be f32, vec2, vec3, vec4, i8, i16, i32, u8, u16, u32 or matrix4.");
+                    DWARN("Defaulting to f32.");
                     uniform.type = SHADER_UNIFORM_TYPE_FLOAT32;
                     uniform.size = 4;
                 }
@@ -250,8 +250,8 @@ b8 shader_loader_load(struct resource_loader* self, const char* name, void* para
                 } else if (strings_equal(fields[1], "2")) {
                     uniform.scope = SHADER_SCOPE_LOCAL;
                 } else {
-                    ERROR("shader_loader_load: Invalid file layout: Uniform scope must be 0 for global, 1 for instance or 2 for local.");
-                    WARN("Defaulting to global.");
+                    DERROR("shader_loader_load: Invalid file layout: Uniform scope must be 0 for global, 1 for instance or 2 for local.");
+                    DWARN("Defaulting to global.");
                     uniform.scope = SHADER_SCOPE_GLOBAL;
                 }
 
@@ -315,7 +315,7 @@ void shader_loader_unload(struct resource_loader* self, resource* resource) {
     kzero_memory(data, sizeof(shader_config));
 
     if (!resource_unload(self, resource, MEMORY_TAG_RESOURCE)) {
-        WARN("shader_loader_unload called with nullptr for self or resource.");
+        DWARN("shader_loader_unload called with nullptr for self or resource.");
     }
 }
 

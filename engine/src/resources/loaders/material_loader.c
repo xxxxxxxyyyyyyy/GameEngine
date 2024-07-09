@@ -21,7 +21,7 @@ b8 material_loader_load(struct resource_loader* self, const char* name, void* pa
 
     file_handle f;
     if (!filesystem_open(full_file_path, FILE_MODE_READ, false, &f)) {
-        ERROR("material_loader_load - unable to open material file for reading: '%s'.", full_file_path);
+        DERROR("material_loader_load - unable to open material file for reading: '%s'.", full_file_path);
         return false;
     }
 
@@ -60,7 +60,7 @@ b8 material_loader_load(struct resource_loader* self, const char* name, void* pa
         // Split into var/value
         i32 equal_index = string_index_of(trimmed, '=');
         if (equal_index == -1) {
-            WARN("Potential formatting issue found in file '%s': '=' token not found. Skipping line %ui.", full_file_path, line_number);
+            DWARN("Potential formatting issue found in file '%s': '=' token not found. Skipping line %ui.", full_file_path, line_number);
             line_number++;
             continue;
         }
@@ -91,7 +91,7 @@ b8 material_loader_load(struct resource_loader* self, const char* name, void* pa
         } else if (strings_equali(trimmed_var_name, "diffuse_colour")) {
             // Parse the colour
             if (!string_to_vec4(trimmed_value, &resource_data->diffuse_colour)) {
-                WARN("Error parsing diffuse_colour in file '%s'. Using default of white instead.", full_file_path);
+                DWARN("Error parsing diffuse_colour in file '%s'. Using default of white instead.", full_file_path);
                 // NOTE: already assigned above, no need to have it here.
             }
         } else if (strings_equali(trimmed_var_name, "shader")) {
@@ -99,7 +99,7 @@ b8 material_loader_load(struct resource_loader* self, const char* name, void* pa
             resource_data->shader_name = string_duplicate(trimmed_value);
         } else if (strings_equali(trimmed_var_name, "shininess")) {
             if(!string_to_f32(trimmed_value, &resource_data->shininess)) {
-                WARN("Error parsing shininess in file '%s'. Using default of 32.0 instead.", full_file_path);
+                DWARN("Error parsing shininess in file '%s'. Using default of 32.0 instead.", full_file_path);
                 resource_data->shininess = 32.0f;
             }
         }
@@ -121,7 +121,7 @@ b8 material_loader_load(struct resource_loader* self, const char* name, void* pa
 
 void material_loader_unload(struct resource_loader* self, resource* resource) {
     if (!resource_unload(self, resource, MEMORY_TAG_MATERIAL_INSTANCE)) {
-        WARN("material_loader_unload called with nullptr for self or resource.");
+        DWARN("material_loader_unload called with nullptr for self or resource.");
         return;
     }
 }

@@ -212,7 +212,7 @@ u8 hashtable_try_call_non_ptr_on_ptr_table() {
     expect_should_be(sizeof(ht_test_struct*), table.element_size);
     expect_should_be(3, table.element_count);
 
-    DEBUG("The following 2 error messages are intentional.");
+    DDEBUG("The following 2 error messages are intentional.");
 
     ht_test_struct t;
     t.b_value = true;
@@ -248,7 +248,7 @@ u8 hashtable_try_call_ptr_on_non_ptr_table() {
     expect_should_be(sizeof(ht_test_struct), table.element_size);
     expect_should_be(3, table.element_count);
 
-    DEBUG("The following 2 error messages are intentional.");
+    DDEBUG("The following 2 error messages are intentional.");
 
     ht_test_struct t;
     ht_test_struct* testval1 = &t;

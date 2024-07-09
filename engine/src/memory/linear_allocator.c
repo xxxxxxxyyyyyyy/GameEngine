@@ -31,7 +31,7 @@ void* linear_allocator_allocate(linear_allocator* allocator, u64 size) {
     if (allocator && allocator->memory) {
         if (allocator->allocated + size > allocator->total_size) {
             u64 remaining = allocator->total_size - allocator->allocated;
-            ERROR("linear_allocator_allocate - Tried to allocate %lluB, only %lluB remaining.", size, remaining);
+            DERROR("linear_allocator_allocate - Tried to allocate %lluB, only %lluB remaining.", size, remaining);
             return 0;
         }
 
@@ -40,7 +40,7 @@ void* linear_allocator_allocate(linear_allocator* allocator, u64 size) {
         return block;
     }
 
-    ERROR("linear_allocator_allocate - provided allocator not initialized.");
+    DERROR("linear_allocator_allocate - provided allocator not initialized.");
     return 0;
 }
 

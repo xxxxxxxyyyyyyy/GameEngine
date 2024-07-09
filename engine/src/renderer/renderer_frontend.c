@@ -1,6 +1,7 @@
 #include "renderer_frontend.h"
 #include "renderer_backend.h"
 #include "math/kmath.h"
+#include "platform/platform.h"
 
 #include "core/logger.h"
 #include "core/kmemory.h"
@@ -48,7 +49,7 @@ void regenerate_render_targets();
 
 #define CRITICAL_INIT(op, msg) \
     if (!op) {                 \
-        ERROR(msg);           \
+        DERROR(msg);           \
         return false;          \
     }
 
@@ -200,6 +201,8 @@ b8 renderer_draw_frame(render_packet* packet) {
             state_ptr->resizing = false;
         } else {
             // Skip rendering the frame and try again next time.
+            // NOTE: Simulate a frame being "drawn" at 60 FPS.
+            platform_sleep(16);
             return true;
         }
     }
@@ -211,7 +214,7 @@ b8 renderer_draw_frame(render_packet* packet) {
         // Render each view.
         for (u32 i = 0; i < packet->view_count; ++i) {
             if (!render_view_system_on_render(packet->views[i].view, &packet->views[i], state_ptr->backend.frame_number, attachment_index)) {
-                ERROR("Error rendering view index %i.", i);
+                DERROR("Error rendering view index %i.", i);
                 return false;
             }
         }
@@ -220,7 +223,7 @@ b8 renderer_draw_frame(render_packet* packet) {
         b8 result = state_ptr->backend.end_frame(&state_ptr->backend, packet->delta_time);
 
         if (!result) {
-            ERROR("renderer_end_frame failed. Application shutting down");
+            DERROR("renderer_end_frame failed. Application shutting down");
             return false;
         }
     }
@@ -236,7 +239,7 @@ void renderer_on_resize(u16 width, u16 height) {
         // Also reset the frame count since the last  resize operation.
         state_ptr->frames_since_resize = 0;
     } else {
-        WARN("renderer backend does not exist to accept resize: %i %i", width, height);
+        DWARN("renderer backend does not exist to accept resize: %i %i", width, height);
     }
 }
 
@@ -351,6 +354,10 @@ void renderer_renderpass_create(renderpass* out_renderpass, f32 depth, u32 stenc
 
 void renderer_renderpass_destroy(renderpass* pass) {
     state_ptr->backend.renderpass_destroy(pass);
+}
+
+b8 renderer_is_multithreaded() {
+    return state_ptr->backend.is_multithreaded();
 }
 
 void regenerate_render_targets() {

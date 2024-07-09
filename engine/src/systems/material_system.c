@@ -66,7 +66,7 @@ void destroy_material(material* m);
 
 b8 material_system_initialize(u64* memory_requirement, void* state, material_system_config config) {
     if (config.max_material_count == 0) {
-        FATAL("material_system_initialize - config.max_material_count must be > 0.");
+        DFATAL("material_system_initialize - config.max_material_count must be > 0.");
         return false;
     }
 
@@ -128,7 +128,7 @@ b8 material_system_initialize(u64* memory_requirement, void* state, material_sys
     }
 
     if (!create_default_material(state_ptr)) {
-        FATAL("Failed to create default material. Application cannot continue.");
+        DFATAL("Failed to create default material. Application cannot continue.");
         return false;
     }
 
@@ -157,7 +157,7 @@ material* material_system_acquire(const char* name) {
     // Load material configuration from resource;
     resource material_resource;
     if (!resource_system_load(name, RESOURCE_TYPE_MATERIAL, 0, &material_resource)) {
-        ERROR("Failed to load material resource, returning nullptr.");
+        DERROR("Failed to load material resource, returning nullptr.");
     }
 
     // Now acquire from loaded config.
@@ -170,7 +170,7 @@ material* material_system_acquire(const char* name) {
     resource_system_unload(&material_resource);
 
     if (!m) {
-        ERROR("Failed to load material resource, returning nullptr.");
+        DERROR("Failed to load material resource, returning nullptr.");
     }
 
     return m;
@@ -204,13 +204,13 @@ material* material_system_acquire_from_config(material_config config) {
 
             // Make sure an empty slot was actually found.
             if (!m || ref.handle == INVALID_ID) {
-                FATAL("material_system_acquire - Material system cannot hold anymore materials. Adjust configuration to allow more.");
+                DFATAL("material_system_acquire - Material system cannot hold anymore materials. Adjust configuration to allow more.");
                 return 0;
             }
 
             // Create new material.
             if (!load_material(config, m)) {
-                ERROR("Failed to load material '%s'.", config.name);
+                DERROR("Failed to load material '%s'.", config.name);
                 return 0;
             }
 
@@ -247,9 +247,9 @@ material* material_system_acquire_from_config(material_config config) {
 
             // Also use the handle as the material id.
             m->id = ref.handle;
-            TRACE("Material '%s' does not yet exist. Created, and ref_count is now %i.", config.name, ref.reference_count);
+            DTRACE("Material '%s' does not yet exist. Created, and ref_count is now %i.", config.name, ref.reference_count);
         } else {
-            TRACE("Material '%s' already exists, ref_count increased to %i.", config.name, ref.reference_count);
+            DTRACE("Material '%s' already exists, ref_count increased to %i.", config.name, ref.reference_count);
         }
 
         // Update the entry.
@@ -258,7 +258,7 @@ material* material_system_acquire_from_config(material_config config) {
     }
 
     // NOTE: This would only happen in the event something went wrong with the state.
-    ERROR("material_system_acquire_from_config failed to acquire material '%s'. Null pointer will be returned.", config.name);
+    DERROR("material_system_acquire_from_config failed to acquire material '%s'. Null pointer will be returned.", config.name);
     return 0;
 }
 
@@ -270,7 +270,7 @@ void material_system_release(const char* name) {
     material_reference ref;
     if (state_ptr && hashtable_get(&state_ptr->registered_material_table, name, &ref)) {
         if (ref.reference_count == 0) {
-            WARN("Tried to release non-existent material: '%s'", name);
+            DWARN("Tried to release non-existent material: '%s'", name);
             return;
         }
         ref.reference_count--;
@@ -283,15 +283,15 @@ void material_system_release(const char* name) {
             // Reset the reference.
             ref.handle = INVALID_ID;
             ref.auto_release = false;
-            TRACE("Released material '%s'., Material unloaded because reference count=0 and auto_release=true.", name);
+            DTRACE("Released material '%s'., Material unloaded because reference count=0 and auto_release=true.", name);
         } else {
-            TRACE("Released material '%s', now has a reference count of '%i' (auto_release=%s).", name, ref.reference_count, ref.auto_release ? "true" : "false");
+            DTRACE("Released material '%s', now has a reference count of '%i' (auto_release=%s).", name, ref.reference_count, ref.auto_release ? "true" : "false");
         }
 
         // Update the entry.
         hashtable_set(&state_ptr->registered_material_table, name, &ref);
     } else {
-        ERROR("material_system_release failed to release material '%s'.", name);
+        DERROR("material_system_release failed to release material '%s'.", name);
     }
 }
 
@@ -300,13 +300,13 @@ material* material_system_get_default() {
         return &state_ptr->default_material;
     }
 
-    FATAL("material_system_get_default called before system is initialized.");
+    DFATAL("material_system_get_default called before system is initialized.");
     return 0;
 }
 
 #define MATERIAL_APPLY_OR_FAIL(expr)                  \
     if (!expr) {                                      \
-        ERROR("Failed to apply material: %s", expr); \
+        DERROR("Failed to apply material: %s", expr); \
         return false;                                 \
     }
 
@@ -328,7 +328,7 @@ b8 material_system_apply_global(u32 shader_id, u64 renderer_frame_number, const 
         MATERIAL_APPLY_OR_FAIL(shader_system_uniform_set_by_index(state_ptr->ui_locations.projection, projection));
         MATERIAL_APPLY_OR_FAIL(shader_system_uniform_set_by_index(state_ptr->ui_locations.view, view));
     } else {
-        ERROR("material_system_apply_global(): Unrecognized shader id '%d' ", shader_id);
+        DERROR("material_system_apply_global(): Unrecognized shader id '%d' ", shader_id);
         return false;
     }
     MATERIAL_APPLY_OR_FAIL(shader_system_apply_global());
@@ -356,7 +356,7 @@ b8 material_system_apply_instance(material* m, b8 needs_update) {
             MATERIAL_APPLY_OR_FAIL(shader_system_uniform_set_by_index(state_ptr->ui_locations.diffuse_colour, &m->diffuse_colour));
             MATERIAL_APPLY_OR_FAIL(shader_system_uniform_set_by_index(state_ptr->ui_locations.diffuse_texture, &m->diffuse_map));
         } else {
-            ERROR("material_system_apply_instance(): Unrecognized shader id '%d' on shader '%s'.", m->shader_id, m->name);
+            DERROR("material_system_apply_instance(): Unrecognized shader id '%d' on shader '%s'.", m->shader_id, m->name);
             return false;
         }
     }
@@ -372,7 +372,7 @@ b8 material_system_apply_local(material* m, const matrix4* model) {
         return shader_system_uniform_set_by_index(state_ptr->ui_locations.model, model);
     }
 
-    ERROR("Unrecognized shader id '%d'", m->shader_id);
+    DERROR("Unrecognized shader id '%d'", m->shader_id);
     return false;
 }
 
@@ -394,7 +394,7 @@ b8 load_material(material_config config, material* m) {
     m->diffuse_map.filter_minify = m->diffuse_map.filter_magnify = TEXTURE_FILTER_MODE_LINEAR;
     m->diffuse_map.repeat_u = m->diffuse_map.repeat_v = m->diffuse_map.repeat_w = TEXTURE_REPEAT_REPEAT;
     if (!renderer_texture_map_acquire_resources(&m->diffuse_map)) {
-        ERROR("Unable to acquire resources for diffuse texture map.");
+        DERROR("Unable to acquire resources for diffuse texture map.");
         return false;
     }
     if (string_length(config.diffuse_map_name) > 0) {
@@ -402,7 +402,7 @@ b8 load_material(material_config config, material* m) {
         m->diffuse_map.texture = texture_system_acquire(config.diffuse_map_name, true);
         if (!m->diffuse_map.texture) {
             // Configured, but not found.
-            WARN("Unable to load texture '%s' for material '%s', using default.", config.diffuse_map_name, m->name);
+            DWARN("Unable to load texture '%s' for material '%s', using default.", config.diffuse_map_name, m->name);
             m->diffuse_map.texture = texture_system_get_default_texture();
         }
     } else {
@@ -416,14 +416,14 @@ b8 load_material(material_config config, material* m) {
     m->specular_map.filter_minify = m->specular_map.filter_magnify = TEXTURE_FILTER_MODE_LINEAR;
     m->specular_map.repeat_u = m->specular_map.repeat_v = m->specular_map.repeat_w = TEXTURE_REPEAT_REPEAT;
     if (!renderer_texture_map_acquire_resources(&m->specular_map)) {
-        ERROR("Unable to acquire resources for specular texture map.");
+        DERROR("Unable to acquire resources for specular texture map.");
         return false;
     }
     if (string_length(config.specular_map_name) > 0) {
         m->specular_map.use = TEXTURE_USE_MAP_SPECULAR;
         m->specular_map.texture = texture_system_acquire(config.specular_map_name, true);
         if (!m->specular_map.texture) {
-            WARN("Unable to load texture '%s' for material '%s', using default.", config.specular_map_name, m->name);
+            DWARN("Unable to load texture '%s' for material '%s', using default.", config.specular_map_name, m->name);
             m->specular_map.texture = texture_system_get_default_texture();
         }
     } else {
@@ -437,14 +437,14 @@ b8 load_material(material_config config, material* m) {
     m->normal_map.filter_minify = m->normal_map.filter_magnify = TEXTURE_FILTER_MODE_LINEAR;
     m->normal_map.repeat_u = m->normal_map.repeat_v = m->normal_map.repeat_w = TEXTURE_REPEAT_REPEAT;
     if (!renderer_texture_map_acquire_resources(&m->normal_map)) {
-        ERROR("Unable to acquire resources for normal texture map.");
+        DERROR("Unable to acquire resources for normal texture map.");
         return false;
     }
     if (string_length(config.normal_map_name) > 0) {
         m->normal_map.use = TEXTURE_USE_MAP_NORMAL;
         m->normal_map.texture = texture_system_acquire(config.normal_map_name, true);
         if (!m->normal_map.texture) {
-            WARN("Unable to load normal texture '%s' for material '%s', using default.", config.normal_map_name, m->name);
+            DWARN("Unable to load normal texture '%s' for material '%s', using default.", config.normal_map_name, m->name);
             m->normal_map.texture = texture_system_get_default_texture();
         }
     } else {
@@ -457,13 +457,13 @@ b8 load_material(material_config config, material* m) {
     // Send it off to the renderer to acquire resources.
     shader* s = shader_system_get(config.shader_name);
     if (!s) {
-        ERROR("Unable to load material because its shader was not found: '%s'. This is likely a problem with the material asset.", config.shader_name);
+        DERROR("Unable to load material because its shader was not found: '%s'. This is likely a problem with the material asset.", config.shader_name);
         return false;
     }
     // Gather a list of pointers to texture maps;
     texture_map* maps[3] = {&m->diffuse_map, &m->specular_map, &m->normal_map};
     if (!renderer_shader_acquire_instance_resources(s, maps, &m->internal_id)) {
-        ERROR("Failed to acquire renderer resources for material '%s'.", m->name);
+        DERROR("Failed to acquire renderer resources for material '%s'.", m->name);
         return false;
     }
 
@@ -471,7 +471,7 @@ b8 load_material(material_config config, material* m) {
 }
 
 void destroy_material(material* m) {
-    TRACE("Destroying material '%s'...", m->name);
+    DTRACE("Destroying material '%s'...", m->name);
 
     // Release texture references.
     if (m->diffuse_map.texture) {
@@ -522,7 +522,7 @@ b8 create_default_material(material_system_state* state) {
 
     shader* s = shader_system_get(BUILTIN_SHADER_NAME_MATERIAL);
     if (!renderer_shader_acquire_instance_resources(s, maps, &state->default_material.internal_id)) {
-        FATAL("Failed to acquire renderer resources for default material. Application cannot continue.");
+        DFATAL("Failed to acquire renderer resources for default material. Application cannot continue.");
         return false;
     }
 

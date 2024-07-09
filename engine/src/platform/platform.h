@@ -30,3 +30,10 @@ f64 platform_get_absolute_time();
 
 // Sleep on the thread for the provided ms.
 void platform_sleep(u64 ms);
+
+/**
+ * @brief Obtains the number of logical processor cores.
+ *
+ * @return The number of logical processor cores.
+ */
+i32 platform_get_processor_count();

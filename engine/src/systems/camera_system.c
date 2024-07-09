@@ -25,7 +25,7 @@ static camera_system_state* state_ptr;
 
 b8 camera_system_initialize(u64* memory_requirement, void* state, camera_system_config config) {
     if (config.max_camera_count == 0) {
-        FATAL("camera_system_initialize - config.max_camera_count must be > 0.");
+        DFATAL("camera_system_initialize - config.max_camera_count must be > 0.");
         return false;
     }
 
@@ -92,7 +92,7 @@ camera* camera_system_acquire(const char* name) {
         }
         u16 id = INVALID_ID_U16;
         if (!hashtable_get(&state_ptr->lookup, name, &id)) {
-            ERROR("camera_system_acquire failed lookup. Null returned.");
+            DERROR("camera_system_acquire failed lookup. Null returned.");
             return 0;
         }
 
@@ -105,12 +105,12 @@ camera* camera_system_acquire(const char* name) {
                 }
             }
             if (id == INVALID_ID_U16) {
-                ERROR("camera_system_acquire failed to acquire new slot. Adjust camera system config to allow more. Null returned.");
+                DERROR("camera_system_acquire failed to acquire new slot. Adjust camera system config to allow more. Null returned.");
                 return 0;
             }
 
             // Create/register the new camera.
-            TRACE("Creating new camera named '%s'...");
+            DTRACE("Creating new camera named '%s'...");
             state_ptr->cameras[id].c = camera_create();
             state_ptr->cameras[id].id = id;
 
@@ -121,19 +121,19 @@ camera* camera_system_acquire(const char* name) {
         return &state_ptr->cameras[id].c;
     }
 
-    ERROR("camera_system_acquire called before system initialzation. Null returned.");
+    DERROR("camera_system_acquire called before system initialzation. Null returned.");
     return 0;
 }
 
 void camera_system_release(const char* name) {
     if (state_ptr) {
         if (strings_equali(name, DEFAULT_CAMERA_NAME)) {
-            TRACE("Cannot release default camera. Nothing was done.");
+            DTRACE("Cannot release default camera. Nothing was done.");
             return;
         }
         u16 id = INVALID_ID_U16;
         if (!hashtable_get(&state_ptr->lookup, name, &id)) {
-            WARN("camera_system_release failed lookup. Nothing was done.");
+            DWARN("camera_system_release failed lookup. Nothing was done.");
         }
 
         if (id != INVALID_ID_U16) {
@@ -153,6 +153,6 @@ camera* camera_system_get_default() {
         return &state_ptr->default_camera;
     }
 
-    ERROR("camera_system_get_default called before system was initialized. Returned null.");
+    DERROR("camera_system_get_default called before system was initialized. Returned null.");
     return 0;
 }

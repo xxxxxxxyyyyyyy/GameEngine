@@ -36,7 +36,7 @@ b8 render_view_ui_on_create(struct render_view* self) {
 
         return true;
     }
-    ERROR("render_view_ui_on_create - Requires a valid pointer to a view.");
+    DERROR("render_view_ui_on_create - Requires a valid pointer to a view.");
     return false;
 }
 
@@ -67,7 +67,7 @@ void render_view_ui_on_resize(struct render_view* self, u32 width, u32 height) {
 
 b8 render_view_ui_on_build_packet(const struct render_view* self, void* data, struct render_view_packet* out_packet) {
     if (!self || !data || !out_packet) {
-        WARN("render_view_ui_on_build_packet requires valid pointer to view, packet, and data.");
+        DWARN("render_view_ui_on_build_packet requires valid pointer to view, packet, and data.");
         return false;
     }
 
@@ -84,7 +84,7 @@ b8 render_view_ui_on_build_packet(const struct render_view* self, void* data, st
     // Obtain all geometries from the current scene.
     // Iterate all meshes and add them to the packet's geometries collection
     for (u32 i = 0; i < mesh_data->mesh_count; ++i) {
-        mesh* m = &mesh_data->meshes[i];
+        mesh* m = mesh_data->meshes[i];
         for (u32 j = 0; j < m->geometry_count; ++j) {
             geometry_render_data render_data;
             render_data.geometry = m->geometries[j];
@@ -104,18 +104,18 @@ b8 render_view_ui_on_render(const struct render_view* self, const struct render_
     for (u32 p = 0; p < self->renderpass_count; ++p) {
         renderpass* pass = self->passes[p];
         if (!renderer_renderpass_begin(pass, &pass->targets[render_target_index])) {
-            ERROR("render_view_ui_on_render pass index %u failed to start.", p);
+            DERROR("render_view_ui_on_render pass index %u failed to start.", p);
             return false;
         }
 
         if (!shader_system_use_by_id(shader_id)) {
-            ERROR("Failed to use material shader. Render frame failed.");
+            DERROR("Failed to use material shader. Render frame failed.");
             return false;
         }
 
         // Apply globals
         if (!material_system_apply_global(shader_id, frame_number, &packet->projection_matrix, &packet->view_matrix, 0, 0, 0)) {
-            ERROR("Failed to use apply globals for material shader. Render frame failed.");
+            DERROR("Failed to use apply globals for material shader. Render frame failed.");
             return false;
         }
 
@@ -135,7 +135,7 @@ b8 render_view_ui_on_render(const struct render_view* self, const struct render_
             // updates the internal shader bindings and binds them, or only binds them.
             b8 needs_update = m->render_frame_number != frame_number;
             if (!material_system_apply_instance(m, needs_update)) {
-                WARN("Failed to apply material '%s'. Skipping draw.", m->name);
+                DWARN("Failed to apply material '%s'. Skipping draw.", m->name);
                 continue;
             } else {
                 // Sync the frame number.
@@ -150,7 +150,7 @@ b8 render_view_ui_on_render(const struct render_view* self, const struct render_
         }
 
         if (!renderer_renderpass_end(pass)) {
-            ERROR("render_view_ui_on_render pass index %u failed to end.", p);
+            DERROR("render_view_ui_on_render pass index %u failed to end.", p);
             return false;
         }
     }

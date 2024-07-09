@@ -38,7 +38,7 @@ b8 vulkan_device_create(vulkan_context* context) {
         return false;
     }
 
-    INFO("Creating logical device...");
+    DINFO("Creating logical device...");
     // NOTE: Do not create additional queues for shared indices.
     b8 present_shares_graphics_queue = context->device.graphics_queue_index == context->device.present_queue_index;
     b8 transfer_shares_graphics_queue = context->device.graphics_queue_index == context->device.transfer_queue_index;
@@ -99,7 +99,7 @@ b8 vulkan_device_create(vulkan_context* context) {
         context->allocator,
         &context->device.logical_device));
 
-    INFO("Logical device created.");
+    DINFO("Logical device created.");
 
     // Get queues.
     vkGetDeviceQueue(
@@ -119,7 +119,7 @@ b8 vulkan_device_create(vulkan_context* context) {
         context->device.transfer_queue_index,
         0,
         &context->device.transfer_queue);
-    INFO("Queues obtained.");
+    DINFO("Queues obtained.");
 
     // Create command pool for graphics queue.
     VkCommandPoolCreateInfo pool_create_info = {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
@@ -130,7 +130,7 @@ b8 vulkan_device_create(vulkan_context* context) {
         &pool_create_info,
         context->allocator,
         &context->device.graphics_command_pool));
-    INFO("Graphics command pool created.");
+    DINFO("Graphics command pool created.");
 
     return true;
 }
@@ -141,21 +141,21 @@ void vulkan_device_destroy(vulkan_context* context) {
     context->device.present_queue = 0;
     context->device.transfer_queue = 0;
 
-    INFO("Destroying command pools...");
+    DINFO("Destroying command pools...");
     vkDestroyCommandPool(
         context->device.logical_device,
         context->device.graphics_command_pool,
         context->allocator);
 
     // Destroy logical device
-    INFO("Destroying logical device...");
+    DINFO("Destroying logical device...");
     if (context->device.logical_device) {
         vkDestroyDevice(context->device.logical_device, context->allocator);
         context->device.logical_device = 0;
     }
 
     // Physical devices are not destroyed.
-    INFO("Releasing physical device resources...");
+    DINFO("Releasing physical device resources...");
     context->device.physical_device = 0;
 
     if (context->device.swapchain_support.formats) {
@@ -265,10 +265,29 @@ b8 select_physical_device(vulkan_context* context) {
     VK_CHECK(vkEnumeratePhysicalDevices(context->instance, &physical_device_count, 0));
 
     if (physical_device_count == 0) {
-        FATAL("No devices which support Vulkan were found.");
+        DFATAL("No devices which support Vulkan were found.");
         return false;
     }
 
+    // Setup requirements
+    // TODO: These requirements should probably be driven by engine
+    // configuration.
+    vulkan_physical_device_requirements requirements = {};
+    requirements.graphics = true;
+    requirements.present = true;
+    requirements.transfer = true;
+    // NOTE: Enable this if compute will be required.
+    // requirements.compute = true;
+    requirements.sampler_anisotropy = true;
+#if KPLATFORM_APPLE
+    requirements.discrete_gpu = false;
+#else
+    requirements.discrete_gpu = true;
+#endif
+    requirements.device_extension_names = darray_create(const char*);
+    darray_push(requirements.device_extension_names, &VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+
+    // Iterate physical devices to find one that fits the bill.
     const u32 max_device_count = 32;
     VkPhysicalDevice physical_devices[max_device_count];
     VK_CHECK(vkEnumeratePhysicalDevices(context->instance, &physical_device_count, physical_devices));
@@ -282,7 +301,7 @@ b8 select_physical_device(vulkan_context* context) {
         VkPhysicalDeviceMemoryProperties memory;
         vkGetPhysicalDeviceMemoryProperties(physical_devices[i], &memory);
 
-        INFO("Evaluating device: '%s', index %u.", properties.deviceName, i);
+        DINFO("Evaluating device: '%s', index %u.", properties.deviceName, i);
 
         // Check if device supports local/host visible combo
         b8 supports_device_local_host_visible = false;
@@ -296,19 +315,6 @@ b8 select_physical_device(vulkan_context* context) {
             }
         }
 
-        // TODO: These requirements should probably be driven by engine
-        // configuration.
-        vulkan_physical_device_requirements requirements = {};
-        requirements.graphics = true;
-        requirements.present = true;
-        requirements.transfer = true;
-        // NOTE: Enable this if compute will be required.
-        // requirements.compute = true;
-        requirements.sampler_anisotropy = true;
-        requirements.discrete_gpu = true;
-        requirements.device_extension_names = darray_create(const char*);
-        darray_push(requirements.device_extension_names, &VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-
         vulkan_physical_device_queue_family_info queue_info = {};
         b8 result = physical_device_meets_requirements(
             physical_devices[i],
@@ -320,35 +326,35 @@ b8 select_physical_device(vulkan_context* context) {
             &context->device.swapchain_support);
 
         if (result) {
-            INFO("Selected device: '%s'.", properties.deviceName);
+            DINFO("Selected device: '%s'.", properties.deviceName);
             // GPU type, etc.
             switch (properties.deviceType) {
                 default:
                 case VK_PHYSICAL_DEVICE_TYPE_OTHER:
-                    INFO("GPU type is Unknown.");
+                    DINFO("GPU type is Unknown.");
                     break;
                 case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
-                    INFO("GPU type is Integrated.");
+                    DINFO("GPU type is Integrated.");
                     break;
                 case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
-                    INFO("GPU type is Descrete.");
+                    DINFO("GPU type is Descrete.");
                     break;
                 case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
-                    INFO("GPU type is Virtual.");
+                    DINFO("GPU type is Virtual.");
                     break;
                 case VK_PHYSICAL_DEVICE_TYPE_CPU:
-                    INFO("GPU type is CPU.");
+                    DINFO("GPU type is CPU.");
                     break;
             }
 
-            INFO(
+            DINFO(
                 "GPU Driver version: %d.%d.%d",
                 VK_VERSION_MAJOR(properties.driverVersion),
                 VK_VERSION_MINOR(properties.driverVersion),
                 VK_VERSION_PATCH(properties.driverVersion));
 
             // Vulkan API version.
-            INFO(
+            DINFO(
                 "Vulkan API version: %d.%d.%d",
                 VK_VERSION_MAJOR(properties.apiVersion),
                 VK_VERSION_MINOR(properties.apiVersion),
@@ -358,9 +364,9 @@ b8 select_physical_device(vulkan_context* context) {
             for (u32 j = 0; j < memory.memoryHeapCount; ++j) {
                 f32 memory_size_gib = (((f32)memory.memoryHeaps[j].size) / 1024.0f / 1024.0f / 1024.0f);
                 if (memory.memoryHeaps[j].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
-                    INFO("Local GPU memory: %.2f GiB", memory_size_gib);
+                    DINFO("Local GPU memory: %.2f GiB", memory_size_gib);
                 } else {
-                    INFO("Shared System memory: %.2f GiB", memory_size_gib);
+                    DINFO("Shared System memory: %.2f GiB", memory_size_gib);
                 }
             }
 
@@ -379,13 +385,16 @@ b8 select_physical_device(vulkan_context* context) {
         }
     }
 
+    // Clean up requirements.
+    darray_destroy(requirements.device_extension_names);
+
     // Ensure a device was selected
     if (!context->device.physical_device) {
-        ERROR("No physical devices were found which meet the requirements.");
+        DERROR("No physical devices were found which meet the requirements.");
         return false;
     }
 
-    INFO("Physical device selected.");
+    DINFO("Physical device selected.");
     return true;
 }
 
@@ -407,7 +416,7 @@ b8 physical_device_meets_requirements(
     // discrete GPU?
     if (requirements->discrete_gpu) {
         if (properties->deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
-            INFO("device is not a discrete GPU, and one is required, skipping");
+            DINFO("device is not a discrete GPU, and one is required, skipping");
             return false;
         }
     }
@@ -418,7 +427,7 @@ b8 physical_device_meets_requirements(
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families);
 
     // Look at each queue and see what queues it supports
-    INFO("Graphics | Present | Compute | Transfer | Name");
+    DINFO("Graphics | Present | Compute | Transfer | Name");
     u8 min_transfer_score = 255;
     for (u32 i = 0; i < queue_family_count; ++i) {
         u8 current_transfer_score = 0;
@@ -473,7 +482,7 @@ b8 physical_device_meets_requirements(
                 // If they differ, bleat about it and move on. This is just here for troubleshooting
                 // purposes.
                 if (out_queue_info->present_family_index != out_queue_info->graphics_family_index) {
-                    WARN("Warning: Different queue index used for present vs graphics: %u.", i);
+                    DWARN("Warning: Different queue index used for present vs graphics: %u.", i);
                 }
                 break;
             }
@@ -481,7 +490,7 @@ b8 physical_device_meets_requirements(
     }
 
     // Print out some info about the device
-    INFO("       %d |       %d |       %d |        %d | %s",
+    DINFO("       %d |       %d |       %d |        %d | %s",
           out_queue_info->graphics_family_index != -1,
           out_queue_info->present_family_index != -1,
           out_queue_info->compute_family_index != -1,
@@ -493,11 +502,11 @@ b8 physical_device_meets_requirements(
         (!requirements->present || (requirements->present && out_queue_info->present_family_index != -1)) &&
         (!requirements->compute || (requirements->compute && out_queue_info->compute_family_index != -1)) &&
         (!requirements->transfer || (requirements->transfer && out_queue_info->transfer_family_index != -1))) {
-        INFO("Device meets queue requirements.");
-        TRACE("Graphics Family Index: %i", out_queue_info->graphics_family_index);
-        TRACE("Present Family Index:  %i", out_queue_info->present_family_index);
-        TRACE("Transfer Family Index: %i", out_queue_info->transfer_family_index);
-        TRACE("Compute Family Index:  %i", out_queue_info->compute_family_index);
+        DINFO("Device meets queue requirements.");
+        DTRACE("Graphics Family Index: %i", out_queue_info->graphics_family_index);
+        DTRACE("Present Family Index:  %i", out_queue_info->present_family_index);
+        DTRACE("Transfer Family Index: %i", out_queue_info->transfer_family_index);
+        DTRACE("Compute Family Index:  %i", out_queue_info->compute_family_index);
 
         // Query swapchain support.
         vulkan_device_query_swapchain_support(
@@ -512,7 +521,7 @@ b8 physical_device_meets_requirements(
             if (out_swapchain_support->present_modes) {
                 kfree(out_swapchain_support->present_modes, sizeof(VkPresentModeKHR) * out_swapchain_support->present_mode_count, MEMORY_TAG_RENDERER);
             }
-            INFO("Required swapchain support not present, skipping device.");
+            DINFO("Required swapchain support not present, skipping device.");
             return false;
         }
 
@@ -544,7 +553,7 @@ b8 physical_device_meets_requirements(
                     }
 
                     if (!found) {
-                        INFO("Required extension not found: '%s', skipping device.", requirements->device_extension_names[i]);
+                        DINFO("Required extension not found: '%s', skipping device.", requirements->device_extension_names[i]);
                         kfree(available_extensions, sizeof(VkExtensionProperties) * available_extension_count, MEMORY_TAG_RENDERER);
                         return false;
                     }
@@ -555,7 +564,7 @@ b8 physical_device_meets_requirements(
 
         // Sampler anisotropy
         if (requirements->sampler_anisotropy && !features->samplerAnisotropy) {
-            INFO("Device does not support samplerAnisotropy, skipping.");
+            DINFO("Device does not support samplerAnisotropy, skipping.");
             return false;
         }
 

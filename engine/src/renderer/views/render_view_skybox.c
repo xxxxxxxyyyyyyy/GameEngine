@@ -46,7 +46,7 @@ b8 render_view_skybox_on_create(struct render_view* self) {
         data->world_camera = camera_system_get_default();
         return true;
     }
-    ERROR("render_view_skybox_on_create - Requires a valid pointer to a view.");
+    DERROR("render_view_skybox_on_create - Requires a valid pointer to a view.");
     return false;
 }
 void render_view_skybox_on_destroy(struct render_view* self) {
@@ -76,7 +76,7 @@ void render_view_skybox_on_resize(struct render_view* self, u32 width, u32 heigh
 
 b8 render_view_skybox_on_build_packet(const struct render_view* self, void* data, struct render_view_packet* out_packet) {
     if (!self || !data || !out_packet) {
-        WARN("render_view_skybox_on_build_packet requires valid pointer to view, packet, and data.");
+        DWARN("render_view_skybox_on_build_packet requires valid pointer to view, packet, and data.");
         return false;
     }
 
@@ -104,12 +104,12 @@ b8 render_view_skybox_on_render(const struct render_view* self, const struct ren
     for (u32 p = 0; p < self->renderpass_count; ++p) {
         renderpass* pass = self->passes[p];
         if (!renderer_renderpass_begin(pass, &pass->targets[render_target_index])) {
-            ERROR("render_view_skybox_on_render pass index %u failed to start.", p);
+            DERROR("render_view_skybox_on_render pass index %u failed to start.", p);
             return false;
         }
 
         if (!shader_system_use_by_id(shader_id)) {
-            ERROR("Failed to use skybox shader. Render frame failed.");
+            DERROR("Failed to use skybox shader. Render frame failed.");
             return false;
         }
 
@@ -123,11 +123,11 @@ b8 render_view_skybox_on_render(const struct render_view* self, const struct ren
         // TODO: This is terrible. Need to bind by id.
         renderer_shader_bind_globals(shader_system_get_by_id(shader_id));
         if (!shader_system_uniform_set_by_index(data->projection_location, &packet->projection_matrix)) {
-            ERROR("Failed to apply skybox projection uniform.");
+            DERROR("Failed to apply skybox projection uniform.");
             return false;
         }
         if (!shader_system_uniform_set_by_index(data->view_location, &view_matrix)) {
-            ERROR("Failed to apply skybox view uniform.");
+            DERROR("Failed to apply skybox view uniform.");
             return false;
         }
         shader_system_apply_global();
@@ -135,7 +135,7 @@ b8 render_view_skybox_on_render(const struct render_view* self, const struct ren
         // Instance
         shader_system_bind_instance(skybox_data->sb->instance_id);
         if (!shader_system_uniform_set_by_index(data->cube_map_location, &skybox_data->sb->cubemap)) {
-            ERROR("Failed to apply skybox cube map uniform.");
+            DERROR("Failed to apply skybox cube map uniform.");
             return false;
         }
         b8 needs_update = skybox_data->sb->render_frame_number != frame_number;
@@ -150,7 +150,7 @@ b8 render_view_skybox_on_render(const struct render_view* self, const struct ren
         renderer_draw_geometry(&render_data);
 
         if (!renderer_renderpass_end(pass)) {
-            ERROR("render_view_skybox_on_render pass index %u failed to end.", p);
+            DERROR("render_view_skybox_on_render pass index %u failed to end.", p);
             return false;
         }
     }

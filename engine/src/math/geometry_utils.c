@@ -49,7 +49,7 @@ void geometry_generate_tangents(u32 vertex_count, vertex_3d* vertices, u32 index
         f32 sx = deltaU1, sy = deltaU2;
         f32 tx = deltaV1, ty = deltaV2;
         f32 handedness = ((tx * sy - ty * sx) < 0.0f) ? -1.0f : 1.0f;
-        vec4 t4 = vec4_from_vec3(tangent, handedness);
+        vec3 t4 = vec3_mul_scalar(tangent, handedness);
         vertices[i0].tangent = t4;
         vertices[i1].tangent = t4;
         vertices[i2].tangent = t4;
@@ -58,11 +58,11 @@ void geometry_generate_tangents(u32 vertex_count, vertex_3d* vertices, u32 index
 
 b8 vertex3d_equal(vertex_3d vert_0, vertex_3d vert_1) {
 
-    return vec3_compare(vert_0.position, vert_1.position, K_FLOAT_EPSILON) &&
-           vec3_compare(vert_0.normal, vert_1.normal, K_FLOAT_EPSILON) &&
-           vec2_compare(vert_0.texcoord, vert_1.texcoord, K_FLOAT_EPSILON) &&
-           vec4_compare(vert_0.colour, vert_1.colour, K_FLOAT_EPSILON) &&
-           vec4_compare(vert_0.tangent, vert_1.tangent, K_FLOAT_EPSILON);
+    return  vec3_compare(vert_0.position, vert_1.position, K_FLOAT_EPSILON) &&
+            vec3_compare(vert_0.normal, vert_1.normal, K_FLOAT_EPSILON) &&
+            vec2_compare(vert_0.texcoord, vert_1.texcoord, K_FLOAT_EPSILON) &&
+            vec4_compare(vert_0.colour, vert_1.colour, K_FLOAT_EPSILON) &&
+            vec3_compare(vert_0.tangent, vert_1.tangent, K_FLOAT_EPSILON);
 }
 
 void reassign_index(u32 index_count, u32* indices, u32 from, u32 to) {
@@ -117,5 +117,5 @@ void geometry_deduplicate_vertices(u32 vertex_count, vertex_3d* vertices, u32 in
 
     u32 removed_count = vertex_count - *out_vertex_count;
 
-    DEBUG("geometry_deduplicate_vertices: removed %d vertices, orig/now %d/%d.", removed_count, vertex_count, *out_vertex_count);
+    DDEBUG("geometry_deduplicate_vertices: removed %d vertices, orig/now %d/%d.", removed_count, vertex_count, *out_vertex_count);
 }

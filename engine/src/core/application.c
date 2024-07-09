@@ -22,12 +22,14 @@
 #include "systems/shader_system.h"
 #include "systems/camera_system.h"
 #include "systems/render_view_system.h"
+#include "systems/job_system.h"
 
 // TODO: temp
 #include "math/kmath.h"
 #include "math/transform.h"
 #include "math/geometry_utils.h"
 #include "containers/darray.h"
+#include "resources/mesh.h"
 // TODO: end temp
 
 typedef struct application_state {
@@ -42,6 +44,9 @@ typedef struct application_state {
 
     u64 event_system_memory_requirement;
     void* event_system_state;
+
+    u64 job_system_memory_requirement;
+    void* job_system_state;
 
     u64 logging_system_memory_requirement;
     void* logging_system_state;
@@ -77,11 +82,12 @@ typedef struct application_state {
     void* camera_system_state;
 
     // TODO: temp
-    mesh meshes[10];
-    u32 mesh_count;
     skybox sb;
+    mesh meshes[10];
+    mesh* car_mesh;
+    mesh* sponza_mesh;
+    b8 models_loaded;
     mesh ui_meshes[10];
-    u32 ui_mesh_count;
     // TODO: end temp
 } application_state;
 
@@ -97,38 +103,54 @@ b8 application_on_resized(u16 code, void* sender, void* listener_inst, event_con
 
 // TODO: temp
 b8 event_on_debug_event(u16 code, void* sender, void* listener_inst, event_context data) {
-    const char* names[3] = {
-        "cobblestone",
-        "paving",
-        "paving2"};
-    static i8 choice = 2;
+    if (code == EVENT_CODE_DEBUG0) {
+        const char* names[3] = {
+            "cobblestone",
+            "paving",
+            "paving2"};
+        static i8 choice = 2;
 
-    // Save off the old name.
-    const char* old_name = names[choice];
+        // Save off the old names.
+        const char* old_name = names[choice];
 
-    choice++;
-    choice %= 3;
+        choice++;
+        choice %= 3;
 
-    // Just swap out the material on the first mesh if it exists.
-    geometry* g = app_state->meshes[0].geometries[0];
-    if (g) {
-        // Acquire the new material.
-        g->material = material_system_acquire(names[choice]);
-        if (!g->material) {
-            WARN("event_on_debug_event no material found! Using default material.");
-            g->material = material_system_get_default();
+        // Just swap out the material on the first mesh if it exists.
+        geometry* g = app_state->meshes[0].geometries[0];
+        if (g) {
+            // Acquire the new material.
+            g->material = material_system_acquire(names[choice]);
+            if (!g->material) {
+                DWARN("event_on_debug_event no material found! Using default material.");
+                g->material = material_system_get_default();
+            }
+
+            // Release the old diffuse material.
+            material_system_release(old_name);
         }
-
-        // Release the old diffuse material.
-        material_system_release(old_name);
+        return true;
+    } else if (code == EVENT_CODE_DEBUG1) {
+        if (!app_state->models_loaded) {
+            DDEBUG("Loading models...");
+            app_state->models_loaded = true;
+            if (!mesh_load_from_resource("falcon", app_state->car_mesh)) {
+                DERROR("Failed to load falcon mesh!");
+            }
+            if (!mesh_load_from_resource("sponza", app_state->sponza_mesh)) {
+                DERROR("Failed to load falcon mesh!");
+            }
+        }
+        return true;
     }
-    return true;
+
+    return false;
 }
 // TODO: end temp
 
 b8 application_create(game* game_inst) {
     if (game_inst->application_state) {
-        ERROR("application_create called more than once");
+        DERROR("application_create called more than once");
         return false;
     }
 
@@ -136,7 +158,7 @@ b8 application_create(game* game_inst) {
     memory_system_configuration memory_system_config = {};
     memory_system_config.total_alloc_size = GIBIBYTES(1);
     if (!memory_system_initialize(memory_system_config)) {
-        ERROR("Failed to initialize memory system; shutting down.");
+        DERROR("Failed to initialize memory system; shutting down.");
         return false;
     }
 
@@ -149,6 +171,10 @@ b8 application_create(game* game_inst) {
     app_state->game_inst = game_inst;
     app_state->is_running = false;
     app_state->is_suspended = false;
+
+    // TODO: temp debug
+    app_state->models_loaded = false;
+    // TODO: end temp debug
 
     // Create a linear allocator for all systems (except memory) to use.
     u64 systems_allocator_total_size = 64 * 1024 * 1024;  // 64 mb
@@ -165,7 +191,7 @@ b8 application_create(game* game_inst) {
     logging_system_initialize(&app_state->logging_system_memory_requirement, 0);
     app_state->logging_system_state = linear_allocator_allocate(&app_state->systems_allocator, app_state->logging_system_memory_requirement);
     if (!logging_system_initialize(&app_state->logging_system_memory_requirement, app_state->logging_system_state)) {
-        ERROR("Failed to initialize logging system; shutting down.");
+        DERROR("Failed to initialize logging system; shutting down.");
         return false;
     }
 
@@ -180,6 +206,7 @@ b8 application_create(game* game_inst) {
     event_register(EVENT_CODE_RESIZED, 0, application_on_resized);
     // TODO: temp
     event_register(EVENT_CODE_DEBUG0, 0, event_on_debug_event);
+    event_register(EVENT_CODE_DEBUG1, 0, event_on_debug_event);
     // TODO: end temp
     // Platform
     platform_system_startup(&app_state->platform_system_memory_requirement, 0, 0, 0, 0, 0, 0);
@@ -199,7 +226,7 @@ b8 application_create(game* game_inst) {
     resource_system_initialize(&app_state->resource_system_memory_requirement, 0, resource_sys_config);
     app_state->resource_system_state = linear_allocator_allocate(&app_state->systems_allocator, app_state->resource_system_memory_requirement);
     if(!resource_system_initialize(&app_state->resource_system_memory_requirement, app_state->resource_system_state, resource_sys_config)) {
-        FATAL("Failed to initialize resource system. Aborting application.");
+        DFATAL("Failed to initialize resource system. Aborting application.");
         return false;
     }
     
@@ -212,7 +239,7 @@ b8 application_create(game* game_inst) {
     shader_system_initialize(&app_state->shader_system_memory_requirement, 0, shader_sys_config);
     app_state->shader_system_state = linear_allocator_allocate(&app_state->systems_allocator, app_state->shader_system_memory_requirement);
     if(!shader_system_initialize(&app_state->shader_system_memory_requirement, app_state->shader_system_state, shader_sys_config)) {
-        FATAL("Failed to initialize shader system. Aborting application.");
+        DFATAL("Failed to initialize shader system. Aborting application.");
         return false;
     }
 
@@ -220,7 +247,53 @@ b8 application_create(game* game_inst) {
     renderer_system_initialize(&app_state->renderer_system_memory_requirement, 0, 0);
     app_state->renderer_system_state = linear_allocator_allocate(&app_state->systems_allocator, app_state->renderer_system_memory_requirement);
     if (!renderer_system_initialize(&app_state->renderer_system_memory_requirement, app_state->renderer_system_state, game_inst->app_config.name)) {
-        FATAL("Failed to initialize renderer. Aborting application");
+        DFATAL("Failed to initialize renderer. Aborting application.");
+        return false;
+    }
+
+    b8 renderer_multithreaded = renderer_is_multithreaded();
+
+    // This is really a core count. Subtract 1 to account for the main thread already being in use.
+    i32 thread_count = platform_get_processor_count() - 1;
+    if (thread_count < 1) {
+        DFATAL("Error: Platform reported processor count (minus one for main thread) as %i. Need at least one additional thread for the job system.", thread_count);
+        return false;
+    } else {
+        DTRACE("Available threads: %i", thread_count);
+    }
+
+    // Cap the thread count.
+    const i32 max_thread_count = 15;
+    if (thread_count > max_thread_count) {
+        DTRACE("Available threads on the system is %i, but will be capped at %i.", thread_count, max_thread_count);
+        thread_count = max_thread_count;
+    }
+
+    // Initialize the job system.
+    // Requires knowledge of renderer multithread support, so should be initialized here.
+    u32 job_thread_types[15];
+    for (u32 i = 0; i < 15; ++i) {
+        job_thread_types[i] = JOB_TYPE_GENERAL;
+    }
+
+    if (max_thread_count == 1 || !renderer_multithreaded) {
+        // Everything on one job thread.
+        job_thread_types[0] |= (JOB_TYPE_GPU_RESOURCE | JOB_TYPE_RESOURCE_LOAD);
+    } else if (max_thread_count == 2) {
+        // Split things between the 2 threads
+        job_thread_types[0] |= JOB_TYPE_GPU_RESOURCE;
+        job_thread_types[1] |= JOB_TYPE_RESOURCE_LOAD;
+    } else {
+        // Dedicate the first 2 threads to these things, pass off general tasks to other threads.
+        job_thread_types[0] = JOB_TYPE_GPU_RESOURCE;
+        job_thread_types[1] = JOB_TYPE_RESOURCE_LOAD;
+    }
+
+    // Job System
+    job_system_initialize(&app_state->job_system_memory_requirement, 0, 0, 0);
+    app_state->job_system_state = linear_allocator_allocate(&app_state->systems_allocator, app_state->job_system_memory_requirement);
+    if (!job_system_initialize(&app_state->job_system_memory_requirement, app_state->job_system_state, thread_count, job_thread_types)) {
+        DFATAL("Failed to initialize job system. Aborting application.");
         return false;
     }
 
@@ -230,7 +303,7 @@ b8 application_create(game* game_inst) {
     texture_system_initialize(&app_state->texture_system_memory_requirement, 0, texture_sys_config);
     app_state->texture_system_state = linear_allocator_allocate(&app_state->systems_allocator, app_state->texture_system_memory_requirement);
     if (!texture_system_initialize(&app_state->texture_system_memory_requirement, app_state->texture_system_state, texture_sys_config)) {
-        FATAL("Failed to initialize texture system. Application cannot continue.");
+        DFATAL("Failed to initialize texture system. Application cannot continue.");
         return false;
     }
 
@@ -240,7 +313,7 @@ b8 application_create(game* game_inst) {
     material_system_initialize(&app_state->material_system_memory_requirement, 0, material_sys_config);
     app_state->material_system_state = linear_allocator_allocate(&app_state->systems_allocator, app_state->material_system_memory_requirement);
     if (!material_system_initialize(&app_state->material_system_memory_requirement, app_state->material_system_state, material_sys_config)) {
-        FATAL("Failed to initialize material system. Application cannot continue.");
+        DFATAL("Failed to initialize material system. Application cannot continue.");
         return false;
     }
 
@@ -250,7 +323,7 @@ b8 application_create(game* game_inst) {
     geometry_system_initialize(&app_state->geometry_system_memory_requirement, 0, geometry_sys_config);
     app_state->geometry_system_state = linear_allocator_allocate(&app_state->systems_allocator, app_state->material_system_memory_requirement);
     if (!geometry_system_initialize(&app_state->geometry_system_memory_requirement, app_state->geometry_system_state, geometry_sys_config)) {
-        FATAL("Failed to initialize geometry system. Application cannot continue.");
+        DFATAL("Failed to initialize geometry system. Application cannot continue.");
         return false;
     }
 
@@ -260,7 +333,7 @@ b8 application_create(game* game_inst) {
     camera_system_initialize(&app_state->camera_system_memory_requirement, 0, camera_sys_config);
     app_state->camera_system_state = linear_allocator_allocate(&app_state->systems_allocator, app_state->camera_system_memory_requirement);
     if (!camera_system_initialize(&app_state->camera_system_memory_requirement, app_state->camera_system_state, camera_sys_config)) {
-        FATAL("Failed to initialize camera system. Application cannot continue.");
+        DFATAL("Failed to initialize camera system. Application cannot continue.");
         return false;
     }
 
@@ -269,7 +342,7 @@ b8 application_create(game* game_inst) {
     render_view_system_initialize(&app_state->renderer_view_system_memory_requirement, 0, render_view_sys_config);
     app_state->renderer_view_system_state = linear_allocator_allocate(&app_state->systems_allocator, app_state->renderer_view_system_memory_requirement);
     if (!render_view_system_initialize(&app_state->renderer_view_system_memory_requirement, app_state->renderer_view_system_state, render_view_sys_config)) {
-        FATAL("Failed to initialize render view system. Aborting application.");
+        DFATAL("Failed to initialize render view system. Aborting application.");
         return false;
     }
 
@@ -285,7 +358,7 @@ b8 application_create(game* game_inst) {
     skybox_config.passes = skybox_passes;
     skybox_config.view_matrix_source = RENDER_VIEW_VIEW_MATRIX_SOURCE_SCENE_CAMERA;
     if (!render_view_system_create(&skybox_config)) {
-        FATAL("Failed to create skybox view. Aborting application.");
+        DFATAL("Failed to create skybox view. Aborting application.");
         return false;
     }
 
@@ -300,7 +373,7 @@ b8 application_create(game* game_inst) {
     opaque_world_config.passes = passes;
     opaque_world_config.view_matrix_source = RENDER_VIEW_VIEW_MATRIX_SOURCE_SCENE_CAMERA;
     if (!render_view_system_create(&opaque_world_config)) {
-        FATAL("Failed to create view. Aborting application.");
+        DFATAL("Failed to create view. Aborting application.");
         return false;
     }
 
@@ -315,7 +388,7 @@ b8 application_create(game* game_inst) {
     ui_view_config.passes = ui_passes;
     ui_view_config.view_matrix_source = RENDER_VIEW_VIEW_MATRIX_SOURCE_SCENE_CAMERA;
     if (!render_view_system_create(&ui_view_config)) {
-        FATAL("Failed to create view. Aborting application.");
+        DFATAL("Failed to create view. Aborting application.");
         return false;
     }
 
@@ -325,7 +398,7 @@ b8 application_create(game* game_inst) {
     cube_map->repeat_u = cube_map->repeat_v = cube_map->repeat_w = TEXTURE_REPEAT_CLAMP_TO_EDGE;
     cube_map->use = TEXTURE_USE_MAP_CUBEMAP;
     if (!renderer_texture_map_acquire_resources(cube_map)) {
-        FATAL("Unable to acquire resources for cube map texture.");
+        DFATAL("Unable to acquire resources for cube map texture.");
         return false;
     }
     cube_map->texture = texture_system_acquire_cube("skybox", true);
@@ -337,27 +410,34 @@ b8 application_create(game* game_inst) {
     shader* skybox_shader = shader_system_get(BUILTIN_SHADER_NAME_SKYBOX);
     texture_map* maps[1] = {&app_state->sb.cubemap};
     if (!renderer_shader_acquire_instance_resources(skybox_shader, maps, &app_state->sb.instance_id)) {
-        FATAL("Unable to acquire shader resources for skybox texture.");
+        DFATAL("Unable to acquire shader resources for skybox texture.");
         return false;
     }
 
     // TODO: temp 
-    app_state->mesh_count = 0;
+    // Invalidate all meshes.
+    for (u32 i = 0; i < 10; ++i) {
+        app_state->meshes[i].generation = INVALID_ID_U8;
+        app_state->ui_meshes[i].generation = INVALID_ID_U8;
+    }
+
+    u8 mesh_count = 0;
 
     // Load up a cube configuration, and load geometry from it.
-    mesh* cube_mesh = &app_state->meshes[app_state->mesh_count];
+    mesh* cube_mesh = &app_state->meshes[mesh_count];
     cube_mesh->geometry_count = 1;
     cube_mesh->geometries = kallocate(sizeof(mesh*) * cube_mesh->geometry_count, MEMORY_TAG_ARRAY);
     geometry_config g_config = geometry_system_generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material");
     cube_mesh->geometries[0] = geometry_system_acquire_from_config(g_config, true);
     cube_mesh->transform = transform_create();
-    app_state->mesh_count++;
+    mesh_count++;
+    cube_mesh->generation = 0;
 
     // Clean up the allocations for the geometry config.
     geometry_system_config_dispose(&g_config);
 
     // A second cube
-    mesh* cube_mesh_2 = &app_state->meshes[app_state->mesh_count];
+    mesh* cube_mesh_2 = &app_state->meshes[mesh_count];
     cube_mesh_2->geometry_count = 1;
     cube_mesh_2->geometries = kallocate(sizeof(mesh*) * cube_mesh_2->geometry_count, MEMORY_TAG_ARRAY);
     g_config = geometry_system_generate_cube_config(5.0f, 5.0f, 5.0f, 1.0f, 1.0f, "test_cube_2", "test_material");
@@ -365,12 +445,13 @@ b8 application_create(game* game_inst) {
     cube_mesh_2->transform = transform_from_position((vec3){10.0f, 0.0f, 1.0f});
     // Set the first cube as the parent to the second.
     transform_set_parent(&cube_mesh_2->transform, &cube_mesh->transform);
-    app_state->mesh_count++;
+    mesh_count++;
+    cube_mesh_2->generation = 0;
     // Clean up the allocations for the geometry config.
     geometry_system_config_dispose(&g_config);
 
     // A third cube!
-    mesh* cube_mesh_3 = &app_state->meshes[app_state->mesh_count];
+    mesh* cube_mesh_3 = &app_state->meshes[mesh_count];
     cube_mesh_3->geometry_count = 1;
     cube_mesh_3->geometries = kallocate(sizeof(mesh*) * cube_mesh_3->geometry_count, MEMORY_TAG_ARRAY);
     g_config = geometry_system_generate_cube_config(2.0f, 2.0f, 2.0f, 1.0f, 1.0f, "test_cube_2", "test_material");
@@ -378,43 +459,18 @@ b8 application_create(game* game_inst) {
     cube_mesh_3->transform = transform_from_position((vec3){5.0f, 0.0f, 1.0f});
     // Set the second cube as the parent to the third.
     transform_set_parent(&cube_mesh_3->transform, &cube_mesh_2->transform);
-    app_state->mesh_count++;
+    mesh_count++;
+    cube_mesh_3->generation = 0;
     // Clean up the allocations for the geometry config.
     geometry_system_config_dispose(&g_config);
 
-    // A test mesh!
-    mesh* car_mesh = &app_state->meshes[app_state->mesh_count];
-    resource car_mesh_resource = {};
-    if (!resource_system_load("falcon", RESOURCE_TYPE_MESH, 0, &car_mesh_resource)) {
-        ERROR("Failed to load car test mesh!");
-    } else {
-        geometry_config* configs = (geometry_config*)car_mesh_resource.data;
-        car_mesh->geometry_count = car_mesh_resource.data_size;
-        car_mesh->geometries = kallocate(sizeof(geometry*) * car_mesh->geometry_count, MEMORY_TAG_ARRAY);
-        for (u32 i = 0; i < car_mesh->geometry_count; ++i) {
-            car_mesh->geometries[i] = geometry_system_acquire_from_config(configs[i], true);
-        }
-        car_mesh->transform = transform_from_position((vec3){15.0f, 0.0f, 1.0f});
-        resource_system_unload(&car_mesh_resource);
-        app_state->mesh_count++;
-    }
+    app_state->car_mesh = &app_state->meshes[mesh_count];
+    app_state->car_mesh->transform = transform_from_position((vec3){15.0f, 0.0f, 1.0f});
+    mesh_count++;
 
-    // Test mesh loaded from file.
-    mesh* sponza_mesh = &app_state->meshes[app_state->mesh_count];
-    resource sponza_mesh_resource = {};
-    if (!resource_system_load("sponza", RESOURCE_TYPE_MESH, 0, &sponza_mesh_resource)) {
-        ERROR("Failed to load sponza mesh!");
-    } else {
-        geometry_config* sponza_configs = (geometry_config*)sponza_mesh_resource.data;
-        sponza_mesh->geometry_count = sponza_mesh_resource.data_size;
-        sponza_mesh->geometries = kallocate(sizeof(mesh*) * sponza_mesh->geometry_count, MEMORY_TAG_ARRAY);
-        for (u32 i = 0; i < sponza_mesh->geometry_count; ++i) {
-            sponza_mesh->geometries[i] = geometry_system_acquire_from_config(sponza_configs[i], true);
-        }
-        sponza_mesh->transform = transform_from_position_rotation_scale((vec3){15.0f, 0.0f, 1.0f}, quat_identity(), (vec3){0.05f, 0.05f, 0.05f});
-        resource_system_unload(&sponza_mesh_resource);
-        app_state->mesh_count++;
-    }
+    app_state->sponza_mesh = &app_state->meshes[mesh_count];
+    app_state->sponza_mesh->transform = transform_from_position_rotation_scale((vec3){15.0f, 0.0f, 1.0f}, quat_identity(), (vec3){0.05f, 0.05f, 0.05f});
+    mesh_count++;
 
     // Load up some test UI geometry.
     geometry_config ui_config;
@@ -454,11 +510,11 @@ b8 application_create(game* game_inst) {
     ui_config.indices = uiindices;
 
     // Get UI geometry from config.
-    app_state->ui_mesh_count = 1;
-    app_state->ui_meshes[0].geometry_count =1;
+    app_state->ui_meshes[0].geometry_count = 1;
     app_state->ui_meshes[0].geometries = kallocate(sizeof(geometry*), MEMORY_TAG_ARRAY);
     app_state->ui_meshes[0].geometries[0] = geometry_system_acquire_from_config(ui_config, true);
     app_state->ui_meshes[0].transform = transform_create();
+    app_state->ui_meshes[0].generation = 0;
 
     // Load up default geometry.
     // app_state->test_geometry = geometry_system_get_default();
@@ -466,10 +522,12 @@ b8 application_create(game* game_inst) {
 
     // Initialize the game.
     if (!app_state->game_inst->initialize(app_state->game_inst)) {
-        FATAL("Game failed to initialize");
+        DFATAL("Game failed to initialize");
         return false;
     }
 
+    // Call resize once to ensure the proper size has been set.
+    renderer_on_resize(app_state->width, app_state->height);
     app_state->game_inst->on_resize(app_state->game_inst, app_state->width, app_state->height);
 
     initialized = true;
@@ -486,7 +544,7 @@ b8 application_run() {
     u8 frame_count = 0;
     f64 target_frame_seconds = 1.0f / 30;
 
-    INFO(get_memory_usage_str());
+    DINFO(get_memory_usage_str());
 
     while (app_state->is_running) {
         if (!platform_pump_messages()) {
@@ -500,36 +558,31 @@ b8 application_run() {
             f64 delta = (current_time - app_state->last_time);
             f64 frame_start_time = platform_get_absolute_time();
 
+            // Update the job system.
+            job_system_update();
+
             if (!app_state->game_inst->update(app_state->game_inst, (f32)delta)) {
-                FATAL("Game update failed, shutting down");
+                DFATAL("Game update failed, shutting down");
                 app_state->is_running = false;
                 break;
             }
 
             // Call the game's render routine
             if (!app_state->game_inst->render(app_state->game_inst, (f32)delta)) {
-                FATAL("Game render failed, shutting down");
+                DFATAL("Game render failed, shutting down");
                 app_state->is_running = false;
                 break;
             }
 
-            if (app_state->mesh_count > 0) {
+            // Perform a small rotation on the first mesh.
+            quaterion rotation = quat_from_axis_angle((vec3){0, 1, 0}, 0.5f * delta, false);
+            transform_rotate(&app_state->meshes[0].transform, rotation);
 
-                // Perform a small rotation on the first mesh.
-                quaterion rotation = quat_from_axis_angle((vec3){0, 1, 0}, 0.5f * delta, false);
-                transform_rotate(&app_state->meshes[0].transform, rotation);
+            // Perform a similar rotation on the second mesh, if it exists.
+            transform_rotate(&app_state->meshes[1].transform, rotation);
 
-                // Perform a similar rotation on the second mesh, if it exists.
-                if (app_state->mesh_count > 1) {
-                    transform_rotate(&app_state->meshes[1].transform, rotation);
-                }
-
-                // Perform a similar rotation on the third mesh, if it exists.
-                if (app_state->mesh_count > 2) {
-                    transform_rotate(&app_state->meshes[2].transform, rotation);
-                }
-
-            }
+            // Perform a similar rotation on the third mesh, if it exists.
+            transform_rotate(&app_state->meshes[2].transform, rotation);
 
             // TODO: refactor packet creation
             render_packet packet = {};
@@ -545,26 +598,47 @@ b8 application_run() {
             skybox_packet_data skybox_data = {};
             skybox_data.sb = &app_state->sb;
             if (!render_view_system_build_packet(render_view_system_get("skybox"), &skybox_data, &packet.views[0])) {
-                ERROR("Failed to build packet for view 'skybox'.");
+                DERROR("Failed to build packet for view 'skybox'.");
                 return false;
             }
 
             // World 
             mesh_packet_data world_mesh_data = {};
-            world_mesh_data.mesh_count = app_state->mesh_count;
-            world_mesh_data.meshes = app_state->meshes;
-            // TODO: performs a lookup on every frame.
+            u32 mesh_count = 0;
+            mesh* meshes[10];
+            // TODO: flexible size array
+            for (u32 i = 0; i < 10; ++i) {
+                if (app_state->meshes[i].generation != INVALID_ID_U8) {
+                    meshes[mesh_count] = &app_state->meshes[i];
+                    mesh_count++;
+                }
+            }
+            world_mesh_data.mesh_count = mesh_count;
+            world_mesh_data.meshes = meshes;
+
             if (!render_view_system_build_packet(render_view_system_get("world_opaque"), &world_mesh_data, &packet.views[1])) {
-                ERROR("Failed to build packet for view 'world_opaque'.");
+                DERROR("Failed to build packet for view 'world_opaque'.");
                 return false;
             }
 
             // ui
             mesh_packet_data ui_mesh_data = {};
-            ui_mesh_data.mesh_count = app_state->ui_mesh_count;
-            ui_mesh_data.meshes = app_state->ui_meshes;
+            u32 ui_mesh_count = 0;
+            mesh* ui_meshes[10];
+
+            // TODO: flexible size array
+            for (u32 i = 0; i < 10; ++i) {
+                if (app_state->ui_meshes[i].generation != INVALID_ID_U8) {
+                    ui_meshes[ui_mesh_count] = &app_state->ui_meshes[i];
+                    ui_mesh_count++;
+                }
+            }
+
+            ui_mesh_data.mesh_count = ui_mesh_count;
+            ui_mesh_data.meshes = ui_meshes;
+
             if (!render_view_system_build_packet(render_view_system_get("ui"), &ui_mesh_data, &packet.views[2])) {
-                ERROR("Failed to build packet for view 'ui'.");
+                DERROR("Failed to build packet for view 'ui'.");
                 return false;
             }
 
@@ -626,6 +700,8 @@ b8 application_run() {
 
     resource_system_shutdown(app_state->resource_system_state);
 
+    job_system_shutdown(app_state->job_system_state);
+
     platform_system_shutdown(app_state->platform_system_state);
 
     event_system_shutdown(app_state->event_system_state);
@@ -645,7 +721,7 @@ void application_get_framebuffer_size(u32* width, u32* height) {
 b8 application_on_event(u16 code, void* sender, void* listener_inst, event_context context) {
     switch (code) {
         case EVENT_CODE_APPLICATION_QUIT: {
-            INFO("EVENT_CODE_APPLICATION_QUIT received, shutting down. \n");
+            DINFO("EVENT_CODE_APPLICATION_QUIT received, shutting down. \n");
             app_state->is_running = false;
             return true;
         }
@@ -664,16 +740,16 @@ b8 application_on_key(u16 code, void* sender, void* listener_inst, event_context
             // blocking anything else from processing this.
             return true;
         } else if (key_code == KEY_A) {
-            DEBUG("Explicit - A key pressed!");
+            DDEBUG("Explicit - A key pressed!");
         } else {
-            DEBUG("'%c' key pressed in window", key_code);
+            DDEBUG("'%c' key pressed in window", key_code);
         }
     } else if (code == EVENT_CODE_KEY_RELEASED) {
         u16 key_code = context.data.u16[0];
         if (key_code == KEY_B) {
-            DEBUG("Explicit - B key released!");
+            DDEBUG("Explicit - B key released!");
         } else {
-            DEBUG("'%c' key released in window", key_code);
+            DDEBUG("'%c' key released in window", key_code);
         }
     }
     return false;
@@ -689,16 +765,16 @@ b8 application_on_resized(u16 code, void* sender, void* listener_inst, event_con
             app_state->width = width;
             app_state->height = height;
 
-            DEBUG("Window resize: %i, %i", width, height);
+            DDEBUG("Window resize: %i, %i", width, height);
 
             // Handle minimization
             if (width == 0 || height == 0) {
-                INFO("Window minimized, suspending application.");
+                DINFO("Window minimized, suspending application.");
                 app_state->is_suspended = true;
                 return true;
             } else {
                 if (app_state->is_suspended) {
-                    INFO("Window restored, resuming application.");
+                    DINFO("Window restored, resuming application.");
                     app_state->is_suspended = false;
                 }
                 app_state->game_inst->on_resize(app_state->game_inst, width, height);

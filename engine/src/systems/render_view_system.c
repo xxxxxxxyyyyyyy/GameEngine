@@ -22,7 +22,7 @@ static render_view_system_state* state_ptr = 0;
 
 b8 render_view_system_initialize(u64* memory_requirement, void* state, render_view_system_config config) {
     if (config.max_view_count == 0) {
-        FATAL("render_view_system_initialize - config.max_view_count must be > 0.");
+        DFATAL("render_view_system_initialize - config.max_view_count must be > 0.");
         return false;
     }
 
@@ -66,15 +66,15 @@ void render_view_system_shutdown(void* state) {
 
 b8 render_view_system_create(const render_view_config* config) {
     if (!config) {
-        ERROR("render_view_system_create requires a pointer to a valid config.");
+        DERROR("render_view_system_create requires a pointer to a valid config.");
         return false;
     }
     if(!config->name || string_length(config->name) < 1) {
-        ERROR("render_view_system_create: name is required");
+        DERROR("render_view_system_create: name is required");
         return false;
     }
     if (config->pass_count < 1) {
-        ERROR("render_view_system_create - Config must have at least one renderpass.");
+        DERROR("render_view_system_create - Config must have at least one renderpass.");
         return false;
     }
 
@@ -82,7 +82,7 @@ b8 render_view_system_create(const render_view_config* config) {
     // Make sure there is not already an entry with this name already registered.
     hashtable_get(&state_ptr->lookup, config->name, &id);
     if (id != INVALID_ID_U16) {
-        ERROR("render_view_system_create - A view named '%s' already exists. A new one will not be created.", config->name);
+        DERROR("render_view_system_create - A view named '%s' already exists. A new one will not be created.", config->name);
         return false;
     }
 
@@ -96,7 +96,7 @@ b8 render_view_system_create(const render_view_config* config) {
 
     // Make sure a valid entry was found.
     if (id == INVALID_ID_U16) {
-        ERROR("render_view_system_create - No available space for a new view. Change system config to account for more.");
+        DERROR("render_view_system_create - No available space for a new view. Change system config to account for more.");
         return false;
     }
 
@@ -112,7 +112,7 @@ b8 render_view_system_create(const render_view_config* config) {
     for (u32 i = 0; i < view->renderpass_count; ++i) {
         view->passes[i] = renderer_renderpass_get(config->passes[i].name);
         if (!view->passes[i]) {
-            FATAL("render_view_system_create - renderpass not found: '%s'.", config->passes[i].name);
+            DFATAL("render_view_system_create - renderpass not found: '%s'.", config->passes[i].name);
             return false;
         }
     }
@@ -141,7 +141,7 @@ b8 render_view_system_create(const render_view_config* config) {
 
     // Call the on create
     if (!view->on_create(view)) {
-        ERROR("Failed to create view.");
+        DERROR("Failed to create view.");
         kfree(view->passes, sizeof(renderpass*) * view->renderpass_count, MEMORY_TAG_ARRAY);
         kzero_memory(&state_ptr->registered_views[id], sizeof(render_view));
         return false;
@@ -178,7 +178,7 @@ b8 render_view_system_build_packet(const render_view* view, void* data, struct r
         return view->on_build_packet(view, data, out_packet);
     }
 
-    ERROR("render_view_system_build_packet requires valid pointers to a view and a packet.");
+    DERROR("render_view_system_build_packet requires valid pointers to a view and a packet.");
     return false;
 }
 
@@ -187,6 +187,6 @@ b8 render_view_system_on_render(const render_view* view, const render_view_packe
         return view->on_render(view, packet, frame_number, render_target_index);
     }
 
-    ERROR("render_view_system_on_render requires valid pointers to a view and a packet.");
+    DERROR("render_view_system_on_render requires valid pointers to a view and a packet.");
     return false;
 }

@@ -21,7 +21,7 @@ b8 binary_loader_load(struct resource_loader* self, const char* name, void* para
 
     file_handle f;
     if (!filesystem_open(full_file_path, FILE_MODE_READ, true, &f)) {
-        ERROR("binary_loader_load - unable to open file for binary reading: '%s'.", full_file_path);
+        DERROR("binary_loader_load - unable to open file for binary reading: '%s'.", full_file_path);
         return false;
     }
 
@@ -30,7 +30,7 @@ b8 binary_loader_load(struct resource_loader* self, const char* name, void* para
 
     u64 file_size = 0;
     if (!filesystem_size(&f, &file_size)) {
-        ERROR("Unable to binary read file: %s.", full_file_path);
+        DERROR("Unable to binary read file: %s.", full_file_path);
         filesystem_close(&f);
         return false;
     }
@@ -39,7 +39,7 @@ b8 binary_loader_load(struct resource_loader* self, const char* name, void* para
     u8* resource_data = kallocate(sizeof(u8) * file_size, MEMORY_TAG_ARRAY);
     u64 read_size = 0;
     if (!filesystem_read_all_bytes(&f, resource_data, &read_size)) {
-        ERROR("Unable to binary read file: %s.", full_file_path);
+        DERROR("Unable to binary read file: %s.", full_file_path);
         filesystem_close(&f);
         return false;
     }
@@ -55,7 +55,7 @@ b8 binary_loader_load(struct resource_loader* self, const char* name, void* para
 
 void binary_loader_unload(struct resource_loader* self, resource* resource) {
     if (!resource_unload(self, resource, MEMORY_TAG_ARRAY)) {
-        WARN("binary_loader_unload called with nullptr for self or resource.");
+        DWARN("binary_loader_unload called with nullptr for self or resource.");
         return;
     }
 }

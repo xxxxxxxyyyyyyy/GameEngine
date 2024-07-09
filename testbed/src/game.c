@@ -9,7 +9,7 @@
 #include <core/event.h>
 
 b8 game_initialize(game* game_inst) {
-    DEBUG("game_initialize() called!");
+    DDEBUG("game_initialize() called!");
 
     game_state* state = (game_state*)game_inst->state;
 
@@ -24,12 +24,12 @@ b8 game_update(game* game_inst, f32 delta_time) {
     u64 prev_alloc_count = alloc_count;
     alloc_count = get_memory_alloc_count();
     if (input_is_key_up('M') && input_was_key_down('M')) {
-        DEBUG("Allocations: %llu (%llu this frame)", alloc_count, alloc_count - prev_alloc_count);
+        DDEBUG("Allocations: %llu (%llu this frame)", alloc_count, alloc_count - prev_alloc_count);
     }
 
     // TODO: temp
     if (input_is_key_up('T') && input_was_key_down('T')) {
-        DEBUG("Swapping texture!");
+        DDEBUG("Swapping texture!");
         event_context context = {};
         event_execute(EVENT_CODE_DEBUG0, game_inst, context);
     }
@@ -83,14 +83,14 @@ b8 game_update(game* game_inst, f32 delta_time) {
 
     // TODO: temp
     if (input_is_key_up('P') && input_was_key_down('P')) {
-        DEBUG(
+        DDEBUG(
             "Pos:[%.2f, %.2f, %.2f",
             state->world_camera->position.x,
             state->world_camera->position.y,
             state->world_camera->position.z);
     }
 
-    // RENDERER DEBUG FUNCTIONS
+    // RENDERER DDEBUG FUNCTIONS
     if (input_is_key_up('1') && input_was_key_down('1')) {
         event_context data = {};
         data.data.i32[0] = RENDERER_VIEW_MODE_LIGHTING;
@@ -109,6 +109,13 @@ b8 game_update(game* game_inst, f32 delta_time) {
         event_execute(EVENT_CODE_SET_RENDER_MODE, game_inst, data);
     }
     // TODO: end temp
+
+    // TODO: temp
+    // Bind a key to load up some data.
+    if (input_is_key_up('L') && input_was_key_down('L')) {
+        event_context context = {};
+        event_execute(EVENT_CODE_DEBUG1, game_inst, context);
+    }
 
     return true;
 }

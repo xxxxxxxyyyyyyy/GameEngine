@@ -44,7 +44,7 @@ b8 create_module(vulkan_shader* shader, vulkan_shader_stage_config config, vulka
 b8 upload_data_range(vulkan_context* context, VkCommandPool pool, VkFence fence, VkQueue queue, vulkan_buffer* buffer, u64* out_offset, u64 size, const void* data) {
     // Allocate space in the buffer.
     if (!vulkan_buffer_allocate(buffer, size, out_offset)) {
-        ERROR("upload_data_range failed to allocate from the given buffer!");
+        DERROR("upload_data_range failed to allocate from the given buffer!");
         return false;
     }
     // Create a host-visible staging buffer to upload to. Mark it as the source of the transfer.
@@ -80,10 +80,10 @@ b8 vulkan_renderer_backend_initialize(renderer_backend* backend, const renderer_
     context.on_rendertarget_refresh_required = config->on_rendertarget_refresh_required;
 
     // Just set some default values for the framebuffer for now.
-    // It doesn't really matyer what these are because they will be
+    // It doesn't really matter what these are because they will be
     // overridden, but are needed for swapchain creation.
-    context.framebuffer_width = 800;
-    context.framebuffer_height = 600;
+    context.framebuffer_width = 1280;
+    context.framebuffer_height = 720;
 
     // setup vulkan instance
     VkApplicationInfo app_info = {VK_STRUCTURE_TYPE_APPLICATION_INFO};
@@ -103,10 +103,10 @@ b8 vulkan_renderer_backend_initialize(renderer_backend* backend, const renderer_
 #if defined(_DEBUG)
     darray_push(required_extensions, &VK_EXT_DEBUG_UTILS_EXTENSION_NAME);  // debug utilities
 
-    DEBUG("Required extensions:");
+    DDEBUG("Required extensions:");
     u32 length = darray_length(required_extensions);
     for (u32 i = 0; i < length; ++i) {
-        DEBUG(required_extensions[i]);
+        DDEBUG(required_extensions[i]);
     }
 #endif
 
@@ -120,7 +120,7 @@ b8 vulkan_renderer_backend_initialize(renderer_backend* backend, const renderer_
     // if validation should be done. get a list of the required validation layer names.
     // and make sure they exist. validation layers should only be enabled on non-release builds.
 #if defined(_DEBUG)
-    INFO("Validation layers enabled. Enumerating...");
+    DINFO("Validation layers enabled. Enumerating...");
 
     // the list of validation layers required.
     required_validation_layer_names = darray_create(const char*);
@@ -136,32 +136,42 @@ b8 vulkan_renderer_backend_initialize(renderer_backend* backend, const renderer_
 
     // verify all required layers are available
     for (u32 i = 0; i < required_validation_layer_count; ++i) {
-        INFO("Searching for layer: %s...", required_validation_layer_names[i]);
+        DINFO("Searching for layer: %s...", required_validation_layer_names[i]);
         b8 found = false;
         for (u32 j = 0; j < available_layer_count; ++j) {
             if (strings_equal(required_validation_layer_names[i], available_layers[j].layerName)) {
                 found = true;
-                INFO("Found");
+                DINFO("Found");
                 break;
             }
         }
 
         if (!found) {
-            FATAL("Required validation layer is missing: %s", required_validation_layer_names[i]);
+            DFATAL("Required validation layer is missing: %s", required_validation_layer_names[i]);
             return false;
         }
     }
-    INFO("All required validation layers are present");
+
+    // Clean up.
+    darray_destroy(available_layers);
+
+    DINFO("All required validation layers are present");
 #endif
     create_info.enabledLayerCount = required_validation_layer_count;
     create_info.ppEnabledLayerNames = required_validation_layer_names;
 
     VK_CHECK(vkCreateInstance(&create_info, context.allocator, &context.instance));
-    INFO("vulkan instance created");
+    DINFO("vulkan instance created");
+
+    // Clean up
+    darray_destroy(required_validation_layer_names);
+
+    // TODO: implement multi-threading.
+    context.multithreading_enabled = false;
 
     // Debugger
 #if defined(_DEBUG)
-    DEBUG("Creating Vulkan debugger...");
+    DDEBUG("Creating Vulkan debugger...");
     u32 log_severity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
                        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;  // |
                                                                          //    VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;  //|
@@ -177,20 +187,20 @@ b8 vulkan_renderer_backend_initialize(renderer_backend* backend, const renderer_
         (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(context.instance, "vkCreateDebugUtilsMessengerEXT");
     KASSERT_MSG(func, "Failed to create debug messenger!");
     VK_CHECK(func(context.instance, &debug_create_info, context.allocator, &context.debug_messenger));
-    DEBUG("Vulkan debugger created.");
+    DDEBUG("Vulkan debugger created.");
 #endif
 
     // surface
-    DEBUG("creating vulkan surface");
+    DDEBUG("creating vulkan surface");
     if (!platform_create_vulkan_surface(&context)) {
-        ERROR("Failed to create platform surface");
+        DERROR("Failed to create platform surface");
         return false;
     }
-    DEBUG("vulkan surface created");
+    DDEBUG("vulkan surface created");
 
     // Device creation
     if (!vulkan_device_create(&context)) {
-        ERROR("failed to create device.");
+        DERROR("failed to create device.");
         return false;
     }
 
@@ -221,7 +231,7 @@ b8 vulkan_renderer_backend_initialize(renderer_backend* backend, const renderer_
         u32 id = INVALID_ID;
         hashtable_get(&context.renderpass_table, config->pass_configs[i].name, &id);
         if (id != INVALID_ID) {
-            ERROR("Collision with renderpass named '%s'. Initialization failed.", config->pass_configs[i].name);
+            DERROR("Collision with renderpass named '%s'. Initialization failed.", config->pass_configs[i].name);
             return false;
         }
         // Snip up a new id.
@@ -236,7 +246,7 @@ b8 vulkan_renderer_backend_initialize(renderer_backend* backend, const renderer_
 
         // Verify we got an id
         if (id == INVALID_ID) {
-            ERROR("No space was found for a new renderpass. Increase VULKAN_MAX_REGISTERED_RENDERPASSES. Initialization failed.");
+            DERROR("No space was found for a new renderpass. Increase VULKAN_MAX_REGISTERED_RENDERPASSES. Initialization failed.");
             return false;
         }
 
@@ -284,7 +294,7 @@ b8 vulkan_renderer_backend_initialize(renderer_backend* backend, const renderer_
         context.geometries[i].id = INVALID_ID;
     }
 
-    INFO("vulkan renderer initialized successfully.");
+    DINFO("vulkan renderer initialized successfully.");
 
     return true;
 }
@@ -343,17 +353,17 @@ void vulkan_renderer_backend_shutdown(struct renderer_backend* backend) {
     // swapchain
     vulkan_swapchain_destroy(&context, &context.swapchain);
 
-    DEBUG("destroying vulkan device...");
+    DDEBUG("destroying vulkan device...");
     vulkan_device_destroy(&context);
 
-    DEBUG("destroying vulkan surface...");
+    DDEBUG("destroying vulkan surface...");
     if (context.surface) {
         vkDestroySurfaceKHR(context.instance, context.surface, context.allocator);
         context.surface = 0;
     }
 
 #if defined(_DEBUG)
-    DEBUG("Destroying Vulkan debugger...");
+    DDEBUG("Destroying Vulkan debugger...");
     if (context.debug_messenger) {
         PFN_vkDestroyDebugUtilsMessengerEXT func =
             (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(context.instance, "vkDestroyDebugUtilsMessengerEXT");
@@ -361,7 +371,7 @@ void vulkan_renderer_backend_shutdown(struct renderer_backend* backend) {
     }
 #endif
 
-    DEBUG("Destroying Vulkan instance...");
+    DDEBUG("Destroying Vulkan instance...");
     vkDestroyInstance(context.instance, context.allocator);
 }
 
@@ -372,7 +382,7 @@ void vulkan_renderer_backend_on_resized(struct renderer_backend* backend, u16 wi
     context.framebuffer_height = height;
     context.framebuffer_size_generation++;
 
-    INFO("Vulkan renderer backend->resized: w/h/gen: %i/%i/%llu", width, height, context.framebuffer_size_generation);
+    DINFO("Vulkan renderer backend->resized: w/h/gen: %i/%i/%llu", width, height, context.framebuffer_size_generation);
 }
 
 b8 vulkan_renderer_backend_begin_frame(struct renderer_backend* backend, f32 delta_time) {
@@ -383,10 +393,10 @@ b8 vulkan_renderer_backend_begin_frame(struct renderer_backend* backend, f32 del
     if (context.recreating_swapchain) {
         VkResult result = vkDeviceWaitIdle(device->logical_device);
         if (!vulkan_result_is_success(result)) {
-            ERROR("vulkan_renderer_backend_begin_frame vkDeviceWaitIdle (1) failed: '%s'", vulkan_result_string(result, true));
+            DERROR("vulkan_renderer_backend_begin_frame vkDeviceWaitIdle (1) failed: '%s'", vulkan_result_string(result, true));
             return false;
         }
-        INFO("Recreating swapchain, booting.");
+        DINFO("Recreating swapchain, booting.");
         return false;
     }
 
@@ -394,7 +404,7 @@ b8 vulkan_renderer_backend_begin_frame(struct renderer_backend* backend, f32 del
     if (context.framebuffer_size_generation != context.framebuffer_size_last_generation) {
         VkResult result = vkDeviceWaitIdle(device->logical_device);
         if (!vulkan_result_is_success(result)) {
-            ERROR("vulkan_renderer_backend_begin_frame vkDeviceWaitIdle (2) failed: '%s'", vulkan_result_string(result, true));
+            DERROR("vulkan_renderer_backend_begin_frame vkDeviceWaitIdle (2) failed: '%s'", vulkan_result_string(result, true));
             return false;
         }
 
@@ -404,14 +414,14 @@ b8 vulkan_renderer_backend_begin_frame(struct renderer_backend* backend, f32 del
             return false;
         }
 
-        INFO("Resized, booting.");
+        DINFO("Resized, booting.");
         return false;
     }
 
     // Wait for the execution of the current frame to complete. The fence being free will allow this one to move on.
     VkResult result = vkWaitForFences(context.device.logical_device, 1, &context.in_flight_fences[context.current_frame], true, UINT64_MAX);
     if (!vulkan_result_is_success(result)) {
-        FATAL("In-flight fence wait failure! error: %s", vulkan_result_string(result, true));
+        DFATAL("In-flight fence wait failure! error: %s", vulkan_result_string(result, true));
         return false;
     }
 
@@ -424,7 +434,7 @@ b8 vulkan_renderer_backend_begin_frame(struct renderer_backend* backend, f32 del
             context.image_available_semaphores[context.current_frame],
             0,
             &context.image_index)) {
-            ERROR("Failed to acquire next image index, booting.");
+            DERROR("Failed to acquire next image index, booting.");
         return false;
     }
 
@@ -463,7 +473,7 @@ b8 vulkan_renderer_backend_end_frame(struct renderer_backend* backend, f32 delta
     if (context.images_in_flight[context.image_index] != VK_NULL_HANDLE) {  // was frame
         VkResult result = vkWaitForFences(context.device.logical_device, 1, &context.images_in_flight[context.image_index], true, UINT64_MAX);
         if (!vulkan_result_is_success(result)) {
-            FATAL("vkWaitForFences error: %s", vulkan_result_string(result, true));
+            DFATAL("vkWaitForFences error: %s", vulkan_result_string(result, true));
         }
     }
 
@@ -502,7 +512,7 @@ b8 vulkan_renderer_backend_end_frame(struct renderer_backend* backend, f32 delta
         context.in_flight_fences[context.current_frame]);
 
     if (result != VK_SUCCESS) {
-        ERROR("vkQueueSubmit failed with result: %s", vulkan_result_string(result, true));
+        DERROR("vkQueueSubmit failed with result: %s", vulkan_result_string(result, true));
         return false;
     }
 
@@ -513,7 +523,6 @@ b8 vulkan_renderer_backend_end_frame(struct renderer_backend* backend, f32 delta
     vulkan_swapchain_present(
         &context,
         &context.swapchain,
-        context.device.graphics_queue,
         context.device.present_queue,
         context.queue_complete_semaphores[context.current_frame],
         context.image_index);
@@ -578,14 +587,14 @@ b8 vulkan_renderer_renderpass_end(renderpass* pass) {
 
 renderpass* vulkan_renderer_renderpass_get(const char* name) {
     if (!name || name[0] == 0) {
-        ERROR("vulkan_renderer_renderpass_get requires a name. Nothing will be returned.");
+        DERROR("vulkan_renderer_renderpass_get requires a name. Nothing will be returned.");
         return 0;
     }
 
     u32 id = INVALID_ID;
     hashtable_get(&context.renderpass_table, name, &id);
     if (id == INVALID_ID) {
-        WARN("There is no registered renderpass named '%s'.", name);
+        DWARN("There is no registered renderpass named '%s'.", name);
         return 0;
     }
 
@@ -600,16 +609,16 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vk_debug_callback(
     switch (message_severity) {
         default:
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-            ERROR(callback_data->pMessage);
+            DERROR(callback_data->pMessage);
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-            WARN(callback_data->pMessage);
+            DWARN(callback_data->pMessage);
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-            INFO(callback_data->pMessage);
+            DINFO(callback_data->pMessage);
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-            TRACE(callback_data->pMessage);
+            DTRACE(callback_data->pMessage);
             break;
     }
     return VK_FALSE;
@@ -626,7 +635,7 @@ i32 find_memory_index(u32 type_filter, u32 property_flags) {
         }
     }
 
-    WARN("Unable to find suitable memory type");
+    DWARN("Unable to find suitable memory type");
     return -1;
 }
 
@@ -653,19 +662,19 @@ void create_command_buffers(renderer_backend* backend) {
             &context.graphics_command_buffers[i]);
     }
 
-    DEBUG("Vulkan command buffers created.");
+    DDEBUG("Vulkan command buffers created.");
 }
 
 b8 recreate_swapchain(renderer_backend* backend) {
     // If already being recreated, do not try again.
     if (context.recreating_swapchain) {
-        DEBUG("recreate_swapchain called when already recreating. Booting.");
+        DDEBUG("recreate_swapchain called when already recreating. Booting.");
         return false;
     }
 
     // Detect if the window is too small to be drawn to
     if (context.framebuffer_width == 0 || context.framebuffer_height == 0) {
-        DEBUG("recreate_swapchain called when window is < 1 in a dimension. Booting.");
+        DDEBUG("recreate_swapchain called when window is < 1 in a dimension. Booting.");
         return false;
     }
 
@@ -727,7 +736,7 @@ b8 create_buffers(vulkan_context* context) {
             true,
             true,
             &context->object_vertex_buffer)) {
-        ERROR("Error creating vertex buffer.");
+        DERROR("Error creating vertex buffer.");
         return false;
     }
 
@@ -741,7 +750,7 @@ b8 create_buffers(vulkan_context* context) {
             true,
             true,
             &context->object_index_buffer)) {
-        ERROR("Error creating vertex buffer.");
+        DERROR("Error creating vertex buffer.");
         return false;
     }
 
@@ -910,7 +919,7 @@ void vulkan_renderer_texture_write_data(texture* t, u32 offset, u32 size, const 
 
 b8 vulkan_renderer_create_geometry(geometry* geometry, u32 vertex_size, u32 vertex_count, const void* vertices, u32 index_size, u32 index_count, const void* indices) {
     if (!vertex_count || !vertices) {
-        ERROR("vulkan_renderer_create_geometry requires vertex data, and none was supplied. vertex_count=%d, vertices=%p", vertex_count, vertices);
+        DERROR("vulkan_renderer_create_geometry requires vertex data, and none was supplied. vertex_count=%d, vertices=%p", vertex_count, vertices);
         return false;
     }
 
@@ -941,7 +950,7 @@ b8 vulkan_renderer_create_geometry(geometry* geometry, u32 vertex_size, u32 vert
         }
     }
     if (!internal_data) {
-        FATAL("vulkan_renderer_create_geometry failed to find a free index for a new geometry upload. Adjust config to allow for more.");
+        DFATAL("vulkan_renderer_create_geometry failed to find a free index for a new geometry upload. Adjust config to allow for more.");
         return false;
     }
 
@@ -961,7 +970,7 @@ b8 vulkan_renderer_create_geometry(geometry* geometry, u32 vertex_size, u32 vert
             &internal_data->vertex_buffer_offset,
             total_size,
             vertices)) {
-        ERROR("vulkan_renderer_create_geometry failed to upload to the vertex buffer!");
+        DERROR("vulkan_renderer_create_geometry failed to upload to the vertex buffer!");
         return false;
     }
 
@@ -979,7 +988,7 @@ b8 vulkan_renderer_create_geometry(geometry* geometry, u32 vertex_size, u32 vert
                 &internal_data->index_buffer_offset,
                 total_size,
                 indices)) {
-            ERROR("vulkan_renderer_create_geometry failed to upload to the index buffer!");
+            DERROR("vulkan_renderer_create_geometry failed to upload to the index buffer!");
             return false;
         }
     }
@@ -1066,15 +1075,15 @@ b8 vulkan_renderer_shader_create(shader* shader, const shader_config* config, re
                 vk_stages[i] = VK_SHADER_STAGE_VERTEX_BIT;
                 break;
             case SHADER_STAGE_GEOMETRY:
-                WARN("vulkan_renderer_shader_create: VK_SHADER_STAGE_GEOMETRY_BIT is set but not yet supported.");
+                DWARN("vulkan_renderer_shader_create: VK_SHADER_STAGE_GEOMETRY_BIT is set but not yet supported.");
                 vk_stages[i] = VK_SHADER_STAGE_GEOMETRY_BIT;
                 break;
             case SHADER_STAGE_COMPUTE:
-                WARN("vulkan_renderer_shader_create: SHADER_STAGE_COMPUTE is set but not yet supported.");
+                DWARN("vulkan_renderer_shader_create: SHADER_STAGE_COMPUTE is set but not yet supported.");
                 vk_stages[i] = VK_SHADER_STAGE_COMPUTE_BIT;
                 break;
             default:
-                ERROR("Unsupported stage type: %d", stages[i]);
+                DERROR("Unsupported stage type: %d", stages[i]);
                 break;
         }
     }
@@ -1098,7 +1107,7 @@ b8 vulkan_renderer_shader_create(shader* shader, const shader_config* config, re
     for (u32 i = 0; i < stage_count; i++) {
         // Make sure there is room enough to add the stage.
         if (out_shader->config.stage_count + 1 > VULKAN_SHADER_MAX_STAGES) {
-            ERROR("Shaders may have a maximum of %d stages", VULKAN_SHADER_MAX_STAGES);
+            DERROR("Shaders may have a maximum of %d stages", VULKAN_SHADER_MAX_STAGES);
             return false;
         }
 
@@ -1113,7 +1122,7 @@ b8 vulkan_renderer_shader_create(shader* shader, const shader_config* config, re
                 break;
             default:
                 // Go to the next type.
-                ERROR("vulkan_shader_create: Unsupported shader stage flagged: %d. Stage ignored.", stages[i]);
+                DERROR("vulkan_shader_create: Unsupported shader stage flagged: %d. Stage ignored.", stages[i]);
                 continue;
         }
 
@@ -1238,7 +1247,7 @@ void vulkan_renderer_shader_destroy(shader* s) {
     if (s && s->internal_data) {
         vulkan_shader* shader = s->internal_data;
         if (!shader) {
-            ERROR("vulkan_renderer_shader_destroy requires a valid pointer to a shader.");
+            DERROR("vulkan_renderer_shader_destroy requires a valid pointer to a shader.");
             return;
         }
 
@@ -1289,7 +1298,7 @@ b8 vulkan_renderer_shader_initialize(shader* shader) {
     kzero_memory(s->stages, sizeof(vulkan_shader_stage) * VULKAN_SHADER_MAX_STAGES);
     for (u32 i = 0; i < s->config.stage_count; ++i) {
         if (!create_module(s, s->config.stages[i], &s->stages[i])) {
-            ERROR("Unable to create %s shader module for '%s'. Shader will be destroyed.", s->config.stages[i].file_name, shader->name);
+            DERROR("Unable to create %s shader module for '%s'. Shader will be destroyed.", s->config.stages[i].file_name, shader->name);
             return false;
         }
     }
@@ -1338,7 +1347,7 @@ b8 vulkan_renderer_shader_initialize(shader* shader) {
     // Create descriptor pool.
     VkResult result = vkCreateDescriptorPool(logical_device, &pool_info, vk_allocator, &s->descriptor_pool);
     if (!vulkan_result_is_success(result)) {
-        ERROR("vulkan_shader_initialize failed creating descriptor pool: '%s'", vulkan_result_string(result, true));
+        DERROR("vulkan_shader_initialize failed creating descriptor pool: '%s'", vulkan_result_string(result, true));
         return false;
     }
 
@@ -1350,7 +1359,7 @@ b8 vulkan_renderer_shader_initialize(shader* shader) {
         layout_info.pBindings = s->config.descriptor_sets[i].bindings;
         result = vkCreateDescriptorSetLayout(logical_device, &layout_info, vk_allocator, &s->descriptor_set_layouts[i]);
         if (!vulkan_result_is_success(result)) {
-            ERROR("vulkan_shader_initialize failed creating descriptor pool: '%s'", vulkan_result_string(result, true));
+            DERROR("vulkan_shader_initialize failed creating descriptor pool: '%s'", vulkan_result_string(result, true));
             return false;
         }
     }
@@ -1398,7 +1407,7 @@ b8 vulkan_renderer_shader_initialize(shader* shader) {
         &s->pipeline);
 
     if (!pipeline_result) {
-        ERROR("Failed to load graphics pipeline for object shader.");
+        DERROR("Failed to load graphics pipeline for object shader.");
         return false;
     }
 
@@ -1421,13 +1430,13 @@ b8 vulkan_renderer_shader_initialize(shader* shader) {
             true,
             true,
             &s->uniform_buffer)) {
-        ERROR("Vulkan buffer creation failed for object shader.");
+        DERROR("Vulkan buffer creation failed for object shader.");
         return false;
     }
 
     // Allocate space for the global UBO, whcih should occupy the _stride_ space, _not_ the actual size used.
     if (!vulkan_buffer_allocate(&s->uniform_buffer, shader->global_ubo_stride, &shader->global_ubo_offset)) {
-        ERROR("Failed to allocate space for the uniform buffer!");
+        DERROR("Failed to allocate space for the uniform buffer!");
         return false;
     }
 
@@ -1476,7 +1485,7 @@ b8 vulkan_renderer_shader_bind_globals(shader* s) {
 
 b8 vulkan_renderer_shader_bind_instance(shader* s, u32 instance_id) {
     if (!s) {
-        ERROR("vulkan_shader_bind_instance requires a valid pointer to a shader.");
+        DERROR("vulkan_shader_bind_instance requires a valid pointer to a shader.");
         return false;
     }
     vulkan_shader* internal = s->internal_data;
@@ -1515,7 +1524,7 @@ b8 vulkan_renderer_shader_apply_globals(shader* s) {
     if (global_set_binding_count > 1) {
         // TODO: There are samplers to be written. Support this.
         global_set_binding_count = 1;
-        ERROR("Global image samplers are not yet supported.");
+        DERROR("Global image samplers are not yet supported.");
 
         // VkWriteDescriptorSet sampler_write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
         // descriptor_writes[1] = ...
@@ -1531,7 +1540,7 @@ b8 vulkan_renderer_shader_apply_globals(shader* s) {
 b8 vulkan_renderer_shader_apply_instance(shader* s, b8 needs_update) {
     vulkan_shader* internal = s->internal_data;
     if (internal->instance_uniform_count < 1 && internal->instance_uniform_sampler_count < 1) {
-        ERROR("This shader does not use instances.");
+        DERROR("This shader does not use instances.");
         return false;
     }
     u32 image_index = context.image_index;
@@ -1547,13 +1556,14 @@ b8 vulkan_renderer_shader_apply_instance(shader* s, b8 needs_update) {
         u32 descriptor_count = 0;
         u32 descriptor_index = 0;
 
+        VkDescriptorBufferInfo buffer_info;
+
         // Descriptor 0 - Uniform buffer
         if (internal->instance_uniform_count > 0) {
             // Only do this if the descriptor has not yet been updated.
             u8* instance_ubo_generation = &(object_state->descriptor_set_state.descriptor_states[descriptor_index].generations[image_index]);
             // TODO: determine if update is required.
             if (*instance_ubo_generation == INVALID_ID_U8 /*|| *global_ubo_generation != material->generation*/) {
-                VkDescriptorBufferInfo buffer_info;
                 buffer_info.buffer = internal->uniform_buffer.handle;
                 buffer_info.offset = object_state->offset;
                 buffer_info.range = s->ubo_stride;
@@ -1584,6 +1594,26 @@ b8 vulkan_renderer_shader_apply_instance(shader* s, b8 needs_update) {
                 // TODO: only update in the list if actually needing an update.
                 texture_map* map = internal->instance_states[s->bound_instance_id].instance_texture_maps[i];
                 texture* t = map->texture;
+
+                // Ensure the texture is valid.
+                if (t->generation == INVALID_ID) {
+                    switch (map->use) {
+                        case TEXTURE_USE_MAP_DIFFUSE:
+                            t = texture_system_get_default_diffuse_texture();
+                            break;
+                        case TEXTURE_USE_MAP_SPECULAR:
+                            t = texture_system_get_default_specular_texture();
+                            break;
+                        case TEXTURE_USE_MAP_NORMAL:
+                            t = texture_system_get_default_normal_texture();
+                            break;
+                        default:
+                            DWARN("Undefined texture use %d", map->use);
+                            t = texture_system_get_default_texture();
+                            break;
+                    }
+                }
+
                 vulkan_image* image = (vulkan_image*)t->internal_data;
                 image_infos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 image_infos[i].imageView = image->view;
@@ -1630,7 +1660,7 @@ VkSamplerAddressMode convert_repeat_type(const char* axis, texture_repeat repeat
         case TEXTURE_REPEAT_CLAMP_TO_BORDER:
             return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
         default:
-            WARN("convert_repeat_type(axis='%s') Type '%x' not supported, defaulting to repeat.", axis, repeat);
+            DWARN("convert_repeat_type(axis='%s') Type '%x' not supported, defaulting to repeat.", axis, repeat);
             return VK_SAMPLER_ADDRESS_MODE_REPEAT;
     }
 }
@@ -1642,7 +1672,7 @@ VkFilter convert_filter_type(const char* op, texture_filter filter) {
         case TEXTURE_FILTER_MODE_LINEAR:
             return VK_FILTER_LINEAR;
         default:
-            WARN("convert_filter_type(op='%s'): Unsupported filter type '%x', defaulting to linear.", op, filter);
+            DWARN("convert_filter_type(op='%s'): Unsupported filter type '%x', defaulting to linear.", op, filter);
             return VK_FILTER_LINEAR;
     }
 }
@@ -1672,7 +1702,7 @@ b8 vulkan_renderer_texture_map_acquire_resources(texture_map* map) {
 
     VkResult result = vkCreateSampler(context.device.logical_device, &sampler_info, context.allocator, (VkSampler*)&map->internal_data);
     if (!vulkan_result_is_success(VK_SUCCESS)) {
-        ERROR("Error creating texture sampler: %s", vulkan_result_string(result, true));
+        DERROR("Error creating texture sampler: %s", vulkan_result_string(result, true));
         return false;
     }
 
@@ -1698,7 +1728,7 @@ b8 vulkan_renderer_shader_acquire_instance_resources(shader* s, texture_map** ma
         }
     }
     if (*out_instance_id == INVALID_ID) {
-        ERROR("vulkan_shader_acquire_instance_resources failed to acquire new id");
+        DERROR("vulkan_shader_acquire_instance_resources failed to acquire new id");
         return false;
     }
 
@@ -1720,7 +1750,7 @@ b8 vulkan_renderer_shader_acquire_instance_resources(shader* s, texture_map** ma
     u64 size = s->ubo_stride;
     if (size > 0) {
         if (!vulkan_buffer_allocate(&internal->uniform_buffer, size, &instance_state->offset)) {
-            ERROR("vulkan_material_shader_acquire_resources failed to acquire ubo space");
+            DERROR("vulkan_material_shader_acquire_resources failed to acquire ubo space");
             return false;
         }
     }
@@ -1752,7 +1782,7 @@ b8 vulkan_renderer_shader_acquire_instance_resources(shader* s, texture_map** ma
         &alloc_info,
         instance_state->descriptor_set_state.descriptor_sets);
     if (result != VK_SUCCESS) {
-        ERROR("Error allocating instance descriptor sets in shader: '%s'.", vulkan_result_string(result, true));
+        DERROR("Error allocating instance descriptor sets in shader: '%s'.", vulkan_result_string(result, true));
         return false;
     }
 
@@ -1773,7 +1803,7 @@ b8 vulkan_renderer_shader_release_instance_resources(shader* s, u32 instance_id)
         3,
         instance_state->descriptor_set_state.descriptor_sets);
     if (result != VK_SUCCESS) {
-        ERROR("Error freeing object shader descriptor sets!");
+        DERROR("Error freeing object shader descriptor sets!");
     }
 
     // Destroy descriptor states.
@@ -1820,7 +1850,7 @@ b8 create_module(vulkan_shader* shader, vulkan_shader_stage_config config, vulka
     // Read the resource.
     resource binary_resource;
     if (!resource_system_load(config.file_name, RESOURCE_TYPE_BINARY, 0, &binary_resource)) {
-        ERROR("Unable to read shader module: %s.", config.file_name);
+        DERROR("Unable to read shader module: %s.", config.file_name);
         return false;
     }
 
@@ -2009,7 +2039,7 @@ void vulkan_renderer_render_target_destroy(render_target* target, b8 free_intern
 
 texture* vulkan_renderer_window_attachment_get(u8 index) {
     if (index >= context.swapchain.image_count) {
-        FATAL("Attempting to get attachment index out of range: %d. Attachment count: %d", index, context.swapchain.image_count);
+        DFATAL("Attempting to get attachment index out of range: %d. Attachment count: %d", index, context.swapchain.image_count);
         return 0;
     }
 
@@ -2020,4 +2050,8 @@ texture* vulkan_renderer_depth_attachment_get() {
 }
 u8 vulkan_renderer_window_attachment_index_get() {
     return (u8)context.image_index;
+}
+
+b8 vulkan_renderer_is_multithreaded() {
+    return context.multithreading_enabled;
 }

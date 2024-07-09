@@ -31,7 +31,7 @@ void destroy_geometry(geometry_system_state* state, geometry* g);
 
 b8 geometry_system_initialize(u64* memory_requirement, void* state, geometry_system_config config) {
     if (config.max_geometry_count == 0) {
-        FATAL("geometry_system_initialize - config.max_geometry_count must be > 0.");
+        DFATAL("geometry_system_initialize - config.max_geometry_count must be > 0.");
         return false;
     }
 
@@ -60,7 +60,7 @@ b8 geometry_system_initialize(u64* memory_requirement, void* state, geometry_sys
     }
 
     if (!create_default_geometries(state_ptr)) {
-        FATAL("Failed to create default geometries. Application cannot continue.");
+        DFATAL("Failed to create default geometries. Application cannot continue.");
         return false;
     }
 
@@ -78,7 +78,7 @@ geometry* geometry_system_acquire_by_id(u32 id) {
     }
 
     // NOTE: Should return default geometry instead?
-    ERROR("geometry_system_acquire_by_id cannot load invalid geometry id. Returning nullptr.");
+    DERROR("geometry_system_acquire_by_id cannot load invalid geometry id. Returning nullptr.");
     return 0;
 }
 
@@ -96,12 +96,12 @@ geometry* geometry_system_acquire_from_config(geometry_config config, b8 auto_re
     }
 
     if (!g) {
-        ERROR("Unable to obtain free slot for geometry. Adjust configuration to allow more space. Returning nullptr.");
+        DERROR("Unable to obtain free slot for geometry. Adjust configuration to allow more space. Returning nullptr.");
         return 0;
     }
 
     if (!create_geometry(state_ptr, config, g)) {
-        ERROR("Failed to create geometry. Returning nullptr.");
+        DERROR("Failed to create geometry. Returning nullptr.");
         return 0;
     }
 
@@ -138,12 +138,12 @@ void geometry_system_release(geometry* geometry) {
                 ref->auto_release = false;
             }
         } else {
-            FATAL("Geometry id mismatch. Check registration logic, as this should never occur.");
+            DFATAL("Geometry id mismatch. Check registration logic, as this should never occur.");
         }
         return;
     }
 
-    WARN("geometry_system_release cannot release invalid geometry id. Nothing was done.");
+    DWARN("geometry_system_release cannot release invalid geometry id. Nothing was done.");
 }
 
 geometry* geometry_system_get_default_2d() {
@@ -151,7 +151,7 @@ geometry* geometry_system_get_default_2d() {
         return &state_ptr->default_2d_geometry;
     }
 
-    FATAL("geometry_system_get_default_2d called before system was initialized. Returning nullptr.");
+    DFATAL("geometry_system_get_default_2d called before system was initialized. Returning nullptr.");
     return 0;
 }
 
@@ -160,7 +160,7 @@ geometry* geometry_system_get_default() {
         return &state_ptr->default_geometry;
     }
 
-    FATAL("geometry_system_get_default called before system was initialized. Returning nullptr.");
+    DFATAL("geometry_system_get_default called before system was initialized. Returning nullptr.");
     return 0;
 }
 
@@ -239,7 +239,7 @@ b8 create_default_geometries(geometry_system_state* state) {
     // Send the geometry off to the renderer to be uploaded to the GPU.
     state->default_geometry.internal_id = INVALID_ID;
      if (!renderer_create_geometry(&state->default_geometry, sizeof(vertex_3d), ARRAY_LENGTH(verts), verts, sizeof(u32), ARRAY_LENGTH(indices), indices)) {
-        FATAL("Failed to create default geometry. Application cannot continue.");
+        DFATAL("Failed to create default geometry. Application cannot continue.");
         return false;
     }
 
@@ -274,7 +274,7 @@ b8 create_default_geometries(geometry_system_state* state) {
 
     // Send the geometry off to the renderer to be uploaded to the GPU.
     if (!renderer_create_geometry(&state->default_2d_geometry, sizeof(vertex_2d), ARRAY_LENGTH(verts2d), verts2d, sizeof(u32), ARRAY_LENGTH(indices2d), indices2d)) {
-        FATAL("Failed to create default 2d geometry. Application cannot continue.");
+        DFATAL("Failed to create default 2d geometry. Application cannot continue.");
         return false;
     }
 
@@ -286,28 +286,28 @@ b8 create_default_geometries(geometry_system_state* state) {
 
 geometry_config geometry_system_generate_plane_config(f32 width, f32 height, u32 x_segment_count, u32 y_segment_count, f32 tile_x, f32 tile_y, const char* name, const char* material_name) {
     if (width == 0) {
-        WARN("Width must be nonzero. Defaulting to one.");
+        DWARN("Width must be nonzero. Defaulting to one.");
         width = 1.0f;
     }
     if (height == 0) {
-        WARN("Height must be nonzero. Defaulting to one.");
+        DWARN("Height must be nonzero. Defaulting to one.");
         height = 1.0f;
     }
     if (x_segment_count < 1) {
-        WARN("x_segment_count must be a positive number. Defaulting to one.");
+        DWARN("x_segment_count must be a positive number. Defaulting to one.");
         x_segment_count = 1;
     }
     if (y_segment_count < 1) {
-        WARN("y_segment_count must be a positive number. Defaulting to one.");
+        DWARN("y_segment_count must be a positive number. Defaulting to one.");
         y_segment_count = 1;
     }
 
     if (tile_x == 0) {
-        WARN("tile_x must be nonzero. Defaulting to one.");
+        DWARN("tile_x must be nonzero. Defaulting to one.");
         tile_x = 1.0f;
     }
     if (tile_y == 0) {
-        WARN("tile_y must be nonzero. Defaulting to one.");
+        DWARN("tile_y must be nonzero. Defaulting to one.");
         tile_y = 1.0f;
     }
 
@@ -390,23 +390,23 @@ geometry_config geometry_system_generate_plane_config(f32 width, f32 height, u32
 
 geometry_config geometry_system_generate_cube_config(f32 width, f32 height, f32 depth, f32 tile_x, f32 tile_y, const char* name, const char* material_name) {
     if (width == 0) {
-        WARN("Width must be nonzero. Defaulting to one.");
+        DWARN("Width must be nonzero. Defaulting to one.");
         width = 1.0f;
     }
     if (height == 0) {
-        WARN("Height must be nonzero. Defaulting to one.");
+        DWARN("Height must be nonzero. Defaulting to one.");
         height = 1.0f;
     }
     if (depth == 0) {
-        WARN("Depth must be nonzero. Defaulting to one.");
+        DWARN("Depth must be nonzero. Defaulting to one.");
         depth = 1;
     }
     if (tile_x == 0) {
-        WARN("tile_x must be nonzero. Defaulting to one.");
+        DWARN("tile_x must be nonzero. Defaulting to one.");
         tile_x = 1.0f;
     }
     if (tile_y == 0) {
-        WARN("tile_y must be nonzero. Defaulting to one.");
+        DWARN("tile_y must be nonzero. Defaulting to one.");
         tile_y = 1.0f;
     }
 

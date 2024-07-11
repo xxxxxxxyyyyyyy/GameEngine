@@ -104,8 +104,8 @@ void input_process_mouse_move(i16 x, i16 y) {
 
         // fire event
         event_context context;
-        context.data.u16[0] = x;
-        context.data.u16[1] = y;
+        context.data.i16[0] = x;
+        context.data.i16[1] = y;
         event_execute(EVENT_CODE_MOUSE_MOVED, 0, context);
     }
 }

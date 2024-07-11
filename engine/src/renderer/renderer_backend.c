@@ -9,6 +9,10 @@ b8 renderer_backend_create(renderer_backend_type type, renderer_backend* out_ren
         out_renderer_backend->shutdown = vulkan_renderer_backend_shutdown;
         out_renderer_backend->begin_frame = vulkan_renderer_backend_begin_frame;
         out_renderer_backend->end_frame = vulkan_renderer_backend_end_frame;
+        out_renderer_backend->viewport_set = vulkan_renderer_viewport_set;
+        out_renderer_backend->viewport_reset = vulkan_renderer_viewport_reset;
+        out_renderer_backend->scissor_set = vulkan_renderer_scissor_set;
+        out_renderer_backend->scissor_reset = vulkan_renderer_scissor_reset;
         out_renderer_backend->renderpass_begin = vulkan_renderer_renderpass_begin;
         out_renderer_backend->renderpass_end = vulkan_renderer_renderpass_end;
         out_renderer_backend->resized = vulkan_renderer_backend_on_resized;
@@ -20,6 +24,8 @@ b8 renderer_backend_create(renderer_backend_type type, renderer_backend* out_ren
         out_renderer_backend->texture_create_writeable = vulkan_renderer_texture_create_writeable;
         out_renderer_backend->texture_resize = vulkan_renderer_texture_resize;
         out_renderer_backend->texture_write_data = vulkan_renderer_texture_write_data;
+        out_renderer_backend->texture_read_data = vulkan_renderer_texture_read_data;
+        out_renderer_backend->texture_read_pixel = vulkan_renderer_texture_read_pixel;
 
         out_renderer_backend->create_geometry = vulkan_renderer_create_geometry;
         out_renderer_backend->destroy_geometry = vulkan_renderer_destroy_geometry;
@@ -45,12 +51,25 @@ b8 renderer_backend_create(renderer_backend_type type, renderer_backend* out_ren
 
         out_renderer_backend->renderpass_create = vulkan_renderpass_create;
         out_renderer_backend->renderpass_destroy = vulkan_renderpass_destroy;
-        out_renderer_backend->renderpass_get = vulkan_renderer_renderpass_get;
         out_renderer_backend->window_attachment_get = vulkan_renderer_window_attachment_get;
         out_renderer_backend->depth_attachment_get = vulkan_renderer_depth_attachment_get;
         out_renderer_backend->window_attachment_index_get = vulkan_renderer_window_attachment_index_get;
+        out_renderer_backend->window_attachment_count_get = vulkan_renderer_window_attachment_count_get;
 
         out_renderer_backend->is_multithreaded = vulkan_renderer_is_multithreaded;
+
+        out_renderer_backend->renderbuffer_create_internal = vulkan_buffer_create_internal;
+        out_renderer_backend->renderbuffer_destroy_internal = vulkan_buffer_destroy_internal;
+        out_renderer_backend->renderbuffer_bind = vulkan_buffer_bind;
+        out_renderer_backend->renderbuffer_unbind = vulkan_buffer_unbind;
+        out_renderer_backend->renderbuffer_map_memory = vulkan_buffer_map_memory;
+        out_renderer_backend->renderbuffer_unmap_memory = vulkan_buffer_unmap_memory;
+        out_renderer_backend->renderbuffer_flush = vulkan_buffer_flush;
+        out_renderer_backend->renderbuffer_read = vulkan_buffer_read;
+        out_renderer_backend->renderbuffer_resize = vulkan_buffer_resize;
+        out_renderer_backend->renderbuffer_load_range = vulkan_buffer_load_range;
+        out_renderer_backend->renderbuffer_copy_range = vulkan_buffer_copy_range;
+        out_renderer_backend->renderbuffer_draw = vulkan_buffer_draw;
 
         return true;
     }

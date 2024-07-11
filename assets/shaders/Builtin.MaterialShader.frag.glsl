@@ -11,7 +11,7 @@ struct point_light {
     vec3 position;
     vec4 colour;
     // Usually 1, make sure denominator never gets smaller than 1
-    float constant;
+    float constant_f;
     // Reduces light intensity linearly
     float linear;
     // Makes the light fall off slower at longer distances.
@@ -124,7 +124,7 @@ vec4 calculate_point_light(point_light light, vec3 normal, vec3 world_position, 
 
     // Calculate attenuation, or light falloff over distance.
     float distance = length(light.position - world_position);
-    float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
+    float attenuation = 1.0 / (light.constant_f + light.linear * distance + light.quadratic * (distance * distance));
 
     vec4 ambient = in_dto.ambient;
     vec4 diffuse = light.colour * diff;

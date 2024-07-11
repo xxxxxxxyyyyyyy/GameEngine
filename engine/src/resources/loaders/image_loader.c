@@ -12,7 +12,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 // Use our own filesystem.
 #define STBI_NO_STDIO
-#include "thirdlib/stb_image/stb_image.h"
+#include "thirdlib/stb/stb_image.h"
 
 b8 image_loader_load(struct resource_loader* self, const char* name, void* params, resource* out_resource) {
     if (!self || !name || !out_resource) {

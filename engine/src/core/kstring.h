@@ -6,6 +6,33 @@
 // Returns the length of the given string
 API u64 string_length(const char* str);
 
+/**
+ * @brief Gets the length of a string in UTF-8 (potentially multibyte) characters.
+ * 
+ * @param str The string to examine.
+ * @return The UTF-8 length of the string.
+ */
+API u32 string_utf8_length(const char* str);
+
+/**
+ * @brief Obtains bytes needed from the byte array to form a UTF-8 codepoint,
+ * also providing how many bytes the current character is.
+ * 
+ * @param bytes The byte array to choose from.
+ * @param offset The offset in bytes to start from.
+ * @param out_codepoint A pointer to hold the UTF-8 codepoint.
+ * @param out_advance A pointer to hold the advance, or how many bytes the codepoint takes.
+ * @return True on success; otherwise false for invalid/unsupported UTF-8.
+ */
+API b8 bytes_to_codepoint(const char* bytes, u32 offset, i32* out_codepoint, u8* out_advance);
+
+/**
+ * @brief Frees the memory of the given string.
+ * 
+ * @param str The string to be freed.
+ */
+API void string_free(char* str);
+
 API char* string_duplicate(const char* str);
 
 // case-sensitive string comparison. true if the same

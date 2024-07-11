@@ -76,7 +76,7 @@ void main() {
     vec3 normal = in_dto.normal;
     vec3 tangent = in_dto.tangent;
     tangent = (tangent - dot(tangent, normal) *  normal);
-    vec3 bitangent = cross(in_dto.normal, in_dto.tangent;
+    vec3 bitangent = cross(in_dto.normal, in_dto.tangent);
     TBN = mat3(tangent, bitangent, normal);
 
     // Update the normal to use a sample from the normal map.

@@ -106,12 +106,22 @@ typedef enum system_event_code {
     /* Context usage:
      * i32 mode = context.data.i32[0];
      */
-    EVENT_CODE_SET_RENDER_MODE = 0x0A,
-    EVENT_CODE_DEBUG0 = 0x0B,
-    EVENT_CODE_DEBUG1 = 0x0C,
-    EVENT_CODE_DEBUG2 = 0x0D,
-    EVENT_CODE_DEBUG3 = 0x0E,
-    EVENT_CODE_DEBUG4 = 0x0F,
+    EVENT_CODE_SET_RENDER_MODE = 0x09,
+    EVENT_CODE_DEBUG0 = 0x0A,
+    EVENT_CODE_DEBUG1 = 0x0B,
+    EVENT_CODE_DEBUG2 = 0x0C,
+    EVENT_CODE_DEBUG3 = 0x0D,
+    EVENT_CODE_DEBUG4 = 0x0E,
+    /** @brief The hovered-over object id, if there is one.
+     * Context usage:
+     * i32 id = context.data.u32[0]; - will be INVALID ID if nothing is hovered over.
+     */
+    EVENT_CODE_OBJECT_HOVER_ID_CHANGED = 0xF,
 
+    /** 
+     * @brief An event fired by the renderer backend to indicate when any render targets
+     * associated with the default window resources need to be refreshed (i.e. a window resize)
+     */
+    EVENT_CODE_DEFAULT_RENDERTARGET_REFRESH_REQUIRED = 0x10,
     MAX_EVENT_CODE = 0xFF
 } system_event_code;

@@ -1337,3 +1337,45 @@ INLINE f32 deg_to_rad(f32 degrees) {
 INLINE f32 rad_to_deg(f32 radians) {
     return radians * K_RAD2DEG_MULTIPLIER;
 }
+
+/**
+ * @brief Converts the given 32-bit integer to rgb values [0-255].
+ * 
+ * @param rgbu The integer holding a rgb value.
+ * @param out_r A pointer to hold the red value.
+ * @param out_g A pointer to hold the green value.
+ * @param out_b A pointer to hold the blue value.
+ */
+INLINE void u32_to_rgb(u32 rgbu, u32* out_r, u32* out_g, u32* out_b) {
+    *out_r = (rgbu >> 16) & 0x0FF;
+    *out_g = (rgbu >> 8) & 0x0FF;
+    *out_b = (rgbu)&0x0FF;
+}
+
+/**
+ * @brief Converts rgb integer values [0-255] to a vec3 of floating-point values [0.0-1.0]
+ * 
+ * @param r The red value [0-255].
+ * @param g The green value [0-255].
+ * @param b The blue value [0-255].
+ * @param out_v A pointer to hold the vector of floating-point values.
+ */
+INLINE void rgb_u32_to_vec3(u32 r, u32 g, u32 b, vec3* out_v) {
+    out_v->r = r / 255.0f;
+    out_v->g = g / 255.0f;
+    out_v->b = b / 255.0f;
+}
+
+/**
+ * @brief Converts a vec3 of rgbvalues [0.0-1.0] to integer rgb values [0-255].
+ * 
+ * @param v The vector of rgb values [0.0-1.0] to be converted.
+ * @param out_r A pointer to hold the red value.
+ * @param out_g A pointer to hold the green value.
+ * @param out_b A pointer to hold the blue value.
+ */
+INLINE void vec3_to_rgb_u32(vec3 v, u32* out_r, u32* out_g, u32* out_b) {
+    *out_r = v.r * 255;
+    *out_g = v.g * 255;
+    *out_b = v.b * 255;
+}

@@ -25,6 +25,16 @@
 #include "systems/texture_system.h"
 #include "systems/resource_system.h"
 
+// NOTE: If wanting to trace allocations, uncomment this.
+// #ifndef KVULKAN_ALLOCATOR_TRACE
+// #define KVULKAN_ALLOCATOR_TRACE 1
+// #endif
+
+// NOTE: To disable the custom allocator, comment this out or set to 0.
+#ifndef KVULKAN_USE_CUSTOM_ALLOCATOR
+#define KVULKAN_USE_CUSTOM_ALLOCATOR 0
+#endif
+
 // static vulkan context
 static vulkan_context context;
 
@@ -40,6 +50,177 @@ b8 create_buffers(vulkan_context* context);
 void create_command_buffers(renderer_backend* backend);
 b8 recreate_swapchain(renderer_backend* backend);
 b8 create_module(vulkan_shader* shader, vulkan_shader_stage_config config, vulkan_shader_stage* shader_stage);
+
+#if KVULKAN_USE_CUSTOM_ALLOCATOR == 1
+/**
+ * @brief Implementation of PFN_vkAllocationFunction.
+ * @link https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/PFN_vkAllocationFunction.html
+ *
+ * @param user_data User data specified in the allocator by the application.
+ * @param size The size in bytes of the requested allocation.
+ * @param alignment The requested alignment of the allocation in bytes. Must be a power of two.
+ * @param allocationScope The allocation scope and lifetime.
+ * @return A memory block if successful; otherwise 0.
+ */
+void* vulkan_alloc_allocation(void* user_data, size_t size, size_t alignment, VkSystemAllocationScope allocation_scope) {
+    // Null MUST be returned if this fails.
+    if (size == 0) {
+        return 0;
+    }
+
+    void* result = kallocate_aligned(size, (u16)alignment, MEMORY_TAG_VULKAN);
+#ifdef KVULKAN_ALLOCATOR_TRACE
+    KTRACE("Allocated block %p. Size=%llu, Alignment=%llu", result, size, alignment);
+#endif
+    return result;
+}
+
+/**
+ * @brief Implementation of PFN_vkFreeFunction.
+ * @link https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/PFN_vkFreeFunction.html
+ *
+ * @param user_data User data specified in the allocator by the application.
+ * @param memory The allocation to be freed.
+ */
+void vulkan_alloc_free(void* user_data, void* memory) {
+    if (!memory) {
+#ifdef KVULKAN_ALLOCATOR_TRACE
+        KTRACE("Block is null, nothing to free: %p", memory);
+#endif
+        return;
+    }
+
+#ifdef KVULKAN_ALLOCATOR_TRACE
+    KTRACE("Attempting to free block %p...", memory);
+#endif
+    u64 size;
+    u16 alignment;
+    b8 result = kmemory_get_size_alignment(memory, &size, &alignment);
+    if (result) {
+#ifdef KVULKAN_ALLOCATOR_TRACE
+        KTRACE("Block %p found with size/alignment: %llu/%u. Freeing aligned block...", memory, size, alignment);
+#endif
+        kfree_aligned(memory, size, alignment, MEMORY_TAG_VULKAN);
+    } else {
+        DERROR("vulkan_alloc_free failed to get alignment lookup for block %p.", memory);
+    }
+}
+
+/**
+ * @brief Implementation of PFN_vkReallocationFunction.
+ * @link https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/PFN_vkReallocationFunction.html
+ *
+ * @param user_data User data specified in the allocator by the application.
+ * @param original Either NULL or a pointer previously returned by vulkan_alloc_allocation.
+ * @param size The size in bytes of the requested allocation.
+ * @param alignment The requested alignment of the allocation in bytes. Must be a power of two.
+ * @param allocation_scope The scope and lifetime of the allocation.
+ * @return A memory block if successful; otherwise 0.
+ */
+void* vulkan_alloc_reallocation(void* user_data, void* original, size_t size, size_t alignment, VkSystemAllocationScope allocation_scope) {
+    if (!original) {
+        return vulkan_alloc_allocation(user_data, size, alignment, allocation_scope);
+    }
+
+    if (size == 0) {
+        return 0;
+    }
+
+    // NOTE: if pOriginal is not null, the same alignment must be used for the new allocation as original.
+    u64 alloc_size;
+    u16 alloc_alignment;
+    b8 is_aligned = kmemory_get_size_alignment(original, &alloc_size, &alloc_alignment);
+    if (!is_aligned) {
+        DERROR("vulkan_alloc_reallocation of unaligned block %p", original);
+        return 0;
+    }
+
+    if (alloc_alignment != alignment) {
+        DERROR("Attempted realloc using a different alignment of %llu than the original of %hu.", alignment, alloc_alignment);
+        return 0;
+    }
+
+#ifdef KVULKAN_ALLOCATOR_TRACE
+    KTRACE("Attempting to realloc block %p...", original);
+#endif
+
+    void* result = vulkan_alloc_allocation(user_data, size, alloc_alignment, allocation_scope);
+    if (result) {
+#ifdef KVULKAN_ALLOCATOR_TRACE
+        KTRACE("Block %p reallocated to %p, copying data...", original, result);
+#endif
+
+        // Copy over the original memory.
+        kcopy_memory(result, original, size);
+#ifdef KVULKAN_ALLOCATOR_TRACE
+        KTRACE("Freeing original aligned block %p...", original);
+#endif
+        // Free the original memory only if the new allocation was successful.
+        kfree_aligned(original, alloc_size, alloc_alignment, MEMORY_TAG_VULKAN);
+    } else {
+#ifdef KVULKAN_ALLOCATOR_TRACE
+        DERROR("Failed to realloc %p.", original);
+#endif
+    }
+
+    return result;
+}
+
+/**
+ * @brief Implementation of PFN_vkInternalAllocationNotification.
+ * Purely informational, nothing can really be done with this except to track it.
+ * @link https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/PFN_vkInternalAllocationNotification.html
+ *
+ * @param pUserData User data specified in the allocator by the application.
+ * @param size The size of the allocation in bytes.
+ * @param allocationType The type of internal allocation.
+ * @param allocationScope The scope and lifetime of the allocation.
+ */
+void vulkan_alloc_internal_alloc(void* pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope) {
+#ifdef KVULKAN_ALLOCATOR_TRACE
+    KTRACE("External allocation of size: %llu", size);
+#endif
+    kallocate_report((u64)size, MEMORY_TAG_VULKAN_EXT);
+}
+
+/**
+ * @brief Implementation of PFN_vkInternalFreeNotification.
+ * Purely informational, nothing can really be done with this except to track it.
+ * @link https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/PFN_vkInternalFreeNotification.html
+ *
+ * @param pUserData User data specified in the allocator by the application.
+ * @param size The size of the allocation to be freed in bytes.
+ * @param allocationType The type of internal allocation.
+ * @param allocationScope The scope and lifetime of the allocation.
+ */
+void vulkan_alloc_internal_free(void* pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope) {
+#ifdef KVULKAN_ALLOCATOR_TRACE
+    KTRACE("External free of size: %llu", size);
+#endif
+    kfree_report((u64)size, MEMORY_TAG_VULKAN_EXT);
+}
+
+/**
+ * @brief Create a vulkan allocator object, filling out the function pointers
+ * in the provided struct.
+ *
+ * @param callbacks A pointer to the allocation callbacks structure to be filled out.
+ * @return b8 True on success; otherwise false.
+ */
+b8 create_vulkan_allocator(VkAllocationCallbacks* callbacks) {
+    if (callbacks) {
+        callbacks->pfnAllocation = vulkan_alloc_allocation;
+        callbacks->pfnReallocation = vulkan_alloc_reallocation;
+        callbacks->pfnFree = vulkan_alloc_free;
+        callbacks->pfnInternalAllocation = vulkan_alloc_internal_alloc;
+        callbacks->pfnInternalFree = vulkan_alloc_internal_free;
+        callbacks->pUserData = &context;
+        return true;
+    }
+
+    return false;
+}
+#endif  // KVULKAN_USE_CUSTOM_ALLOCATOR == 1
 
 b8 upload_data_range(vulkan_context* context, VkCommandPool pool, VkFence fence, VkQueue queue, vulkan_buffer* buffer, u64* out_offset, u64 size, const void* data) {
     // Allocate space in the buffer.
@@ -74,8 +255,18 @@ b8 vulkan_renderer_backend_initialize(renderer_backend* backend, const renderer_
     // Function pointers
     context.find_memory_index = find_memory_index;
 
-    // TODO: custom allocator
+    // NOTE: Custom allocator.
+#if KVULKAN_USE_CUSTOM_ALLOCATOR == 1
+    context.allocator = kallocate(sizeof(VkAllocationCallbacks), MEMORY_TAG_RENDERER);
+    if (!create_vulkan_allocator(context.allocator)) {
+        // If this fails, gracefully fall back to the default allocator.
+        DFATAL("Failed to create custom Vulkan allocator. Continuing using the driver's default allocator.");
+        kfree(context.allocator, sizeof(VkAllocationCallbacks), MEMORY_TAG_RENDERER);
+        context.allocator = 0;
+    }
+#else
     context.allocator = 0;
+#endif
 
     context.on_rendertarget_refresh_required = config->on_rendertarget_refresh_required;
 
@@ -104,14 +295,36 @@ b8 vulkan_renderer_backend_initialize(renderer_backend* backend, const renderer_
     darray_push(required_extensions, &VK_EXT_DEBUG_UTILS_EXTENSION_NAME);  // debug utilities
 
     DDEBUG("Required extensions:");
-    u32 length = darray_length(required_extensions);
-    for (u32 i = 0; i < length; ++i) {
+    u32 required_extension_count = darray_length(required_extensions);
+    for (u32 i = 0; i < required_extension_count; ++i) {
         DDEBUG(required_extensions[i]);
     }
 #endif
 
     create_info.enabledExtensionCount = darray_length(required_extensions);
     create_info.ppEnabledExtensionNames = required_extensions;
+
+    u32 available_extension_count = 0;
+    vkEnumerateInstanceExtensionProperties(0, &available_extension_count, 0);
+    VkExtensionProperties* available_extensions = darray_reserve(VkExtensionProperties, available_extension_count);
+    vkEnumerateInstanceExtensionProperties(0, &available_extension_count, available_extensions);
+
+    // Verify required extensions are available.
+    for (u32 i = 0; i < required_extension_count; ++i) {
+        b8 found = false;
+        for (u32 j = 0; j < available_extension_count; ++j) {
+            if (strings_equal(required_extensions[i], available_extensions[j].extensionName)) {
+                found = true;
+                DINFO("Required exension found: %s...", required_extensions[i]);
+                break;
+            }
+        }
+
+        if (!found) {
+            DFATAL("Required extension is missing: %s", required_extensions[i]);
+            return false;
+        }
+    }
 
     // validation layers
     const char** required_validation_layer_names = 0;
@@ -141,7 +354,7 @@ b8 vulkan_renderer_backend_initialize(renderer_backend* backend, const renderer_
         for (u32 j = 0; j < available_layer_count; ++j) {
             if (strings_equal(required_validation_layer_names[i], available_layers[j].layerName)) {
                 found = true;
-                DINFO("Found");
+                DINFO("Found validation layer: %s...", required_validation_layer_names[i]);
                 break;
             }
         }
@@ -153,6 +366,7 @@ b8 vulkan_renderer_backend_initialize(renderer_backend* backend, const renderer_
     }
 
     // Clean up.
+    darray_destroy(available_extensions);
     darray_destroy(available_layers);
 
     DINFO("All required validation layers are present");
@@ -160,7 +374,12 @@ b8 vulkan_renderer_backend_initialize(renderer_backend* backend, const renderer_
     create_info.enabledLayerCount = required_validation_layer_count;
     create_info.ppEnabledLayerNames = required_validation_layer_names;
 
-    VK_CHECK(vkCreateInstance(&create_info, context.allocator, &context.instance));
+    VkResult instance_result = vkCreateInstance(&create_info, context.allocator, &context.instance);
+    if (!vulkan_result_is_success(instance_result)) {
+        const char* result_string = vulkan_result_string(instance_result, true);
+        DFATAL("Vulkan instance creation failed with result: '%s'", result_string);
+        return false;
+    }
     DINFO("vulkan instance created");
 
     // Clean up
@@ -373,6 +592,12 @@ void vulkan_renderer_backend_shutdown(struct renderer_backend* backend) {
 
     DDEBUG("Destroying Vulkan instance...");
     vkDestroyInstance(context.instance, context.allocator);
+
+    // Destroy the allocator callbacks if set.
+    if (context.allocator) {
+        kfree(context.allocator, sizeof(VkAllocationCallbacks), MEMORY_TAG_RENDERER);
+        context.allocator = 0;
+    }
 }
 
 void vulkan_renderer_backend_on_resized(struct renderer_backend* backend, u16 width, u16 height) {

@@ -1,12 +1,13 @@
 #include "game.h"
 
 #include <core/logger.h>
-
+#include <core/kstring.h>
 #include <core/input.h>
 #include <core/kmemory.h>
+#include <core/event.h>
+
 #include <math/kmath.h>
 #include <renderer/renderer_types.inl>
-#include <core/event.h>
 
 b8 game_initialize(game* game_inst) {
     DDEBUG("game_initialize() called!");
@@ -24,6 +25,9 @@ b8 game_update(game* game_inst, f32 delta_time) {
     u64 prev_alloc_count = alloc_count;
     alloc_count = get_memory_alloc_count();
     if (input_is_key_up('M') && input_was_key_down('M')) {
+        char* usage = get_memory_usage_str();
+        DINFO(usage);
+        string_free(usage);
         DDEBUG("Allocations: %llu (%llu this frame)", alloc_count, alloc_count - prev_alloc_count);
     }
 

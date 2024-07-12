@@ -58,6 +58,9 @@ b8 renderer_backend_create(renderer_backend_type type, renderer_backend* out_ren
 
         out_renderer_backend->is_multithreaded = vulkan_renderer_is_multithreaded;
 
+        out_renderer_backend->flag_enabled = vulkan_renderer_flag_enabled;
+        out_renderer_backend->flag_set_enabled = vulkan_renderer_flag_set_enabled;
+
         out_renderer_backend->renderbuffer_create_internal = vulkan_buffer_create_internal;
         out_renderer_backend->renderbuffer_destroy_internal = vulkan_buffer_destroy_internal;
         out_renderer_backend->renderbuffer_bind = vulkan_buffer_bind;

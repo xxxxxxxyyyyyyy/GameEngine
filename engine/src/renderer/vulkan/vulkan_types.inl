@@ -93,6 +93,8 @@ typedef struct vulkan_renderpass {
 typedef struct vulkan_swapchain {
     VkSurfaceFormatKHR image_format;
     u8 max_frames_in_flight;
+    /** @brief Indicates various flags used for swapchain instantiation. */
+    renderer_config_flags flags;
     VkSwapchainKHR handle;
     u32 image_count;
     /** @brief An array of pointers to render targets, which contain swapchain images. */
@@ -412,6 +414,8 @@ typedef struct vulkan_context {
     u32 current_frame;
 
     b8 recreating_swapchain;
+
+    b8 render_flag_changed;
 
     // TODO: make dynamic
     vulkan_geometry_data geometries[VULKAN_MAX_GEOMETRY_COUNT];

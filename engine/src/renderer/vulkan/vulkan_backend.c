@@ -228,6 +228,7 @@ b8 create_vulkan_allocator(VkAllocationCallbacks* callbacks) {
 b8 vulkan_renderer_backend_initialize(renderer_backend* backend, const renderer_backend_config* config, u8* out_window_render_target_count) {
     // Function pointers
     context.find_memory_index = find_memory_index;
+    context.render_flag_changed = false;
 
     // NOTE: Custom allocator.
 #if KVULKAN_USE_CUSTOM_ALLOCATOR == 1
@@ -399,6 +400,7 @@ b8 vulkan_renderer_backend_initialize(renderer_backend* backend, const renderer_
         &context,
         context.framebuffer_width,
         context.framebuffer_height,
+        config->flags,
         &context.swapchain);
 
     // Save off the number of images we have as the number of render targets needed.
@@ -560,11 +562,16 @@ b8 vulkan_renderer_backend_begin_frame(struct renderer_backend* backend, f32 del
     }
 
     // Check if the framebuffer has been resized. If so, a new swapchain must be created.
-    if (context.framebuffer_size_generation != context.framebuffer_size_last_generation) {
+    // Also include a vsync changed check.
+    if (context.framebuffer_size_generation != context.framebuffer_size_last_generation || context.render_flag_changed) {
         VkResult result = vkDeviceWaitIdle(device->logical_device);
         if (!vulkan_result_is_success(result)) {
             DERROR("vulkan_renderer_backend_begin_frame vkDeviceWaitIdle (2) failed: '%s'", vulkan_result_string(result, true));
             return false;
+        }
+
+        if (context.render_flag_changed) {
+            context.render_flag_changed = false;
         }
 
         // If the swapchain recreation failed (because, for example, the window was minimized),
@@ -2325,7 +2332,7 @@ b8 vulkan_renderpass_create(const renderpass_config* config, renderpass* out_ren
 
     // Render pass create.
     VkRenderPassCreateInfo render_pass_create_info = {VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
-    render_pass_create_info.attachmentCount = darray_length(attachment_descriptions);;
+    render_pass_create_info.attachmentCount = darray_length(attachment_descriptions);
     render_pass_create_info.pAttachments = attachment_descriptions;
     render_pass_create_info.subpassCount = 1;
     render_pass_create_info.pSubpasses = &subpass;
@@ -2426,6 +2433,15 @@ u8 vulkan_renderer_window_attachment_count_get() {
 
 b8 vulkan_renderer_is_multithreaded() {
     return context.multithreading_enabled;
+}
+
+b8 vulkan_renderer_flag_enabled(renderer_config_flags flag) {
+    return (context.swapchain.flags & flag);
+}
+
+void vulkan_renderer_flag_set_enabled(renderer_config_flags flag, b8 enabled) {
+    context.swapchain.flags = (enabled ? (context.swapchain.flags | flag) : (context.swapchain.flags & ~flag));
+    context.render_flag_changed = true;
 }
 
 // NOTE: Begin vulkan buffer.

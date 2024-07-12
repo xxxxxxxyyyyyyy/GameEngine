@@ -5,6 +5,7 @@
 #include "core/kstring.h"
 #include "core/kmemory.h"
 #include <time.h>
+#include "console.h"
 
 // TODO: temp
 #include <stdarg.h>
@@ -52,7 +53,7 @@ void log_output(log_level level, const char* message, ...){
     // TODO: These string operations are all pretty slow. This needs to be
     // moved to another thread eventually, along with the file writes, to
     // avoid slowing things down while the engine is trying to run.
-    const char* level_strings[6] = {"[DFATAL]: ", "[DERROR]: ", "[DWARN]: ", "[DINFO]: ", "[DDEBUG]: ", "[DTRACE]: "};
+    const char* level_strings[6] = {"[-FATAL-]: ", "[-ERROR-]: ", "[-WARN-]: ", "[-INFO-]: ", "[-DEBUG-]: ", "[-TRACE-]: "};
     b8 is_error = level < LOG_LEVEL_WARN;
 
     // Technically imposes a 32k char limit on a single log entry, but...
@@ -69,10 +70,13 @@ void log_output(log_level level, const char* message, ...){
     // Time
     time_t tloc;
     tloc = time(&tloc);
-    struct tm* time = gmtime(&tloc);
+    struct tm* time = localtime(&tloc);
 
 	// prepend log level to message.
     string_format(out_message, "[%d:%d:%d] %s%s\n",time->tm_hour, time->tm_min, time->tm_sec, level_strings[level], out_message);
+
+    // Pass along to console consumers.
+    console_write_line(level, out_message);
 
     // platform-specific output
     if (is_error) {

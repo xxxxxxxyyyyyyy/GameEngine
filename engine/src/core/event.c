@@ -2,7 +2,7 @@
 
 #include "core/kmemory.h"
 #include "containers/darray.h"
-#include "core/logger.h"
+#include "core/engine.h"
 
 typedef struct registered_event {
     void* listener;
@@ -25,13 +25,18 @@ typedef struct event_system_state {
 // Event system internal state_ptr
 static event_system_state* state_ptr;
 
-void event_system_initialize(u64* memory_requirement, void* state) {
+b8 event_system_initialize(u64* memory_requirement, void* state, void* config) {
     *memory_requirement = sizeof(event_system_state);
     if (state == 0) {
-        return;
+        return true;
     }
     kzero_memory(state, sizeof(state));
     state_ptr = state;
+
+    // Notify the engine that the event system is ready for use.
+    engine_on_event_system_initialized();
+
+    return true;
 }
 
 void event_system_shutdown(void* state) {

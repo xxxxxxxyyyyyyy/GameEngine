@@ -73,7 +73,7 @@ void* vulkan_alloc_allocation(void* user_data, size_t size, size_t alignment, Vk
 
     void* result = kallocate_aligned(size, (u16)alignment, MEMORY_TAG_VULKAN);
 #ifdef KVULKAN_ALLOCATOR_TRACE
-    KTRACE("Allocated block %p. Size=%llu, Alignment=%llu", result, size, alignment);
+    DTRACE("Allocated block %p. Size=%llu, Alignment=%llu", result, size, alignment);
 #endif
     return result;
 }
@@ -88,20 +88,20 @@ void* vulkan_alloc_allocation(void* user_data, size_t size, size_t alignment, Vk
 void vulkan_alloc_free(void* user_data, void* memory) {
     if (!memory) {
 #ifdef KVULKAN_ALLOCATOR_TRACE
-        KTRACE("Block is null, nothing to free: %p", memory);
+        DTRACE("Block is null, nothing to free: %p", memory);
 #endif
         return;
     }
 
 #ifdef KVULKAN_ALLOCATOR_TRACE
-    KTRACE("Attempting to free block %p...", memory);
+    DTRACE("Attempting to free block %p...", memory);
 #endif
     u64 size;
     u16 alignment;
     b8 result = kmemory_get_size_alignment(memory, &size, &alignment);
     if (result) {
 #ifdef KVULKAN_ALLOCATOR_TRACE
-        KTRACE("Block %p found with size/alignment: %llu/%u. Freeing aligned block...", memory, size, alignment);
+        DTRACE("Block %p found with size/alignment: %llu/%u. Freeing aligned block...", memory, size, alignment);
 #endif
         kfree_aligned(memory, size, alignment, MEMORY_TAG_VULKAN);
     } else {
@@ -144,19 +144,19 @@ void* vulkan_alloc_reallocation(void* user_data, void* original, size_t size, si
     }
 
 #ifdef KVULKAN_ALLOCATOR_TRACE
-    KTRACE("Attempting to realloc block %p...", original);
+    DTRACE("Attempting to realloc block %p...", original);
 #endif
 
     void* result = vulkan_alloc_allocation(user_data, size, alloc_alignment, allocation_scope);
     if (result) {
 #ifdef KVULKAN_ALLOCATOR_TRACE
-        KTRACE("Block %p reallocated to %p, copying data...", original, result);
+        DTRACE("Block %p reallocated to %p, copying data...", original, result);
 #endif
 
         // Copy over the original memory.
         kcopy_memory(result, original, size);
 #ifdef KVULKAN_ALLOCATOR_TRACE
-        KTRACE("Freeing original aligned block %p...", original);
+        DTRACE("Freeing original aligned block %p...", original);
 #endif
         // Free the original memory only if the new allocation was successful.
         kfree_aligned(original, alloc_size, alloc_alignment, MEMORY_TAG_VULKAN);
@@ -181,7 +181,7 @@ void* vulkan_alloc_reallocation(void* user_data, void* original, size_t size, si
  */
 void vulkan_alloc_internal_alloc(void* pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope) {
 #ifdef KVULKAN_ALLOCATOR_TRACE
-    KTRACE("External allocation of size: %llu", size);
+    DTRACE("External allocation of size: %llu", size);
 #endif
     kallocate_report((u64)size, MEMORY_TAG_VULKAN_EXT);
 }
@@ -198,7 +198,7 @@ void vulkan_alloc_internal_alloc(void* pUserData, size_t size, VkInternalAllocat
  */
 void vulkan_alloc_internal_free(void* pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope) {
 #ifdef KVULKAN_ALLOCATOR_TRACE
-    KTRACE("External free of size: %llu", size);
+    DTRACE("External free of size: %llu", size);
 #endif
     kfree_report((u64)size, MEMORY_TAG_VULKAN_EXT);
 }

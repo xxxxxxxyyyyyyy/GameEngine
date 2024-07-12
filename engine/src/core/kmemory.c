@@ -4,6 +4,7 @@
 #include "core/mutex.h"
 #include "platform/platform.h"
 #include "memory/dynamic_allocator.h"
+#include "core/logger.h"
 
 // TODO: Custom string lib
 #include <string.h>
@@ -101,7 +102,7 @@ b8 memory_system_initialize(memory_system_configuration config) {
     return true;
 }
 
-void memory_system_shutdown() {
+void memory_system_shutdown(void* state) {
     if (state_ptr) {
         // Destroy allocation mutex
         kmutex_destroy(&state_ptr->allocation_mutex);

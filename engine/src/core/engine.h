@@ -33,3 +33,5 @@ typedef struct application_config {
 API b8 engine_create(struct application* game_inst);
 
 API b8 engine_run();
+
+void engine_on_event_system_initialized();

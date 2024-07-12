@@ -29,7 +29,7 @@ typedef struct render_view_system_config {
  * @param config Configuration for the system.
  * @return True on success; otherwise false.
  */
-b8 render_view_system_initialize(u64* memory_requirement, void* state, render_view_system_config config);
+b8 render_view_system_initialize(u64* memory_requirement, void* state, void* config);
 
 /**
  * @brief Shuts the render view system down.

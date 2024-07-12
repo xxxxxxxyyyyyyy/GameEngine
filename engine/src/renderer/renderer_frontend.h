@@ -5,7 +5,11 @@
 struct shader;
 struct shader_uniform;
 
-b8 renderer_system_initialize(u64* memory_requirement, void* state, const char* application_name);
+typedef struct renderer_system_config {
+    char* application_name;
+} renderer_system_config;
+
+b8 renderer_system_initialize(u64* memory_requirement, void* state, void* config);
 
 void renderer_system_shutdown(void* state);
 

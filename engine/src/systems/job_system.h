@@ -76,6 +76,16 @@ typedef struct job_info {
     u32 result_data_size;
 } job_info;
 
+typedef struct job_system_config {
+    /**
+     * @param max_job_thread_count The maximum number of job threads to be spun up.
+     * Should be no more than the number of cores on the CPU, minus one to account for the main thread.
+     */
+    u8 max_job_thread_count;
+    /** @param type_masks A collection of type masks for each job thread. Must match max_job_thread_count. */
+    u32* type_masks;
+} job_system_config;
+
 /**
  * @brief Initializes the job system. Call once to retrieve job_system_memory_requirement, passing 0 to state. Then 
  * call a second time with allocated state memory block.
@@ -86,7 +96,7 @@ typedef struct job_info {
  * @param type_masks A collection of type masks for each job thread. Must match max_job_thread_count.
  * @returns True if the job system started up successfully; otherwise false.
  */
-b8 job_system_initialize(u64* job_system_memory_requirement, void* state, u8 max_job_thread_count, u32 type_masks[]);
+b8 job_system_initialize(u64* job_system_memory_requirement, void* state, void* config);
 
 /**
  * @brief Shuts the job system down.
@@ -96,7 +106,7 @@ void job_system_shutdown(void* state);
 /**
  * @brief Updates the job system. Should happen once an update cycle.
  */
-void job_system_update();
+b8 job_system_update(void* state, f32 delta_time);
 
 /**
  * @brief Submits the provided job to be queued for execution.

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "defines.h"
+#include "core/logger.h"
 
 // oberserver design pattern
 
@@ -28,7 +29,11 @@ typedef struct event_context {
 // should return true if handled
 typedef b8 (*PFN_on_event)(u16 code, void* sender, void* listener_inst, event_context data);
 
-void event_system_initialize(u64* memory_requirement, void* state);
+b8 event_system_initialize(u64* memory_requirement, void* state, void* config);
+
+/**
+ * @brief Shuts the event system down.
+ */
 void event_system_shutdown(void* state);
 
 /**

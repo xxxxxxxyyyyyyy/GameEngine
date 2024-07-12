@@ -40,9 +40,12 @@ typedef struct memory_system_configuration {
     u64 total_alloc_size;
 } memory_system_configuration;
 
-API b8 memory_system_initialize(memory_system_configuration config);
+b8 memory_system_initialize(memory_system_configuration config);
 
-API void memory_system_shutdown();
+/**
+ * @brief Shuts down the memory system.
+ */
+void memory_system_shutdown(void* state);
 
 API void* kallocate(u64 size, memory_tag tag);
 

@@ -173,7 +173,7 @@ typedef enum keys {
  * @param memory_requirement The required size of the state memory.
  * @param state Either 0 or the allocated block of state memory.
  */
-void input_system_initialize(u64* memory_requirement, void* state);
+b8 input_system_initialize(u64* memory_requirement, void* state, void* config);
 void input_system_shutdown(void* state);
 void input_update(f64 delta_time);
 

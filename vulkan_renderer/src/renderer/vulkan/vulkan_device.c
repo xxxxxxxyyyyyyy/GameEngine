@@ -279,7 +279,7 @@ b8 select_physical_device(vulkan_context* context) {
     // NOTE: Enable this if compute will be required.
     // requirements.compute = true;
     requirements.sampler_anisotropy = true;
-#if KPLATFORM_APPLE
+#if PLATFORM_APPLE
     requirements.discrete_gpu = false;
 #else
     requirements.discrete_gpu = true;

@@ -1,4 +1,5 @@
 // Windows platform layer.
+#include <platform/platform.h>
 #include <defines.h>
 #ifdef PLATFORM_WINDOWS
 

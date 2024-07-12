@@ -3,6 +3,6 @@
 
 #include "core/logger.h"
 
-#if KPLATFORM_APPLE
+#if PLATFORM_APPLE
 
 #endif

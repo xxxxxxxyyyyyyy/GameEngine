@@ -115,7 +115,7 @@ API void keymap_binding_remove(keymap* map, keys key, keymap_entry_bind_type typ
 
 
 
-// TODO(travis): Keymaps will replace the existing
+// TODO(dod): Keymaps will replace the existing
 
 // checks for key states in that they will instead
 

@@ -25,9 +25,14 @@ static b8 register_known_systems_pre_boot(systems_manager_state* state, applicat
 static b8 register_known_systems_post_boot(systems_manager_state* state, application_config* app_config);
 static void shutdown_known_systems(systems_manager_state* state);
 
+// TODO: Find a way to have this not be static.
+static systems_manager_state* g_state;
+
 b8 systems_manager_initialize(systems_manager_state* state, application_config* app_config) {
     // Create a linear allocator for all systems (except memory) to use.
     linear_allocator_create(MEBIBYTES(64), 0, &state->systems_allocator);
+
+    g_state = state;
 
     // Register known systems
     return register_known_systems_pre_boot(state, app_config);
@@ -60,21 +65,21 @@ b8 systems_manager_register(
     PFN_system_shutdown shutdown,
     PFN_system_update update,
     void* config) {
-    k_system sys;
-    sys.initialize = initialize;
-    sys.shutdown = shutdown;
-    sys.update = update;
+    k_system* sys = &state->systems[type];
 
     // Call initialize, alloc memory, call initialize again w/ allocated block.
-    if (sys.initialize) {
-        if (!sys.initialize(&sys.state_size, 0, config)) {
+    if (initialize) {
+        sys->initialize = initialize;
+        if (!sys->initialize(&sys->state_size, 0, config)) {
             DERROR("Failed to register system - initialize call failed.");
             return false;
         }
 
-        sys.state = linear_allocator_allocate(&state->systems_allocator, sys.state_size);
+        sys->state = linear_allocator_allocate(&state->systems_allocator, sys->state_size);
 
-        if (!sys.initialize(&sys.state_size, sys.state, config)) {
+        if (!sys->initialize(&sys->state_size, sys->state, config)) {
+            DERROR("Failed to register system - initialize call failed.");
+            kzero_memory(sys, sizeof(k_system));
             DERROR("Failed to register system - initialize call failed.");
             return false;
         }
@@ -85,9 +90,18 @@ b8 systems_manager_register(
         }
     }
 
-    state->systems[type] = sys;
+    sys->shutdown = shutdown;
+    sys->update = update;
 
     return true;
+}
+
+void* systems_manager_get_state(u16 type) {
+    if (g_state) {
+        return g_state->systems[type].state;
+    }
+
+    return 0;
 }
 
 b8 register_known_systems_pre_boot(systems_manager_state* state, application_config* app_config) {
@@ -228,9 +242,9 @@ void shutdown_known_systems(systems_manager_state* state) {
 
     state->systems[K_SYSTEM_TYPE_JOB].shutdown(state->systems[K_SYSTEM_TYPE_JOB].state);
     state->systems[K_SYSTEM_TYPE_SHADER].shutdown(state->systems[K_SYSTEM_TYPE_SHADER].state);
-    state->systems[K_SYSTEM_TYPE_RENDERER].shutdown(state->systems[K_SYSTEM_TYPE_RENDERER].state);
 
     state->systems[K_SYSTEM_TYPE_RESOURCE].shutdown(state->systems[K_SYSTEM_TYPE_RESOURCE].state);
+    state->systems[K_SYSTEM_TYPE_RENDERER].shutdown(state->systems[K_SYSTEM_TYPE_RENDERER].state);
     state->systems[K_SYSTEM_TYPE_PLATFORM].shutdown(state->systems[K_SYSTEM_TYPE_PLATFORM].state);
     state->systems[K_SYSTEM_TYPE_INPUT].shutdown(state->systems[K_SYSTEM_TYPE_INPUT].state);
     state->systems[K_SYSTEM_TYPE_LOGGING].shutdown(state->systems[K_SYSTEM_TYPE_LOGGING].state);

@@ -13,6 +13,7 @@
 #include "systems/camera_system.h"
 #include "systems/render_view_system.h"
 #include "renderer/renderer_frontend.h"
+#include "memory/linear_allocator.h"
 
 typedef struct render_view_skybox_internal_data {
     shader* s;
@@ -131,8 +132,9 @@ b8 render_view_skybox_on_build_packet(const struct render_view* self, struct lin
     out_packet->view_matrix = camera_view_get(internal_data->world_camera);
     out_packet->view_position = camera_position_get(internal_data->world_camera);
 
-    // Just set the extended data to the skybox data
-    out_packet->extended_data = skybox_data;
+    // out_packet->extended_data = skybox_data;
+    out_packet->extended_data = linear_allocator_allocate(frame_allocator, sizeof(skybox_packet_data));
+    kcopy_memory(out_packet->extended_data, skybox_data, sizeof(skybox_packet_data));
     return true;
 }
 

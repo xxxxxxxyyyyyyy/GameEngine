@@ -426,5 +426,5 @@ typedef struct vulkan_context {
     /** @brief Indicates if multi-threading is supported by this device. */
     b8 multithreading_enabled;
 
-    i32 (*find_memory_index)(u32 type_filter, u32 property_flags);
+    i32 (*find_memory_index)(struct vulkan_context* context, u32 type_filter, u32 property_flags);
 } vulkan_context;

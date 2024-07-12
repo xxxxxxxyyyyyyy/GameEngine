@@ -15,6 +15,21 @@ typedef struct platform_system_config {
     i32 height;
 } platform_system_config;
 
+typedef struct dynamic_library_function {
+    const char* name;
+    void* pfn;
+} dynamic_library_function;
+
+typedef struct dynamic_library {
+    const char* name;
+    const char* filename;
+    u64 internal_data_size;
+    void* internal_data;
+
+    // darray
+    dynamic_library_function* functions;
+} dynamic_library;
+
 b8 platform_system_startup(u64* memory_requirement, void* state, void* config);
 
 void platform_system_shutdown(void* state);
@@ -53,3 +68,29 @@ i32 platform_get_processor_count();
  * @param memory Allocated block of memory.
  */
 API void platform_get_handle_info(u64* out_size, void* memory);
+
+/**
+ * @brief Loads a dynamic library.
+ *
+ * @param name The name of the library file, *excluding* the extension. Required.
+ * @param out_library A pointer to hold the loaded library. Required.
+ * @return True on success; otherwise false.
+ */
+API b8 platform_dynamic_library_load(const char* name, dynamic_library* out_library);
+
+/**
+ * @brief Unloads the given dynamic library.
+ *
+ * @param library A pointer to the loaded library. Required.
+ * @return True on success; otherwise false.
+ */
+API b8 platform_dynamic_library_unload(dynamic_library* library);
+
+/**
+ * @brief Loads an exported function of the given name from the provided loaded library.
+ *
+ * @param name The function name to be loaded.
+ * @param library A pointer to the library to load the function from.
+ * @return True on success; otherwise false.
+ */
+API b8 platform_dynamic_library_load_function(const char* name, dynamic_library* library);

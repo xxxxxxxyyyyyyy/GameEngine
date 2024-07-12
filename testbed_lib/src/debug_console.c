@@ -12,7 +12,7 @@ typedef struct command_history_entry {
     const char* command;
 } command_history_entry;
 
-// TODO(travis): statically-defined state for now.
+// TODO(dod): statically-defined state for now.
 typedef struct debug_console_state {
     // Number of lines displayed at once.
     i32 line_display_count;

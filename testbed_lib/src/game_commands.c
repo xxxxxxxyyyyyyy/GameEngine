@@ -1,5 +1,6 @@
-#include "game.h"
 #include <core/console.h>
+#include <application_types.h>
+#include <core/event.h>
 
 #include <core/event.h>
 

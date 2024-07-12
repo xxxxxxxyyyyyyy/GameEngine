@@ -82,7 +82,7 @@ b8 engine_create(application* game_inst) {
     }
 
     // Report engine version
-    DINFO("Kohi Engine v. %f", DVERSION);
+    DINFO("DOD Engine v. %f", DVERSION);
 
     if (!systems_manager_post_boot_initialize(&engine_state->sys_manager_state, &game_inst->app_config)) {
     DFATAL("Post-boot system manager initialization failed!");

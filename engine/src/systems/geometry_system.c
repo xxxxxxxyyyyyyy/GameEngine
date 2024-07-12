@@ -125,8 +125,6 @@ void geometry_system_release(geometry* geometry) {
     if (geometry && geometry->id != INVALID_ID) {
         geometry_reference* ref = &state_ptr->registered_geometries[geometry->id];
 
-        // Take a copy of the id;
-        u32 id = geometry->id;
         if (ref->geometry.id == geometry->id) {
             if (ref->reference_count > 0) {
                 ref->reference_count--;

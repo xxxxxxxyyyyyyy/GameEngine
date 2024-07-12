@@ -82,14 +82,14 @@ b8 vulkan_graphics_pipeline_create(vulkan_context* context, const vulkan_pipelin
     color_blend_state_create_info.pAttachments = &color_blend_attachment_state;
 
     // Dynamic state
-    const u32 dynamic_state_count = 3;
-    VkDynamicState dynamic_states[dynamic_state_count] = {
+    // const u32 dynamic_state_count = 3;
+    VkDynamicState dynamic_states[3] = {
         VK_DYNAMIC_STATE_VIEWPORT,
         VK_DYNAMIC_STATE_SCISSOR,
         VK_DYNAMIC_STATE_LINE_WIDTH};
 
     VkPipelineDynamicStateCreateInfo dynamic_state_create_info = {VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
-    dynamic_state_create_info.dynamicStateCount = dynamic_state_count;
+    dynamic_state_create_info.dynamicStateCount = 3;
     dynamic_state_create_info.pDynamicStates = dynamic_states;
 
     // Vertex input

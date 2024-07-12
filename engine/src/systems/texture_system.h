@@ -14,10 +14,10 @@ typedef struct texture_system_config {
 /** @brief The default normal texture name. */
 #define DEFAULT_NORMAL_TEXTURE_NAME "default_NORM"
 
-b8 texture_system_initialize(u64* memory_requirement, void* state, void* config);
-void texture_system_shutdown(void* state);
+API b8 texture_system_initialize(u64* memory_requirement, API void* state, API void* config);
+API void texture_system_shutdown(API void* state);
 
-texture* texture_system_acquire(const char* name, b8 auto_release);
+API texture* texture_system_acquire(const char* name, API b8 auto_release);
 
 /**
  * @brief Attempts to acquire a cubemap texture with the given name. If it has not yet been loaded,
@@ -38,7 +38,7 @@ texture* texture_system_acquire(const char* name, b8 auto_release);
  * Only takes effect the first time the texture is acquired.
  * @return A pointer to the loaded texture. Can be a pointer to the default texture if not found.
  */
-texture* texture_system_acquire_cube(const char* name, b8 auto_release);
+API texture* texture_system_acquire_cube(const char* name, API b8 auto_release);
 
 /**
  * @brief Attempts to acquire a writeable texture with the given name. This does not point to
@@ -52,9 +52,9 @@ texture* texture_system_acquire_cube(const char* name, b8 auto_release);
  * @param has_transparency Indicates if the texture will have transparency.
  * @return A pointer to the generated texture.
  */
-texture* texture_system_aquire_writeable(const char* name, u32 width, u32 height, u8 channel_count, b8 has_transparency);
+API texture* texture_system_aquire_writeable(const char* name, u32 width, u32 height, u8 channel_count, API b8 has_transparency);
 
-void texture_system_release(const char* name);
+API void texture_system_release(const char* name);
 /*
  * @brief Wraps the provided internal data in a texture structure using the parameters
  * provided. This is best used for when the renderer system creates internal resources
@@ -72,7 +72,7 @@ void texture_system_release(const char* name);
  * @param register_texture Indicates if the texture should be registered with the system.
  * @param out_texture An optional pointer to hold the wrapped texture. If null, a new pointer is allocated and returned instead.
  */
-void texture_system_wrap_internal(const char* name, u32 width, u32 height, u8 channel_count, b8 has_transparency, b8 is_writeable, b8 register_texture, void* internal_data, texture* out_texture);
+API void texture_system_wrap_internal(const char* name, u32 width, u32 height, u8 channel_count, API b8 has_transparency, API b8 is_writeable, API b8 register_texture, API void* internal_data, texture* out_texture);
 
 /**
  * @brief Sets the internal data of a texture. Useful for replacing internal data from within the
@@ -82,7 +82,7 @@ void texture_system_wrap_internal(const char* name, u32 width, u32 height, u8 ch
  * @param internal_data A pointer to the internal data to be set.
  * @return True on success; otherwise false.
  */
-b8 texture_system_set_internal(texture* t, void* internal_data);
+API b8 texture_system_set_internal(texture* t, API void* internal_data);
 
 /**
  * @brief Resizes the given texture. May only be done on writeable textures.
@@ -94,7 +94,7 @@ b8 texture_system_set_internal(texture* t, void* internal_data);
  * @param regenerate_internal_data Indicates if the internal data should be regenerated.
  * @return True on success; otherwise false.
  */
-b8 texture_system_resize(texture* t, u32 width, u32 height, b8 regenerate_internal_data);
+API b8 texture_system_resize(texture* t, u32 width, u32 height, API b8 regenerate_internal_data);
 
 /**
  * @brief Writes the given data to the provided texture. May only be used on
@@ -106,28 +106,28 @@ b8 texture_system_resize(texture* t, u32 width, u32 height, b8 regenerate_intern
  * @param data A pointer to the data to be written.
  * @return True on success; otherwise false.
  */
-b8 texture_system_write_data(texture* t, u32 offset, u32 size, void* data);
+API b8 texture_system_write_data(texture* t, u32 offset, u32 size, API void* data);
 
 /**
  * @brief Gets a pointer to the default specular texture. No reference counting is 
  * done for default textures.
  */
-texture* texture_system_get_default_texture();
+API texture* texture_system_get_default_texture();
 
 /**
  * @brief Gets a pointer to the default diffuse texture. No reference counting is 
  * done for default textures.
  */
-texture* texture_system_get_default_diffuse_texture();
+API texture* texture_system_get_default_diffuse_texture();
 
 /**
  * @brief Gets a pointer to the default specular texture. No reference counting is 
  * done for default textures.
  */
-texture* texture_system_get_default_specular_texture();
+API texture* texture_system_get_default_specular_texture();
 
 /**
  * @brief Gets a pointer to the default normal texture. No reference counting is 
  * done for default textures.
  */
-texture* texture_system_get_default_normal_texture();
+API texture* texture_system_get_default_normal_texture();

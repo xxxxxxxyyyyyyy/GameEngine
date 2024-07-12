@@ -118,6 +118,7 @@ void* dynamic_allocator_allocate_aligned(dynamic_allocator* allocator, u64 size,
             }
         }
     }
+    return 0;
 }
 
 b8 dynamic_allocator_free(dynamic_allocator* allocator, void* block, u64 size) {

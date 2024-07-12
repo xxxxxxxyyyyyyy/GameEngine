@@ -1,8 +1,8 @@
 #pragma once
 
-#include "defines.h"
+#include <defines.h>
 
-struct platform_state;
+struct win32_handle_info;
 struct vulkan_context;
 
 b8 platform_create_vulkan_surface(struct vulkan_context* context);

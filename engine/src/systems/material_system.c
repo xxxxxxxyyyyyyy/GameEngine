@@ -165,6 +165,8 @@ material* material_system_acquire(const char* name) {
     material* m;
     if (material_resource.data) {
         m = material_system_acquire_from_config(*(material_config*)material_resource.data);
+    } else {
+        m = 0;
     }
 
     // Clean up

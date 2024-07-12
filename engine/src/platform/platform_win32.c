@@ -5,6 +5,7 @@
 #include "core/event.h"
 #include "core/thread.h"
 #include "core/mutex.h"
+#include "core/kmemory.h"
 
 #include "containers/darray.h"
 
@@ -15,15 +16,13 @@
 #include <windowsx.h>  // param input extraction
 #include <stdlib.h>
 
-// for surface creation
-#include <vulkan/vulkan.h>
-#include <vulkan/vulkan_win32.h>
-#include "renderer/vulkan/vulkan_types.inl"
-
-typedef struct platform_state {
+typedef struct win32_handle_info {
     HINSTANCE h_instance;  // handle to the instance of the application
     HWND hwnd;             // handle to the window we actually open
-    VkSurfaceKHR surface;  // a class that connect os window with vulkan
+} win32_handle_info;
+
+typedef struct platform_state {
+    win32_handle_info handle;
 } platform_state;
 
 static platform_state* state_ptr;
@@ -42,21 +41,21 @@ LRESULT CALLBACK win32_process_message(HWND hwnd, u32 msg, WPARAM w_param, LPARA
 
 b8 platform_system_startup(u64 *memory_requirement, void *state, void *config) {
     platform_system_config* typed_config = (platform_system_config*)config;
-    *memory_requirement = sizeof(platform_state);
+    *memory_requirement = sizeof(win32_handle_info);
     if (state == 0) {
         return true;
     }
     state_ptr = state;
-    state_ptr->h_instance = GetModuleHandleA(0);
+    state_ptr->handle.h_instance = GetModuleHandleA(0);
     // Setup and create window class.
-    HICON icon = LoadIcon(state_ptr->h_instance, IDI_APPLICATION);
+    HICON icon = LoadIcon(state_ptr->handle.h_instance, IDI_APPLICATION);
     WNDCLASSA wc;
     memset(&wc, 0, sizeof(wc));
     wc.style = CS_DBLCLKS;  // Get double clicks
     wc.lpfnWndProc = win32_process_message;
     wc.cbClsExtra = 0;
     wc.cbWndExtra = 0;
-    wc.hInstance = state_ptr->h_instance;
+    wc.hInstance = state_ptr->handle.h_instance;
     wc.hIcon = icon;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.hbrBackground = NULL;  // Transparent
@@ -103,7 +102,7 @@ b8 platform_system_startup(u64 *memory_requirement, void *state, void *config) {
     HWND handle = CreateWindowExA(
         window_ex_style, "DOD ENGINE", typed_config->application_name,
         window_style, window_x, window_y, window_width, window_height,
-        0, 0, state_ptr->h_instance, 0);
+    0, 0, state_ptr->handle.h_instance, 0);
 
     if (handle == 0) {
         MessageBoxA(NULL, "window creation failed!", "Error", MB_ICONEXCLAMATION | MB_OK);
@@ -111,7 +110,7 @@ b8 platform_system_startup(u64 *memory_requirement, void *state, void *config) {
         DFATAL("Window creation failed");
         return false;
     } else {
-        state_ptr->hwnd = handle;
+        state_ptr->handle.hwnd = handle;
     }
 
     // Show the window
@@ -119,7 +118,7 @@ b8 platform_system_startup(u64 *memory_requirement, void *state, void *config) {
     i32 show_window_command_flags = should_activate ? SW_SHOW : SW_SHOWNOACTIVATE;
     // if initially minimized, use SW_MINIMIZE : SW_SHOWMINNOACTIVE
     // if initially maximized, use SW_SHOWMAXIMIZED : SW_MAXIMIZE
-    ShowWindow(state_ptr->hwnd, show_window_command_flags);
+    ShowWindow(state_ptr->handle.hwnd, show_window_command_flags);
 
     // Clock setup
     clock_setup();
@@ -128,13 +127,13 @@ b8 platform_system_startup(u64 *memory_requirement, void *state, void *config) {
 }
 
 void platform_system_shutdown(void* plat_state) {
-    if (state_ptr && state_ptr->hwnd) {
-        DestroyWindow(state_ptr->hwnd);
-        state_ptr->hwnd = 0;
+    if (state_ptr && state_ptr->handle.hwnd) {
+        DestroyWindow(state_ptr->handle.hwnd);
+        state_ptr->handle.hwnd = 0;
     }
 }
 
-b8 platform_pump_messages(platform_state* plat_state) {
+b8 platform_pump_messages(win32_handle_info* plat_state) {
     if (state_ptr) {
         MSG message;
         while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE)) {
@@ -207,6 +206,15 @@ i32 platform_get_processor_count() {
     DINFO("%i processor cores detected.", sysinfo.dwNumberOfProcessors);
     
     return sysinfo.dwNumberOfProcessors;
+}
+
+void platform_get_handle_info(u64 *out_size, void *memory) {
+    *out_size = sizeof(win32_handle_info);
+    if (!memory) {
+        return;
+    }
+
+    kcopy_memory(memory, &state_ptr->handle, *out_size);
 }
 
 // begin threads
@@ -427,32 +435,6 @@ LRESULT CALLBACK win32_process_message(HWND hwnd, u32 msg, WPARAM w_param, LPARA
     }
 
     return DefWindowProcA(hwnd, msg, w_param, l_param);
-}
-
-// vulkan win32 relatively
-void platform_get_required_extension_names(const char*** names_darray) {
-    // VK_KHR_win32_surface. operating-system specific
-    darray_push(*names_darray, &"VK_KHR_win32_surface");
-}
-
-// surface creation for vulkan
-b8 platform_create_vulkan_surface(vulkan_context* context) {
-    if (!state_ptr) {
-        return false;
-    }
-    // win32 platform specific surface
-    VkWin32SurfaceCreateInfoKHR create_info = {VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR};
-    create_info.hinstance = state_ptr->h_instance;
-    create_info.hwnd = state_ptr->hwnd;
-
-    VkResult result = vkCreateWin32SurfaceKHR(context->instance, &create_info, context->allocator, &state_ptr->surface);
-    if (result != VK_SUCCESS) {
-        DFATAL("vulakn surface creation failed");
-        return false;
-    }
-
-    context->surface = state_ptr->surface;
-    return true;
 }
 
 #endif  // PLATFORM_WINDOWS

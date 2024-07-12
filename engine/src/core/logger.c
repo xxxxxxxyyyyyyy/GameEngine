@@ -40,15 +40,6 @@ b8 logging_system_initialize(u64* memory_requirement, void* state) {
         return false;
     }
 
-    // TODO: Remove this
-    DFATAL("A test message: %f", 3.14f);
-    DERROR("A test message: %f", 3.14f);
-    DWARN("A test message: %f", 3.14f);
-    DINFO("A test message: %f", 3.14f);
-    DDEBUG("A test message: %f", 3.14f);
-    DTRACE("A test message: %f", 3.14f);
-
-    // TODO: create log file.
     return true;
 }
 

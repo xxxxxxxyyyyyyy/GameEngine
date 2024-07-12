@@ -622,6 +622,7 @@ typedef struct render_view_config {
 } render_view_config;
 
 struct render_view_packet;
+struct linear_allocator;
 
 /**
  * @brief A render view instance, responsible for the generation
@@ -681,7 +682,7 @@ typedef struct render_view {
      * @param out_packet A pointer to hold the generated packet.
      * @return True on success; otherwise false.
      */
-    b8 (*on_build_packet)(const struct render_view* self, void* data, struct render_view_packet* out_packet);
+    b8 (*on_build_packet)(const struct render_view* self, struct linear_allocator* frame_allocator, void* data, struct render_view_packet* out_packet);
 
    /**
      * @brief Destroys the provided render view packet.
@@ -751,8 +752,8 @@ typedef struct ui_packet_data {
 } ui_packet_data;
 
 typedef struct pick_packet_data {
-    mesh_packet_data world_mesh_data;
-    u32 world_geometry_count;
+    // Copy of frame data darray ptr
+    geometry_render_data* world_mesh_data;
     mesh_packet_data ui_mesh_data;
     u32 ui_geometry_count;
     // TODO: temp
@@ -760,8 +761,10 @@ typedef struct pick_packet_data {
     struct ui_text** texts;
 } pick_packet_data;
 
+struct skybox;
+
 typedef struct skybox_packet_data {
-    skybox* sb;
+    struct skybox* sb;
 } skybox_packet_data;
 
 /**

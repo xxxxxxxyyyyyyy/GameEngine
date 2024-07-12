@@ -2,6 +2,6 @@
 
 #include "resource_types.h"
 
-b8 mesh_load_from_resource(const char* resource_name, mesh* out_mesh);
+API b8 mesh_load_from_resource(const char* resource_name, mesh* out_mesh);
 
-void mesh_unload(mesh* m);
+API void mesh_unload(mesh* m);

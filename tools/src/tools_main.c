@@ -84,7 +84,7 @@ i32 process_shaders(i32 argc, char** argv) {
 }
 
 void print_help() {
-#ifdef KPLATFORM_WINDOWS
+#ifdef PLATFORM_WINDOWS
     const char* extension = ".exe";
 #else
     const char* extension = "";

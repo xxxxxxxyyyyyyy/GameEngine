@@ -118,9 +118,9 @@ void game_on_load_scene(keys key, keymap_entry_bind_type type, keymap_modifier m
 }
 
 void game_on_console_scroll(keys key, keymap_entry_bind_type type, keymap_modifier modifiers, void* user_data) {
-    if (key == KEY_UP) {
+    if (key == KEY_PAGEUP) {
         debug_console_move_up();
-    } else if (key == KEY_DOWN) {
+    } else if (key == KEY_PAGEDOWN) {
         debug_console_move_down();
     }
 }
@@ -132,9 +132,9 @@ void game_on_console_scroll_hold(keys key, keymap_entry_bind_type type, keymap_m
     static f32 accumulated_time = 0.0f;
     accumulated_time += state->delta_time;
     if (accumulated_time >= 0.1f) {
-        if (key == KEY_UP) {
+        if (key == KEY_PAGEUP) {
             debug_console_move_up();
-        } else if (key == KEY_DOWN) {
+        } else if (key == KEY_PAGEDOWN) {
             debug_console_move_down();
         }
         accumulated_time = 0.0f;
@@ -221,4 +221,12 @@ void game_setup_keymaps(application* game_inst) {
     keymap_binding_add(&state->console_keymap, KEY_DOWN, KEYMAP_BIND_TYPE_PRESS, KEYMAP_MODIFIER_NONE_BIT, game_inst, game_on_console_scroll);
     keymap_binding_add(&state->console_keymap, KEY_UP, KEYMAP_BIND_TYPE_HOLD, KEYMAP_MODIFIER_NONE_BIT, game_inst, game_on_console_scroll_hold);
     keymap_binding_add(&state->console_keymap, KEY_DOWN, KEYMAP_BIND_TYPE_HOLD, KEYMAP_MODIFIER_NONE_BIT, game_inst, game_on_console_scroll_hold);
+
+    keymap_binding_add(&state->console_keymap, KEY_PAGEUP, KEYMAP_BIND_TYPE_PRESS, KEYMAP_MODIFIER_NONE_BIT, game_inst, game_on_console_scroll);
+    keymap_binding_add(&state->console_keymap, KEY_PAGEDOWN, KEYMAP_BIND_TYPE_PRESS, KEYMAP_MODIFIER_NONE_BIT, game_inst, game_on_console_scroll);
+    keymap_binding_add(&state->console_keymap, KEY_PAGEUP, KEYMAP_BIND_TYPE_HOLD, KEYMAP_MODIFIER_NONE_BIT, game_inst, game_on_console_scroll_hold);
+    keymap_binding_add(&state->console_keymap, KEY_PAGEDOWN, KEYMAP_BIND_TYPE_HOLD, KEYMAP_MODIFIER_NONE_BIT, game_inst, game_on_console_scroll_hold);
+
+    keymap_binding_add(&state->console_keymap, KEY_UP, KEYMAP_BIND_TYPE_PRESS, KEYMAP_MODIFIER_NONE_BIT, game_inst, debug_console_history_back);
+    keymap_binding_add(&state->console_keymap, KEY_DOWN, KEYMAP_BIND_TYPE_PRESS, KEYMAP_MODIFIER_NONE_BIT, game_inst, debug_console_history_forward);
 }

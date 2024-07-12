@@ -8,7 +8,7 @@
 #include <algorithm/kalgorithm.h>
 
 // Define the function to create a game
-b8 create_game(game* out_game) {
+b8 create_application(application* out_game) {
     // Application configuration.
     out_game->app_config.start_pos_x = 100;
     out_game->app_config.start_pos_y = 100;
@@ -27,7 +27,7 @@ b8 create_game(game* out_game) {
     out_game->state_memory_requirement = sizeof(game_state);
     out_game->state = 0;
 
-    out_game->application_state = 0;
+    out_game->engine_state = 0;
 
     return true;
 }

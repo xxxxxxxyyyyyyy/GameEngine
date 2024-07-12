@@ -1,36 +1,36 @@
 #pragma once
 
-#include "core/application.h"
+#include "core/engine.h"
 #include "core/logger.h"
-#include "game_types.h"
+#include "application_types.h"
 
 // Externally-defined function to create a game.
 // extern means define outside this dll/lib or something.
-extern b8 create_game(game* out_game);
+extern b8 create_application(application* out_app);
 
 // The main entry point of the application.
 int main(void) {
     // Request the game instance from the application.
-    game game_inst;
-    if (!create_game(&game_inst)) {
+    application app_inst;
+    if (!create_application(&app_inst)) {
         DFATAL("Could not create game!");
         return -1;
     }
 
     // Ensure the function pointers exist.
-    if (!game_inst.render || !game_inst.update || !game_inst.initialize || !game_inst.on_resize) {
+    if (!app_inst.render || !app_inst.update || !app_inst.initialize || !app_inst.on_resize) {
         DFATAL("The game's function pointers must be assigned");
         return -2;
     }
 
     // Initialization
-    if (!application_create(&game_inst)) {
+    if (!engine_create(&app_inst)) {
         DINFO("Application failed to create!");
         return 1;
     }
 
     // Begin the game loop
-    if (!application_run()) {
+    if (!engine_run()) {
         DINFO("Application did not shutdown gracefully");
         return 2;
     }

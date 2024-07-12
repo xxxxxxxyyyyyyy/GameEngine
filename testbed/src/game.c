@@ -1,5 +1,3 @@
-#include "game.h"
-
 #include <core/logger.h>
 #include <core/kstring.h>
 #include <core/input.h>
@@ -33,7 +31,7 @@
 b8 configure_render_views(application_config* config);
 
 b8 game_on_event(u16 code, void* sender, void* listener_inst, event_context context) {
-    game* game_inst = (game*)listener_inst;
+    application* game_inst = (application*)listener_inst;
     game_state* state = (game_state*)game_inst->state;
 
     switch (code) {
@@ -47,7 +45,7 @@ b8 game_on_event(u16 code, void* sender, void* listener_inst, event_context cont
 }
 
 b8 game_on_debug_event(u16 code, void* sender, void* listener_inst, event_context data) {
-    game* game_inst = (game*)listener_inst;
+    application* game_inst = (application*)listener_inst;
     game_state* state = (game_state*)game_inst->state;
 
     if (code == EVENT_CODE_DEBUG0) {
@@ -122,7 +120,7 @@ b8 game_on_key(u16 code, void* sender, void* listener_inst, event_context contex
     return false;
 }
 
-b8 game_boot(struct game* game_inst) {
+b8 game_boot(struct application* game_inst) {
     DINFO("Booting testbed...");
 
     debug_console_create();
@@ -170,7 +168,7 @@ b8 game_boot(struct game* game_inst) {
     return true;
 }
 
-b8 game_initialize(game* game_inst) {
+b8 game_initialize(application* game_inst) {
     DDEBUG("game_initialize() called!");
 
     debug_console_load();
@@ -197,7 +195,7 @@ b8 game_initialize(game* game_inst) {
 
     // Skybox
     if (!skybox_create("skybox_cube", &state->sb)) {
-        DERROR("Failed to create skybox, aborting game.");
+        DERROR("Failed to create skybox, aborting application.");
         return false;
     }
 
@@ -323,7 +321,10 @@ b8 game_initialize(game* game_inst) {
     event_register(EVENT_CODE_KEY_PRESSED, game_inst, game_on_key);
     event_register(EVENT_CODE_KEY_RELEASED, game_inst, game_on_key);
 
-    kzero_memory(&game_inst->frame_data, sizeof(game_frame_data));
+    kzero_memory(&game_inst->frame_data, sizeof(app_frame_data));
+
+    // kzero_memory(&state->update_clock, sizeof(clock));
+    // kzero_memory(&state->render_clock, sizeof(clock));
 
     kzero_memory(&state->update_clock, sizeof(clock));
     kzero_memory(&state->render_clock, sizeof(clock));
@@ -331,7 +332,7 @@ b8 game_initialize(game* game_inst) {
     return true;
 }
 
-void game_shutdown(game* game_inst) {
+void game_shutdown(application* game_inst) {
     game_state* state = (game_state*)game_inst->state;
 
     // TODO: Temp
@@ -340,6 +341,8 @@ void game_shutdown(game* game_inst) {
     // Destroy ui texts
     ui_text_destroy(&state->test_text);
     ui_text_destroy(&state->test_sys_text);
+
+    debug_console_unload();
 
     event_unregister(EVENT_CODE_DEBUG0, game_inst, game_on_debug_event);
     event_unregister(EVENT_CODE_DEBUG1, game_inst, game_on_debug_event);
@@ -350,7 +353,7 @@ void game_shutdown(game* game_inst) {
     event_unregister(EVENT_CODE_KEY_RELEASED, game_inst, game_on_key);
 }
 
-b8 game_update(game* game_inst, f32 delta_time) {
+b8 game_update(application* game_inst, f32 delta_time) {
     // Ensure this is cleaned up to avoid leaking memory.
     // TODO: Need a version of this that uses the frame allocator.
     if (game_inst->frame_data.world_geometries) {
@@ -362,7 +365,7 @@ b8 game_update(game* game_inst, f32 delta_time) {
     linear_allocator_free_all(&game_inst->frame_allocator);
 
     // Clear frame data
-    kzero_memory(&game_inst->frame_data, sizeof(game_frame_data));
+    kzero_memory(&game_inst->frame_data, sizeof(app_frame_data));
 
     game_state* state = (game_state*)game_inst->state;
 
@@ -507,7 +510,7 @@ VSync: %s Drawn: %-5u Hovered: %s%u",
     return true;
 }
 
-b8 game_render(game* game_inst, struct render_packet* packet, f32 delta_time) {
+b8 game_render(application* game_inst, struct render_packet* packet, f32 delta_time) {
     game_state* state = (game_state*)game_inst->state;
 
     // TODO: temp
@@ -584,7 +587,7 @@ b8 game_render(game* game_inst, struct render_packet* packet, f32 delta_time) {
     return true;
 }
 
-void game_on_resize(game* game_inst, u32 width, u32 height) {
+void game_on_resize(application* game_inst, u32 width, u32 height) {
     game_state* state = (game_state*)game_inst->state;
 
     state->width = width;

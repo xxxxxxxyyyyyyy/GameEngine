@@ -15,7 +15,7 @@ u8 dynamic_allocator_should_create_and_destroy() {
     expect_to_be_true(result);
 
     // Actually create the allocator.
-    void* memory = kallocate(memory_requirement, MEMORY_TAG_APPLICATION);
+    void* memory = kallocate(memory_requirement, MEMORY_TAG_ENGINE);
     result = dynamic_allocator_create(1024, &memory_requirement, memory, &alloc);
     expect_to_be_true(result);
     expect_should_not_be(0, alloc.memory);
@@ -25,7 +25,7 @@ u8 dynamic_allocator_should_create_and_destroy() {
     // Destroy the allocator.
     dynamic_allocator_destroy(&alloc);
     expect_should_be(0, alloc.memory);
-    kfree(memory, memory_requirement, MEMORY_TAG_APPLICATION);
+    kfree(memory, memory_requirement, MEMORY_TAG_ENGINE);
     return true;
 }
 
@@ -37,7 +37,7 @@ u8 dynamic_allocator_single_allocation_all_space() {
     expect_to_be_true(result);
 
     // Actually create the allocator.
-    void* memory = kallocate(memory_requirement, MEMORY_TAG_APPLICATION);
+    void* memory = kallocate(memory_requirement, MEMORY_TAG_ENGINE);
     result = dynamic_allocator_create(1024, &memory_requirement, memory, &alloc);
     expect_to_be_true(result);
     expect_should_not_be(0, alloc.memory);
@@ -62,7 +62,7 @@ u8 dynamic_allocator_single_allocation_all_space() {
     // Destroy the allocator.
     dynamic_allocator_destroy(&alloc);
     expect_should_be(0, alloc.memory);
-    kfree(memory, memory_requirement, MEMORY_TAG_APPLICATION);
+    kfree(memory, memory_requirement, MEMORY_TAG_ENGINE);
     return true;
 }
 
@@ -74,7 +74,7 @@ u8 dynamic_allocator_multi_allocation_all_space() {
     expect_to_be_true(result);
 
     // Actually create the allocator.
-    void* memory = kallocate(memory_requirement, MEMORY_TAG_APPLICATION);
+    void* memory = kallocate(memory_requirement, MEMORY_TAG_ENGINE);
     result = dynamic_allocator_create(1024, &memory_requirement, memory, &alloc);
     expect_to_be_true(result);
     expect_should_not_be(0, alloc.memory);
@@ -129,7 +129,7 @@ u8 dynamic_allocator_multi_allocation_all_space() {
     // Destroy the allocator.
     dynamic_allocator_destroy(&alloc);
     expect_should_be(0, alloc.memory);
-    kfree(memory, memory_requirement, MEMORY_TAG_APPLICATION);
+    kfree(memory, memory_requirement, MEMORY_TAG_ENGINE);
     return true;
 }
 

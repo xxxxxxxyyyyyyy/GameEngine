@@ -5,6 +5,7 @@
 
 #include "core/logger.h"
 #include "core/kmemory.h"
+#include "core/kvar.h"
 #include "containers/freelist.h"
 
 #include "resources/resource_types.h"
@@ -59,6 +60,9 @@ b8 renderer_system_initialize(u64* memory_requirement, void* state, void* config
 
     // TODO: expose this to the application to configure.
     renderer_config.flags = RENDERER_CONFIG_FLAG_VSYNC_ENABLED_BIT | RENDERER_CONFIG_FLAG_POWER_SAVING_BIT;
+
+    // Create the vsync kvar
+    kvar_create_int("vsync", (renderer_config.flags & RENDERER_CONFIG_FLAG_VSYNC_ENABLED_BIT) ? 1 : 0);
 
     // Initialize the backend.
     if (!state_ptr->backend.initialize(&state_ptr->backend, &renderer_config, &state_ptr->window_render_target_count)) {

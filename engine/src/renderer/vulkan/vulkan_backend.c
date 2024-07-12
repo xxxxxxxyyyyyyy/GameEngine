@@ -353,10 +353,14 @@ b8 vulkan_renderer_backend_initialize(renderer_backend* backend, const renderer_
         DFATAL("Vulkan instance creation failed with result: '%s'", result_string);
         return false;
     }
+    darray_destroy(required_extensions);
+
     DINFO("vulkan instance created");
 
     // Clean up
-    darray_destroy(required_validation_layer_names);
+    if (required_validation_layer_names) {
+        darray_destroy(required_validation_layer_names);
+    }
 
     // TODO: implement multi-threading.
     context.multithreading_enabled = false;

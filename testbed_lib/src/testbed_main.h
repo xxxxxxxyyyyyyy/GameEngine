@@ -17,3 +17,7 @@ API b8 application_render(struct application* game_inst, struct render_packet* p
 API void application_on_resize(struct application* game_inst, u32 width, u32 height);
 
 API void application_shutdown(struct application* game_inst);
+
+API void application_lib_on_unload(struct application* game_inst);
+
+API void application_lib_on_load(struct application* game_inst);

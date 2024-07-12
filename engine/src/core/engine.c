@@ -59,9 +59,6 @@ b8 engine_create(application* game_inst) {
     // Metrics
     metrics_initialize();
 
-    // Allocate the game state.
-    game_inst->state = kallocate(game_inst->state_memory_requirement, MEMORY_TAG_GAME);
-
     // Stand up the application state.
     game_inst->engine_state = kallocate(sizeof(engine_state_t), MEMORY_TAG_ENGINE);
     engine_state = game_inst->engine_state;
@@ -76,10 +73,12 @@ b8 engine_create(application* game_inst) {
     }
 
     // Perform the game's boot sequence.
+    game_inst->stage = APPLICATION_STAGE_BOOTING;
     if (!game_inst->boot(game_inst)) {
         DFATAL("Game boot sequence failed; aborting application.");
         return false;
     }
+    game_inst->stage = APPLICATION_STAGE_BOOT_COMPLETE;
 
     // Report engine version
     DINFO("DOD Engine v. %f", DVERSION);
@@ -90,10 +89,12 @@ b8 engine_create(application* game_inst) {
     }
 
     // Initialize the game.
+    game_inst->stage = APPLICATION_STAGE_INITIALIZING;
     if (!engine_state->game_inst->initialize(engine_state->game_inst)) {
         DFATAL("Game failed to initialize");
         return false;
     }
+    game_inst->stage = APPLICATION_STAGE_INITIALIZED;
 
     // Call resize once to ensure the proper size has been set.
     renderer_on_resize(engine_state->width, engine_state->height);
@@ -104,7 +105,9 @@ b8 engine_create(application* game_inst) {
     return true;
 }
 
-b8 engine_run() {
+b8 engine_run(application* game_inst) {
+    game_inst->stage = APPLICATION_STAGE_RUNNING;
+
     engine_state->is_running = true;
     clock_start(&engine_state->clock);
     clock_update(&engine_state->clock);
@@ -187,12 +190,15 @@ b8 engine_run() {
     }
 
     engine_state->is_running = false;
+    game_inst->stage = APPLICATION_STAGE_SHUTTING_DOWN;
 
     // shutdown event system
     event_unregister(EVENT_CODE_APPLICATION_QUIT, 0, engine_on_event);
 
     // Shut down all systems.
     systems_manager_shutdown(&engine_state->sys_manager_state);
+
+    game_inst->stage = APPLICATION_STAGE_UNINITIALIZED;
 
     return true;
 }

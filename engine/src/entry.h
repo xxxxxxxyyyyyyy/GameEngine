@@ -8,10 +8,12 @@
 // extern means define outside this dll/lib or something.
 extern b8 create_application(application* out_app);
 
+extern b8 initialize_application(application* app);
+
 // The main entry point of the application.
 int main(void) {
     // Request the game instance from the application.
-    application app_inst;
+    application app_inst = {0};
     if (!create_application(&app_inst)) {
         DFATAL("Could not create game!");
         return -1;
@@ -25,12 +27,17 @@ int main(void) {
 
     // Initialization
     if (!engine_create(&app_inst)) {
-        DINFO("Application failed to create!");
+        DINFO("Engine failed to create!");
         return 1;
     }
 
+    if (!initialize_application(&app_inst)) {
+        DFATAL("Could not initialize application!");
+        return -1;
+    }
+
     // Begin the game loop
-    if (!engine_run()) {
+    if (!engine_run(&app_inst)) {
         DINFO("Application did not shutdown gracefully");
         return 2;
     }

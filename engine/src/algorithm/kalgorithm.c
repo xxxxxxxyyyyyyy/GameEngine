@@ -1,14 +1,14 @@
 #include "kalgorithm.h"
 
 void swap(void* a, void* b, u32 type_size) {
-    void* p = (void*)kallocate(type_size, MEMORY_TAG_ALGORITHM);
+    void* p = (void*)kallocate(type_size, MEMORY_TAG_DARRAY);
     KASSERT(p != NULL);
 
     kcopy_memory(p, a, type_size);
     kcopy_memory(a, b, type_size);
     kcopy_memory(b, p, type_size);
 
-    kfree(p, type_size, MEMORY_TAG_ALGORITHM);
+    kfree(p, type_size, MEMORY_TAG_DARRAY);
 }
 
 // nlogn

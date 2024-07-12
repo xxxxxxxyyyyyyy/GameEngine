@@ -10,6 +10,7 @@
 #include <resources/ui_text.h>
 #include <core/clock.h>
 #include <core/keymap.h>
+#include "debug_console.h"
 
 typedef struct game_state {
     f32 delta_time;
@@ -34,7 +35,7 @@ typedef struct game_state {
     mesh ui_meshes[10];
     ui_text test_text;
     ui_text test_sys_text;
-
+    debug_console_state debug_console;
     // The unique identifier of the currently hovered-over object.
     u32 hovered_object_id;
 

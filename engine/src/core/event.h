@@ -132,5 +132,20 @@ typedef enum system_event_code {
      * @brief An event fired by the kvar system when a kvar has been updated.
      */
     EVENT_CODE_KVAR_CHANGED = 0x17,
+    
+    /**
+     * @brief An event fired when a watched file has been written to.
+     * Context usage:
+     * u32 watch_id = context.data.u32[0];
+     */
+    EVENT_CODE_WATCHED_FILE_WRITTEN = 0X18,
+
+    /**
+     * @brief An event fired when a watched file has been removed.
+     * Context usage:
+     * u32 watch_id = context.data.u32[0];
+     */
+    EVENT_CODE_WATCHED_FILE_DELETED = 0x19,
+
     MAX_EVENT_CODE = 0xFF
 } system_event_code;

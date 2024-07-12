@@ -167,7 +167,14 @@
         "material_system.h": "c",
         "camera.h": "c",
         "array": "c",
-        "identifier.h": "c"
+        "identifier.h": "c",
+        "new": "c",
+        "cstdlib": "c",
+        "locale": "c",
+        "xlocinfo": "c",
+        "xlocmon": "c",
+        "xlocnum": "c",
+        "xloctime": "c"
     },
     // File copyright documentation tag.  Array of strings will be converted to one line per element.  Can template {year}.
     "doxdocgen.file.copyrightTag": [

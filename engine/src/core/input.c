@@ -116,23 +116,23 @@ void input_process_key(keys key, b8 pressed) {
         // update internal state
         state_ptr->keyboard_current.keys[key] = pressed;
 
-        if (key == KEY_LALT) {
-            DINFO("Left alt %s.", pressed ? "pressed" : "released");
-        } else if (key == KEY_RALT) {
-            DINFO("Right alt %s.", pressed ? "pressed" : "released");
-        }
+        // if (key == KEY_LALT) {
+        //     DINFO("Left alt %s.", pressed ? "pressed" : "released");
+        // } else if (key == KEY_RALT) {
+        //     DINFO("Right alt %s.", pressed ? "pressed" : "released");
+        // }
 
-        if (key == KEY_LCONTROL) {
-            DINFO("Left ctrl %s.", pressed ? "pressed" : "released");
-        } else if (key == KEY_RCONTROL) {
-            DINFO("Right ctrl %s.", pressed ? "pressed" : "released");
-        }
+        // if (key == KEY_LCONTROL) {
+        //     DINFO("Left ctrl %s.", pressed ? "pressed" : "released");
+        // } else if (key == KEY_RCONTROL) {
+        //     DINFO("Right ctrl %s.", pressed ? "pressed" : "released");
+        // }
 
-        if (key == KEY_LSHIFT) {
-            DINFO("Left shift %s.", pressed ? "pressed" : "released");
-        } else if (key == KEY_RSHIFT) {
-            DINFO("Right shift %s.", pressed ? "pressed" : "released");
-        }
+        // if (key == KEY_LSHIFT) {
+        //     DINFO("Left shift %s.", pressed ? "pressed" : "released");
+        // } else if (key == KEY_RSHIFT) {
+        //     DINFO("Right shift %s.", pressed ? "pressed" : "released");
+        // }
 
         // Check for key bindings
         // Iterate keymaps top-down on the stack.

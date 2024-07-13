@@ -10,6 +10,8 @@
 #include <resources/ui_text.h>
 #include <core/clock.h>
 #include <core/keymap.h>
+#include <systems/light_system.h>
+
 #include "debug_console.h"
 
 typedef struct game_state {
@@ -31,6 +33,9 @@ typedef struct game_state {
     mesh* car_mesh;
     mesh* sponza_mesh;
     b8 models_loaded;
+
+    directional_light dir_light;
+    point_light p_lights[3];
 
     mesh ui_meshes[10];
     ui_text test_text;

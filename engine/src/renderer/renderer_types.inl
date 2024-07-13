@@ -7,7 +7,7 @@
 
 struct shader;
 struct shader_uniform;
-
+struct frame_data;
 typedef struct geometry_render_data {
     matrix4 model;
     geometry* geometry;
@@ -235,7 +235,7 @@ typedef struct renderer_plugin {
      * @param delta_time The time in seconds since the last frame.
      * @return True if successful; otherwise false.
      */
-    b8 (*begin_frame)(struct renderer_plugin* plugin, f32 delta_time);
+    b8 (*begin_frame)(struct renderer_plugin* plugin, const struct frame_data* p_frame_data);
 
     /**
      * @brief Performs routines required to draw a frame, such as presentation. Should only be called
@@ -245,7 +245,7 @@ typedef struct renderer_plugin {
      * @param delta_time The time in seconds since the last frame.
      * @return True on success; otherwise false.
      */
-    b8 (*end_frame)(struct renderer_plugin* plugin, f32 delta_time);
+    b8 (*end_frame)(struct renderer_plugin* plugin, const struct frame_data* p_frame_data);
 
     /**
      * @brief Sets the renderer viewport to the given rectangle. Must be done within a renderpass.
@@ -968,8 +968,6 @@ typedef struct skybox_packet_data {
  * such as delta time and a collection of views to be rendered.
  */
 typedef struct render_packet {
-    f32 delta_time;
-
     /** The number of views to be rendered. */
     u16 view_count;
     /** An array of views to be rendered. */

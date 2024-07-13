@@ -174,7 +174,8 @@
         "xlocinfo": "c",
         "xlocmon": "c",
         "xlocnum": "c",
-        "xloctime": "c"
+        "xloctime": "c",
+        "charconv": "c"
     },
     // File copyright documentation tag.  Array of strings will be converted to one line per element.  Can template {year}.
     "doxdocgen.file.copyrightTag": [

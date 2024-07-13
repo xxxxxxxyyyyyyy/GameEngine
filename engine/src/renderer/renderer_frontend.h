@@ -4,6 +4,7 @@
 
 struct shader;
 struct shader_uniform;
+struct frame_data;
 
 typedef struct renderer_system_config {
     char* application_name;
@@ -16,7 +17,7 @@ API void renderer_system_shutdown(void* state);
 
 API void renderer_on_resize(u16 width, u16 height);
 
-API b8 renderer_draw_frame(render_packet* packet);
+API b8 renderer_draw_frame(render_packet* packet, const struct frame_data* p_frame_data);
 
 /**
  * @brief Sets the renderer viewport to the given rectangle. Must be done within a renderpass.

@@ -87,7 +87,7 @@ API vec3 camera_rotation_euler_get(const camera* c);
  * @brief Sets the provided camera's rotation in Euler angles.
  *
  * @param c A pointer to a camera.
- * @param position The rotation in Euler angles to be set.
+ * @param rotation The rotation in Euler angles to be set.
  */
 API void camera_rotation_euler_set(camera* c, vec3 rotation);
 

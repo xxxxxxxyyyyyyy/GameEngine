@@ -360,7 +360,6 @@ typedef struct vulkan_shader {
 } vulkan_shader;
 
 typedef struct vulkan_context {
-    f32 frame_delta_time;
     // the framebuffer's current width
     u32 framebuffer_width;
     // the framebuffer's current height

@@ -136,23 +136,23 @@ STATIC_ASSERT(sizeof(b8) == 1, "Expected b32 to be 1 byte");
 #endif
 
 // GiB
-#define GIBIBYTES(amount) (amount * 1024 * 1024 * 1024)
+#define GIBIBYTES(amount) (amount * 1024ULL * 1024ULL * 1024ULL)
 // MiB
-#define MEBIBYTES(amount) (amount * 1024 * 1024)
+#define MEBIBYTES(amount) (amount * 1024ULL * 1024ULL)
 // KiB
-#define KIBIBYTES(amount) (amount * 1024)
+#define KIBIBYTES(amount) (amount * 1024ULL)
 // GB
-#define GIGABYTES(amount) (amount * 1000 * 1000 * 1000)
+#define GIGABYTES(amount) (amount * 1000ULL * 1000ULL * 1000ULL)
 // GB
-#define MEGABYTES(amount) (amount * 1000 * 1000)
+#define MEGABYTES(amount) (amount * 1000ULL * 1000ULL)
 // GB
-#define KIGABYTES(amount) (amount * 1000)
+#define KIGABYTES(amount) (amount * 1000ULL)
 
 INLINE u64 get_aligned(u64 operand, u64 granularity) {
     return ((operand + (granularity - 1)) & ~(granularity - 1));
 }
 
-INLINE range get_aligned_range(offset, size, granularity) {
+INLINE range get_aligned_range(u64 offset, u64 size, u64 granularity) {
     return (range){get_aligned(offset, granularity), get_aligned(size, granularity)};
 }
 

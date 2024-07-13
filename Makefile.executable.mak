@@ -1,5 +1,6 @@
 BUILD_DIR := bin
 OBJ_DIR := obj
+
 # NOTE: ASSEMBLY must be set on calling this makefile
 
 DEFINES := -DKIMPORT
@@ -72,6 +73,7 @@ else
         # ARM
     endif
 endif
+
 # Defaults to debug unless release is specified.
 ifeq ($(TARGET),release)
 # release
@@ -81,7 +83,9 @@ DEFINES += -D_DEBUG
 COMPILER_FLAGS += -g -MD
 LINKER_FLAGS += -g
 endif
+
 all: scaffold compile link
+
 .PHONY: scaffold
 scaffold: # create build directory
 ifeq ($(BUILD_PLATFORM),windows)
@@ -101,10 +105,12 @@ ifeq ($(BUILD_PLATFORM),windows)
 else
 	@clang $(OBJ_FILES) -o $(BUILD_DIR)/$(ASSEMBLY)$(EXTENSION) $(LINKER_FLAGS)
 endif
+
 .PHONY: compile
 compile:
 	@echo --- Performing "$(ASSEMBLY)" $(TARGET) build ---
 -include $(OBJ_FILES:.o=.d)
+
 .PHONY: clean
 clean: # clean build directory
 	@echo --- Cleaning "$(ASSEMBLY)" ---
@@ -117,8 +123,10 @@ else
 	@rm -rf $(BUILD_DIR)/$(ASSEMBLY)$(EXTENSION)
 	@rm -rf $(OBJ_DIR)/$(ASSEMBLY)
 endif
+
 # compile .c to .o object for windows, linux and mac
 $(OBJ_DIR)/%.c.o: %.c 
 	@echo   $<...
 	@clang $< $(COMPILER_FLAGS) -c -o $@ $(DEFINES) $(INCLUDE_FLAGS)
+
 -include $(OBJ_FILES:.o=.d)

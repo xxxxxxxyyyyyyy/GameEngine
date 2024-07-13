@@ -30,7 +30,7 @@ API b8 light_system_add_point(point_light* light);
 API b8 light_system_remove_directional(directional_light* light);
 API b8 light_system_remove_point(point_light* light);
 
-API directional_light* light_system_directional_light_get();
+API directional_light* light_system_directional_light_get(void);
 
-API i32 light_system_point_light_count();
+API i32 light_system_point_light_count(void);
 API b8 light_system_point_lights_get(point_light* p_lights);

@@ -68,4 +68,4 @@ void camera_system_release(const char* name);
  * 
  * @return A pointer to the default camera.
  */
-API camera* camera_system_get_default();
+API camera* camera_system_get_default(void);

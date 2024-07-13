@@ -112,22 +112,22 @@ API b8 texture_system_write_data(texture* t, u32 offset, u32 size, void* data);
  * @brief Gets a pointer to the default specular texture. No reference counting is 
  * done for default textures.
  */
-API texture* texture_system_get_default_texture();
+API texture* texture_system_get_default_texture(void);
 
 /**
  * @brief Gets a pointer to the default diffuse texture. No reference counting is 
  * done for default textures.
  */
-API texture* texture_system_get_default_diffuse_texture();
+API texture* texture_system_get_default_diffuse_texture(void);
 
 /**
  * @brief Gets a pointer to the default specular texture. No reference counting is 
  * done for default textures.
  */
-API texture* texture_system_get_default_specular_texture();
+API texture* texture_system_get_default_specular_texture(void);
 
 /**
  * @brief Gets a pointer to the default normal texture. No reference counting is 
  * done for default textures.
  */
-API texture* texture_system_get_default_normal_texture();
+API texture* texture_system_get_default_normal_texture(void);

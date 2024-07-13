@@ -43,7 +43,7 @@ b8 platform_system_startup(u64* memory_requirement, void* state, void* config);
 
 void platform_system_shutdown(void* state);
 
-b8 platform_pump_messages();
+b8 platform_pump_messages(void);
 
 // dealing with memory
 // custom allocator to define these things.
@@ -56,7 +56,7 @@ void* platform_set_memory(void* dest, i32 value, u64 size);
 void platform_console_write(const char* message, u8 colour);
 void platform_console_write_error(const char* message, u8 colour);
 
-f64 platform_get_absolute_time();
+f64 platform_get_absolute_time(void);
 
 // Sleep on the thread for the provided ms.
 API void platform_sleep(u64 ms);
@@ -66,7 +66,7 @@ API void platform_sleep(u64 ms);
  *
  * @return The number of logical processor cores.
  */
-i32 platform_get_processor_count();
+i32 platform_get_processor_count(void);
 
 /**
  * @brief Obtains the required memory amount for platform-specific handle data,
@@ -107,12 +107,12 @@ API b8 platform_dynamic_library_load_function(const char* name, dynamic_library*
 /**
  * @brief Returns the file extension for the current platform.
  */
-API const char* platform_dynamic_library_extension();
+API const char* platform_dynamic_library_extension(void);
 
 /**
  * @brief Returns a file prefix for libraries for the current platform.
  */
-API const char* platform_dynamic_library_prefix();
+API const char* platform_dynamic_library_prefix(void);
 
 /**
  * @brief Copies file at source to destination, optionally overwriting.

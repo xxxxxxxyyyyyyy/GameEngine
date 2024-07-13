@@ -7,7 +7,7 @@
 
 #include <core/logger.h>
 
-int main() {
+int main(void) {
     test_manager_init();
 
     linear_allocator_register_tests();

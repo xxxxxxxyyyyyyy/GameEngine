@@ -103,7 +103,7 @@ typedef struct keymap {
 
 
 
-API keymap keymap_create();
+API keymap keymap_create(void);
 
 
 

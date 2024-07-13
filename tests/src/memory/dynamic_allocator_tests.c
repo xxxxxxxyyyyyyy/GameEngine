@@ -7,7 +7,7 @@
 #include <core/kmemory.h>
 #include <memory/dynamic_allocator.h>
 
-u8 dynamic_allocator_should_create_and_destroy() {
+u8 dynamic_allocator_should_create_and_destroy(void) {
     dynamic_allocator alloc;
     u64 memory_requirement = 0;
     // Get the memory requirement
@@ -29,7 +29,7 @@ u8 dynamic_allocator_should_create_and_destroy() {
     return true;
 }
 
-u8 dynamic_allocator_single_allocation_all_space() {
+u8 dynamic_allocator_single_allocation_all_space(void) {
     dynamic_allocator alloc;
     u64 memory_requirement = 0;
     // Get the memory requirement
@@ -66,7 +66,7 @@ u8 dynamic_allocator_single_allocation_all_space() {
     return true;
 }
 
-u8 dynamic_allocator_multi_allocation_all_space() {
+u8 dynamic_allocator_multi_allocation_all_space(void) {
     dynamic_allocator alloc;
     u64 memory_requirement = 0;
     // Get the memory requirement
@@ -134,7 +134,7 @@ u8 dynamic_allocator_multi_allocation_all_space() {
 }
 
 /*
-u8 dynamic_allocator_multi_allocation_over_allocate() {
+u8 dynamic_allocator_multi_allocation_over_allocate(void) {
     u64 max_allocs = 3;
     dynamic_allocator alloc;
     dynamic_allocator_create(sizeof(u64) * max_allocs, 0, &alloc);
@@ -155,7 +155,7 @@ u8 dynamic_allocator_multi_allocation_over_allocate() {
     dynamic_allocator_destroy(&alloc);
     return true;
 }
-u8 dynamic_allocator_multi_allocation_all_space_then_free() {
+u8 dynamic_allocator_multi_allocation_all_space_then_free(void) {
     u64 max_allocs = 1024;
     dynamic_allocator alloc;
     dynamic_allocator_create(sizeof(u64) * max_allocs, 0, &alloc);
@@ -174,7 +174,7 @@ u8 dynamic_allocator_multi_allocation_all_space_then_free() {
     return true;
 }*/
 
-void dynamic_allocator_register_tests() {
+void dynamic_allocator_register_tests(void) {
     test_manager_register_test(dynamic_allocator_should_create_and_destroy, "Dynamic allocator should create and destroy");
     test_manager_register_test(dynamic_allocator_single_allocation_all_space, "Dynamic allocator single alloc for all space");
     test_manager_register_test(dynamic_allocator_multi_allocation_all_space, "Dynamic allocator multi alloc for all space");

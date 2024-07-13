@@ -130,7 +130,7 @@ b8 game_on_key(u16 code, void* sender, void* listener_inst, event_context contex
     return false;
 }
 
-u64 application_state_size() {
+u64 application_state_size(void) {
     return sizeof(testbed_game_state);
 }
 

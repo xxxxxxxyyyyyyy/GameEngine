@@ -51,10 +51,10 @@ INLINE b8 is_power_of_2(u64 value) {
     return (value != 0) && ((value & (value - 1)) == 0);
 }
 
-API i32 krandom();
+API i32 krandom(void);
 API i32 krandom_in_range(i32 min, i32 max);
 
-API f32 fkrandom();
+API f32 fkrandom(void);
 API f32 fkrandom_in_range(f32 min, f32 max);
 
 // ------------------------------------------
@@ -78,42 +78,42 @@ INLINE vec2 vec2_create(f32 x, f32 y) {
 /**
  * @brief Creates and returns a 2-component vector with all components set to 0.0f.
  */
-INLINE vec2 vec2_zero() {
+INLINE vec2 vec2_zero(void) {
     return (vec2){0.0f, 0.0f};
 }
 
 /**
  * @brief Creates and returns a 2-component vector with all components set to 1.0f.
  */
-INLINE vec2 vec2_one() {
+INLINE vec2 vec2_one(void) {
     return (vec2){1.0f, 1.0f};
 }
 
 /**
  * @brief Creates and returns a 2-component vector pointing up (0, 1).
  */
-INLINE vec2 vec2_up() {
+INLINE vec2 vec2_up(void) {
     return (vec2){0.0f, 1.0f};
 }
 
 /**
  * @brief Creates and returns a 2-component vector pointing down (0, -1).
  */
-INLINE vec2 vec2_down() {
+INLINE vec2 vec2_down(void) {
     return (vec2){0.0f, -1.0f};
 }
 
 /**
  * @brief Creates and returns a 2-component vector pointing left (-1, 0).
  */
-INLINE vec2 vec2_left() {
+INLINE vec2 vec2_left(void) {
     return (vec2){-1.0f, 0.0f};
 }
 
 /**
  * @brief Creates and returns a 2-component vector pointing right (1, 0).
  */
-INLINE vec2 vec2_right() {
+INLINE vec2 vec2_right(void) {
     return (vec2){1.0f, 0.0f};
 }
 
@@ -287,56 +287,56 @@ INLINE vec4 vec3_to_vec4(vec3 vector, f32 w) {
 /**
  * @brief Creates and returns a 3-component vector with all components set to 0.0f.
  */
-INLINE vec3 vec3_zero() {
+INLINE vec3 vec3_zero(void) {
     return (vec3){0.0f, 0.0f, 0.0f};
 }
 
 /**
  * @brief Creates and returns a 3-component vector with all components set to 1.0f.
  */
-INLINE vec3 vec3_one() {
+INLINE vec3 vec3_one(void) {
     return (vec3){1.0f, 1.0f, 1.0f};
 }
 
 /**
  * @brief Creates and returns a 3-component vector pointing up (0, 1, 0).
  */
-INLINE vec3 vec3_up() {
+INLINE vec3 vec3_up(void) {
     return (vec3){0.0f, 1.0f, 0.0f};
 }
 
 /**
  * @brief Creates and returns a 3-component vector pointing down (0, -1, 0).
  */
-INLINE vec3 vec3_down() {
+INLINE vec3 vec3_down(void) {
     return (vec3){0.0f, -1.0f, 0.0f};
 }
 
 /**
  * @brief Creates and returns a 3-component vector pointing left (-1, 0, 0).
  */
-INLINE vec3 vec3_left() {
+INLINE vec3 vec3_left(void) {
     return (vec3){-1.0f, 0.0f, 0.0f};
 }
 
 /**
  * @brief Creates and returns a 3-component vector pointing right (1, 0, 0).
  */
-INLINE vec3 vec3_right() {
+INLINE vec3 vec3_right(void) {
     return (vec3){1.0f, 0.0f, 0.0f};
 }
 
 /**
  * @brief Creates and returns a 3-component vector pointing forward (0, 0, -1).
  */
-INLINE vec3 vec3_forward() {
+INLINE vec3 vec3_forward(void) {
     return (vec3){0.0f, 0.0f, -1.0f};
 }
 
 /**
  * @brief Creates and returns a 3-component vector pointing backward (0, 0, 1).
  */
-INLINE vec3 vec3_back() {
+INLINE vec3 vec3_back(void) {
     return (vec3){0.0f, 0.0f, 1.0f};
 }
 
@@ -493,7 +493,7 @@ INLINE vec3 vec3_cross(vec3 vector_0, vec3 vector_1) {
  * @param tolerance The difference tolerance. Typically K_FLOAT_EPSILON or similar.
  * @return True if within tolerance; otherwise false.
  */
-INLINE const b8 vec3_compare(vec3 vector_0, vec3 vector_1, f32 tolerance) {
+INLINE b8 vec3_compare(vec3 vector_0, vec3 vector_1, f32 tolerance) {
     if (kabs(vector_0.x - vector_1.x) > tolerance) {
         return false;
     }
@@ -598,14 +598,14 @@ INLINE vec4 vec4_from_vec3(vec3 vector, f32 w) {
 /**
  * @brief Creates and returns a 3-component vector with all components set to 0.0f.
  */
-INLINE vec4 vec4_zero() {
+INLINE vec4 vec4_zero(void) {
     return (vec4){0.0f, 0.0f, 0.0f, 0.0f};
 }
 
 /**
  * @brief Creates and returns a 3-component vector with all components set to 1.0f.
  */
-INLINE vec4 vec4_one() {
+INLINE vec4 vec4_one(void) {
     return (vec4){1.0f, 1.0f, 1.0f, 1.0f};
 }
 
@@ -734,7 +734,7 @@ INLINE f32 vec4_dot_f32(
  * @param tolerance The difference tolerance. Typically K_FLOAT_EPSILON or similar.
  * @return True if within tolerance; otherwise false. 
  */
-INLINE const b8 vec4_compare(vec4 vector_0, vec4 vector_1, f32 tolerance) {
+INLINE b8 vec4_compare(vec4 vector_0, vec4 vector_1, f32 tolerance) {
     if (kabs(vector_0.x - vector_1.x) > tolerance) {
         return false;
     }
@@ -762,7 +762,7 @@ INLINE const b8 vec4_compare(vec4 vector_0, vec4 vector_1, f32 tolerance) {
  *
  * @return A new identity matrix
  */
-INLINE matrix4 mat4_identity() {
+INLINE matrix4 mat4_identity(void) {
     matrix4 out_matrix;
     kzero_memory(out_matrix.data, sizeof(f32) * 16);
     out_matrix.data[0] = 1.0f;
@@ -1199,7 +1199,7 @@ INLINE vec4 vec4_mul_mat4(vec4 v, matrix4 m) {
 // Quaternion
 // ------------------------------------------
 
-INLINE quaterion quat_identity() {
+INLINE quaterion quat_identity(void) {
     return (quaterion){0, 0, 0, 1.0f};
 }
 

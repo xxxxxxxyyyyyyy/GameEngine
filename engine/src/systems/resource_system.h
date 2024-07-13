@@ -27,4 +27,4 @@ API b8 resource_system_load_custom(const char* name, const char* custom_type, vo
 
 API void resource_system_unload(resource* resource);
 
-API const char* resource_system_base_path();
+API const char* resource_system_base_path(void);

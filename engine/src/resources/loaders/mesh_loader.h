@@ -17,4 +17,4 @@
  * 
  * @return The newly created resource loader.
  */
-resource_loader mesh_resource_loader_create();
+resource_loader mesh_resource_loader_create(void);

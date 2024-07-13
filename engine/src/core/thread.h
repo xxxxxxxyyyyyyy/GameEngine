@@ -52,4 +52,4 @@ b8 kthread_is_active(kthread* thread);
  */
 void kthread_sleep(kthread* thread, u64 ms);
 
-u64 get_thread_id();
+u64 get_current_thread_id(void);

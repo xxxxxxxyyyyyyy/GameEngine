@@ -5,7 +5,7 @@ struct application;
 struct render_packet;
 struct frame_data;
 
-API u64 application_state_size();
+API u64 application_state_size(void);
 
 API b8 application_boot(struct application* game_inst);
 

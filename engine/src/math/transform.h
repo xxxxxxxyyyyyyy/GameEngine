@@ -6,7 +6,7 @@
  * a one vector for scale. Also has a null parent. Marked dirty
  * by default.
  */
-API transform transform_create();
+API transform transform_create(void);
 
 /**
  * @brief Creates a transform from the given position.

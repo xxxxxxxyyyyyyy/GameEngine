@@ -30,7 +30,7 @@ API void renderer_viewport_set(vec4 rect);
  * @brief Resets the viewport to the default, which matches the application window.
  * Must be done within a renderpass.
  */
-API void renderer_viewport_reset();
+API void renderer_viewport_reset(void);
 
 /**
  * @brief Sets the renderer scissor to the given rectangle. Must be done within a renderpass.
@@ -43,7 +43,7 @@ API void renderer_scissor_set(vec4 rect);
  * @brief Resets the scissor to the default, which matches the application window.
  * Must be done within a renderpass.
  */
-API void renderer_scissor_reset();
+API void renderer_scissor_reset(void);
 
 API void renderer_texture_create(const u8* pixels, struct texture* texture);
 
@@ -276,12 +276,12 @@ API texture* renderer_depth_attachment_get(u8 index);
 /**
  * @brief Returns the current window attachment index.
  */
-API u8 renderer_window_attachment_index_get();
+API u8 renderer_window_attachment_index_get(void);
 
 /**
  * @brief Returns the number of attachments required for window-based render targets.
  */
-API u8 renderer_window_attachment_count_get();
+API u8 renderer_window_attachment_count_get(void);
 
 /**
  * @brief Creates a new renderpass.
@@ -305,7 +305,7 @@ API void renderer_renderpass_destroy(renderpass* pass);
 /**
  * @brief Indicates if the renderer is capable of multi-threading.
  */
-API b8 renderer_is_multithreaded();
+API b8 renderer_is_multithreaded(void);
 
 /**
  * @brief Indicates if the provided renderer flag is enabled. If multiple

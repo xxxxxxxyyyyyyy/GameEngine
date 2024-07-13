@@ -19,16 +19,16 @@
                 <mxCell id="4" value="Game" style="swimlane;html=1;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="15">
                     <mxGeometry y="52.5" width="200" height="175" as="geometry"/>
                 </mxCell>
-                <mxCell id="6" value="game_initialize()" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="4">
+                <mxCell id="6" value="game_initialize(void)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="4">
                     <mxGeometry x="15" y="30" width="150" height="40" as="geometry"/>
                 </mxCell>
-                <mxCell id="7" value="game_update()" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="4">
+                <mxCell id="7" value="game_update(void)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="4">
                     <mxGeometry x="15" y="60" width="140" height="40" as="geometry"/>
                 </mxCell>
-                <mxCell id="8" value="game_render()" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="4">
+                <mxCell id="8" value="game_render(void)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="4">
                     <mxGeometry x="15" y="90" width="140" height="40" as="geometry"/>
                 </mxCell>
-                <mxCell id="9" value="game_on_resize()" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="4">
+                <mxCell id="9" value="game_on_resize(void)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="4">
                     <mxGeometry x="15" y="120" width="170" height="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="26" style="edgeStyle=none;html=1;fontSize=18;entryX=0;entryY=0.5;entryDx=0;entryDy=0;sketch=1;curveFitting=1;jiggle=2;" edge="1" parent="176" source="10" target="19">
@@ -45,7 +45,7 @@
                 <mxCell id="19" value="Entry.h" style="swimlane;html=1;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="18">
                     <mxGeometry x="5" y="1040" width="200" height="70" as="geometry"/>
                 </mxCell>
-                <mxCell id="20" value="main()" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="19">
+                <mxCell id="20" value="main(void)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="19">
                     <mxGeometry x="-5" y="30" width="70" height="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="28" value="game_types.h" style="swimlane;html=1;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="18">
@@ -60,10 +60,10 @@
                 <mxCell id="177" value="application" style="swimlane;html=1;fontSize=18;fillColor=default;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="31">
                     <mxGeometry x="54" y="47" width="339" height="596" as="geometry"/>
                 </mxCell>
-                <mxCell id="37" value="application_run()&lt;br&gt;(MAINLOOP)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="177">
+                <mxCell id="37" value="application_run(void)&lt;br&gt;(MAINLOOP)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="177">
                     <mxGeometry x="82" y="334.5" width="160" height="60" as="geometry"/>
                 </mxCell>
-                <mxCell id="36" value="application_create()" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="177">
+                <mxCell id="36" value="application_create(void)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="177">
                     <mxGeometry x="82" y="224.5" width="180" height="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="40" value="&lt;div style=&quot;background-color: rgb(29, 32, 33); font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-weight: 1; font-size: 16px; line-height: 22px;&quot;&gt;application_state&lt;/div&gt;" style="swimlane;html=1;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="177">
@@ -72,7 +72,7 @@
                 <mxCell id="41" value="&lt;div style=&quot;background-color: rgb(29, 32, 33); font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-weight: 1; font-size: 16px; line-height: 22px;&quot;&gt;application_config&lt;/div&gt;" style="swimlane;html=1;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="177">
                     <mxGeometry x="72" y="114.5" width="200" height="40" as="geometry"/>
                 </mxCell>
-                <mxCell id="50" value="get_framebuffer_size()" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="177">
+                <mxCell id="50" value="get_framebuffer_size(void)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="177">
                     <mxGeometry x="72" y="414.5" width="200" height="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="120" value="&lt;div style=&quot;background-color: rgb(29, 32, 33); font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-weight: 1; font-size: 16px; line-height: 22px;&quot;&gt;subsystem_initialize&lt;/div&gt;" style="swimlane;html=1;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" vertex="1" parent="177">

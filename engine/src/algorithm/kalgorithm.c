@@ -32,12 +32,12 @@ void _quick_sort(i32 q[], i32 l, i32 r) {
 // nlogn
 void _merge_sort(i32 q[], i32 tmp[], i32 l, i32 r) {
     if (l >= r) return;
-    u32 mid = (l + r) >> 1;
+    i32 mid = (l + r) >> 1;
 
     _merge_sort(q, tmp, l, mid);
     _merge_sort(q, tmp, mid + 1, r);
 
-    u32 k = 0, i = l, j = mid + 1;
+    i32 k = 0, i = l, j = mid + 1;
     while (i <= mid && j <= r) {
         if (q[i] <= q[j])
             tmp[k++] = q[i++];
@@ -47,5 +47,5 @@ void _merge_sort(i32 q[], i32 tmp[], i32 l, i32 r) {
     while (i <= mid) tmp[k++] = q[i++];
     while (j <= r) tmp[k++] = q[j++];
 
-    for (u32 i = l, j = 0; i <= r; i++, j++) q[i] = tmp[j];
+    for (i32 i = l, j = 0; i <= r; i++, j++) q[i] = tmp[j];
 }

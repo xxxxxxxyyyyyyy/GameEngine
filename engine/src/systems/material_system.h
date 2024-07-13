@@ -17,7 +17,7 @@ API material* material_system_acquire(const char* name);
 API material* material_system_acquire_from_config(material_config config);
 API void material_system_release(const char* name);
 
-API material* material_system_get_default();
+API material* material_system_get_default(void);
 
 /**
  * @brief Applies global-level data for the material shader id.

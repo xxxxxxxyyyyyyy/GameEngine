@@ -70,6 +70,8 @@ typedef struct vulkan_image {
     VkMemoryPropertyFlags memory_flags;
     u32 width;
     u32 height;
+    /** @brief The name of the image. */
+    char* name;
 } vulkan_image;
 
 typedef enum vulkan_render_pass_state {
@@ -385,6 +387,14 @@ typedef struct vulkan_context {
 
 #if defined(_DEBUG)
     VkDebugUtilsMessengerEXT debug_messenger;
+    /** @brief The function pointer to set debug object names. */
+    PFN_vkSetDebugUtilsObjectNameEXT pfnSetDebugUtilsObjectNameEXT;
+
+    /** @brief The function pointer to set free-form debug object tag data. */
+    PFN_vkSetDebugUtilsObjectTagEXT pfnSetDebugUtilsObjectTagEXT;
+
+    PFN_vkCmdBeginDebugUtilsLabelEXT pfnCmdBeginDebugUtilsLabelEXT;
+    PFN_vkCmdEndDebugUtilsLabelEXT pfnCmdEndDebugUtilsLabelEXT;
 #endif
 
     vulkan_device device;

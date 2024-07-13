@@ -48,3 +48,8 @@ API b8 material_system_apply_instance(material* m, b8 needs_update);
  * @return True on success; otherwise false.
  */
 API b8 material_system_apply_local(material* m, const matrix4* model);
+
+/**
+ * @brief Dumps all of the registered materials and their reference counts/handles.
+ */
+API void material_system_dump(void);

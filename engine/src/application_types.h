@@ -54,7 +54,7 @@ typedef struct application {
      * @param delta_time The time in seconds since the last frame.
      * @returns True on success; otherwise false.
      * */
-    b8 (*update)(struct application* app_inst, const struct frame_data* p_frame_data);
+    b8 (*update)(struct application* app_inst, struct frame_data* p_frame_data);
 
     /** 
      * @brief Function pointer to application's render function. 
@@ -63,7 +63,7 @@ typedef struct application {
      * @param delta_time The time in seconds since the last frame.
      * @returns True on success; otherwise false.
      * */
-    b8 (*render)(struct application* app_inst, struct render_packet* packet, const struct frame_data* p_frame_data);
+    b8 (*render)(struct application* app_inst, struct render_packet* packet, struct frame_data* p_frame_data);
 
     /** 
      * @brief Function pointer to handle resizes, if applicable. 

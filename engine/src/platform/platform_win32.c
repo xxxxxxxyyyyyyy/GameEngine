@@ -332,14 +332,14 @@ b8 kmutex_create(kmutex *out_mutex) {
         DERROR("Unable to create mutex.");
         return false;
     }
-    // KTRACE("Created mutex.");
+    // DTRACE("Created mutex.");
     return true;
 }
 
 void kmutex_destroy(kmutex *mutex) {
     if (mutex && mutex->internal_data) {
         CloseHandle(mutex->internal_data);
-        // KTRACE("Destroyed mutex.");
+        // DTRACE("Destroyed mutex.");
         mutex->internal_data = 0;
     }
 }
@@ -353,7 +353,7 @@ b8 kmutex_lock(kmutex *mutex) {
     switch (result) {
         // The thread got ownership of the mutex
         case WAIT_OBJECT_0:
-            // KTRACE("Mutex locked.");
+            // DTRACE("Mutex locked.");
             return true;
 
             // The thread got ownership of an abandoned mutex.
@@ -361,7 +361,7 @@ b8 kmutex_lock(kmutex *mutex) {
             DERROR("Mutex lock failed.");
             return false;
     }
-    // KTRACE("Mutex locked.");
+    // DTRACE("Mutex locked.");
     return true;
 }
 
@@ -370,7 +370,7 @@ b8 kmutex_unlock(kmutex *mutex) {
         return false;
     }
     i32 result = ReleaseMutex(mutex->internal_data);
-    // KTRACE("Mutex unlocked.");
+    // DTRACE("Mutex unlocked.");
     return result != 0;  // 0 is a failure
 }
 

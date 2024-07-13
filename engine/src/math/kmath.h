@@ -2,48 +2,113 @@
 
 #include "defines.h"
 #include "math_types.h"
-
 #include "core/kmemory.h"
 
+/** @brief An approximate representation of PI. */
 #define K_PI 3.14159265358979323846f
-#define K_PI_2 2.0f * K_PI
-#define K_HALF_PI 0.5f * K_PI
-#define K_QUARTER_PI 0.25f * K_PI
-#define K_ONE_OVER_PI 1.0f / K_PI
-#define K_ONE_OVER_TWO_PI 1.0f / K_PI_2
+
+/** @brief An approximate representation of PI multiplied by 2. */
+#define K_2PI (2.0f * K_PI)
+
+/** @brief An approximate representation of PI divided by 2. */
+#define K_HALF_PI (0.5f * K_PI)
+
+/** @brief An approximate representation of PI divided by 4. */
+#define K_QUARTER_PI (0.25f * K_PI)
+
+/** @brief One divided by an approximate representation of PI. */
+#define K_ONE_OVER_PI (1.0f / K_PI)
+
+/** @brief One divided by half of an approximate representation of PI. */
+#define K_ONE_OVER_TWO_PI (1.0f / K_2PI)
+
+/** @brief An approximation of the square root of 2. */
 #define K_SQRT_TWO 1.41421356237309504880f
+
+/** @brief An approximation of the square root of 3. */
 #define K_SQRT_THREE 1.73205080756887729352f
+
+/** @brief One divided by an approximation of the square root of 2. */
 #define K_SQRT_ONE_OVER_TWO 0.70710678118654752440f
+
+/** @brief One divided by an approximation of the square root of 3. */
 #define K_SQRT_ONE_OVER_THREE 0.57735026918962576450f
-#define K_DEG2RAD_MULTIPLIER K_PI / 180.0f
-#define K_RAD2DEG_MULTIPLIER 180.0f / K_PI
+
+/** @brief A multiplier used to convert degrees to radians. */
+#define K_DEG2RAD_MULTIPLIER (K_PI / 180.0f)
+
+/** @brief A multiplier used to convert radians to degrees. */
+#define K_RAD2DEG_MULTIPLIER (180.0f / K_PI)
+
 /** @brief The multiplier to convert seconds to microseconds. */
 #define K_SEC_TO_US_MULTIPLIER (1000.0f * 1000.0f)
 
-// The multiplier to convert seconds to milliseconds.
+/** @brief The multiplier to convert seconds to milliseconds. */
 #define K_SEC_TO_MS_MULTIPLIER 1000.0f
 
-// The multiplier to convert milliseconds to seconds.
+/** @brief The multiplier to convert milliseconds to seconds. */
 #define K_MS_TO_SEC_MULTIPLIER 0.001f
 
-// A huge number that should be larger than any valid number used.
-#define K_INFINITY 1e30f
+/** @brief A huge number that should be larger than any valid number used. */
+#define K_INFINITY (1e30f * 1e30f)
 
-// Smallest positive number where 1.0 + FLOAT_EPSILON != 0
+/** @brief Smallest positive number where 1.0 + FLOAT_EPSILON != 0 */
 #define K_FLOAT_EPSILON 1.192092896e-07f
 
 // ------------------------------------------
 // General math functions
 // ------------------------------------------
+
+/**
+ * @brief Calculates the sine of x.
+ *
+ * @param x The number to calculate the sine of.
+ * @return The sine of x.
+ */
 API f32 ksin(f32 x);
+
+/**
+ * @brief Calculates the cosine of x.
+ *
+ * @param x The number to calculate the cosine of.
+ * @return The cosine of x.
+ */
 API f32 kcos(f32 x);
+
+/**
+ * @brief Calculates the tangent of x.
+ *
+ * @param x The number to calculate the tangent of.
+ * @return The tangent of x.
+ */
 API f32 ktan(f32 x);
+
+/**
+ * @brief Calculates the arc cosine of x.
+ *
+ * @param x The number to calculate the arc cosine of.
+ * @return The arc cosine of x.
+ */
 API f32 kacos(f32 x);
+
+/**
+ * @brief Calculates the square root of x.
+ *
+ * @param x The number to calculate the square root of.
+ * @return The square root of x.
+ */
 API f32 ksqrt(f32 x);
+
+/**
+ * @brief Calculates the absolute value of x.
+ *
+ * @param x The number to get the absolute value of.
+ * @return The absolute value of x.
+ */
 API f32 kabs(f32 x);
 
 /**
- * Indicates if the value is a power of 2. 0 is considered _not_ a power of 2.
+ * @brief Indicates if the value is a power of 2. 0 is considered _not_ a power of 2.
  * @param value The value to be interpreted.
  * @returns True if a power of 2, otherwise false.
  */
@@ -51,10 +116,36 @@ INLINE b8 is_power_of_2(u64 value) {
     return (value != 0) && ((value & (value - 1)) == 0);
 }
 
+/**
+ * @brief Returns a random integer.
+ *
+ * @return A random integer.
+ */
 API i32 krandom(void);
+
+/**
+ * @brief Returns a random integer that is within the given range (inclusive).
+ *
+ * @param min The minimum of the range.
+ * @param max The maximum of the range.
+ * @return A random integer.
+ */
 API i32 krandom_in_range(i32 min, i32 max);
 
+/**
+ * @brief Returns a random floating-point number.
+ *
+ * @return A random floating-point number.
+ */
 API f32 fkrandom(void);
+
+/**
+ * @brief Returns a random floating-point number that is within the given range (inclusive).
+ *
+ * @param min The minimum of the range.
+ * @param max The maximum of the range.
+ * @return A random floating-point number.
+ */
 API f32 fkrandom_in_range(f32 min, f32 max);
 
 // ------------------------------------------
@@ -596,14 +687,14 @@ INLINE vec4 vec4_from_vec3(vec3 vector, f32 w) {
 }
 
 /**
- * @brief Creates and returns a 3-component vector with all components set to 0.0f.
+ * @brief Creates and returns a 4-component vector with all components set to 0.0f.
  */
 INLINE vec4 vec4_zero(void) {
     return (vec4){0.0f, 0.0f, 0.0f, 0.0f};
 }
 
 /**
- * @brief Creates and returns a 3-component vector with all components set to 1.0f.
+ * @brief Creates and returns a 4-component vector with all components set to 1.0f.
  */
 INLINE vec4 vec4_one(void) {
     return (vec4){1.0f, 1.0f, 1.0f, 1.0f};
@@ -713,6 +804,19 @@ INLINE vec4 vec4_normalized(vec4 vector) {
     return vector;
 }
 
+/**
+ * @brief Calculates the dot product using the elements of vec4s provided in split-out format.
+ *
+ * @param a0 The first element of the a vector.
+ * @param a1 The second element of the a vector.
+ * @param a2 The third element of the a vector.
+ * @param a3 The fourth element of the a vector.
+ * @param b0 The first element of the b vector.
+ * @param b1 The second element of the b vector.
+ * @param b2 The third element of the b vector.
+ * @param b3 The fourth element of the b vector.
+ * @return The dot product of vectors and b.
+ */
 INLINE f32 vec4_dot_f32(
     f32 a0, f32 a1, f32 a2, f32 a3,
     f32 b0, f32 b1, f32 b2, f32 b3) {
@@ -728,25 +832,29 @@ INLINE f32 vec4_dot_f32(
 /**
  * @brief Compares all elements of vector_0 and vector_1 and ensures the difference
  * is less than tolerance.
- * 
+ *
  * @param vector_0 The first vector.
  * @param vector_1 The second vector.
  * @param tolerance The difference tolerance. Typically K_FLOAT_EPSILON or similar.
- * @return True if within tolerance; otherwise false. 
+ * @return True if within tolerance; otherwise false.
  */
 INLINE b8 vec4_compare(vec4 vector_0, vec4 vector_1, f32 tolerance) {
     if (kabs(vector_0.x - vector_1.x) > tolerance) {
         return false;
     }
+
     if (kabs(vector_0.y - vector_1.y) > tolerance) {
         return false;
     }
+
     if (kabs(vector_0.z - vector_1.z) > tolerance) {
         return false;
     }
+
     if (kabs(vector_0.w - vector_1.w) > tolerance) {
         return false;
     }
+
     return true;
 }
 
@@ -786,7 +894,6 @@ INLINE matrix4 mat4_mul(matrix4 matrix_0, matrix4 matrix_1) {
     const f32* m2_ptr = matrix_1.data;
     f32* dst_ptr = out_matrix.data;
 
-    // Doom engine
     for (i32 i = 0; i < 4; ++i) {
         for (i32 j = 0; j < 4; ++j) {
             *dst_ptr =
@@ -982,6 +1089,12 @@ INLINE matrix4 mat4_inverse(matrix4 matrix) {
     return out_matrix;
 }
 
+/**
+ * @brief Creates and returns a translation matrix from the given position.
+ *
+ * @param position The position to be used to create the matrix.
+ * @return A newly created translation matrix.
+ */
 INLINE matrix4 mat4_translation(vec3 position) {
     matrix4 out_matrix = mat4_identity();
     out_matrix.data[12] = position.x;
@@ -1004,6 +1117,12 @@ INLINE matrix4 mat4_scale(vec3 scale) {
     return out_matrix;
 }
 
+/**
+ * @brief Creates a rotation matrix from the provided x angle.
+ *
+ * @param angle_radians The x angle in radians.
+ * @return A rotation matrix.
+ */
 INLINE matrix4 mat4_euler_x(f32 angle_radians) {
     matrix4 out_matrix = mat4_identity();
     f32 c = kcos(angle_radians);
@@ -1015,6 +1134,13 @@ INLINE matrix4 mat4_euler_x(f32 angle_radians) {
     out_matrix.data[10] = c;
     return out_matrix;
 }
+
+/**
+ * @brief Creates a rotation matrix from the provided y angle.
+ *
+ * @param angle_radians The y angle in radians.
+ * @return A rotation matrix.
+ */
 INLINE matrix4 mat4_euler_y(f32 angle_radians) {
     matrix4 out_matrix = mat4_identity();
     f32 c = kcos(angle_radians);
@@ -1026,6 +1152,13 @@ INLINE matrix4 mat4_euler_y(f32 angle_radians) {
     out_matrix.data[10] = c;
     return out_matrix;
 }
+
+/**
+ * @brief Creates a rotation matrix from the provided z angle.
+ *
+ * @param angle_radians The z angle in radians.
+ * @return A rotation matrix.
+ */
 INLINE matrix4 mat4_euler_z(f32 angle_radians) {
     matrix4 out_matrix = mat4_identity();
 
@@ -1038,6 +1171,15 @@ INLINE matrix4 mat4_euler_z(f32 angle_radians) {
     out_matrix.data[5] = c;
     return out_matrix;
 }
+
+/**
+ * @brief Creates a rotation matrix from the provided x, y and z axis rotations.
+ *
+ * @param x_radians The x rotation.
+ * @param y_radians The y rotation.
+ * @param z_radians The z rotation.
+ * @return A rotation matrix.
+ */
 INLINE matrix4 mat4_euler_xyz(f32 x_radians, f32 y_radians, f32 z_radians) {
     matrix4 rx = mat4_euler_x(x_radians);
     matrix4 ry = mat4_euler_y(y_radians);
@@ -1115,9 +1257,9 @@ INLINE vec3 mat4_down(matrix4 matrix) {
  */
 INLINE vec3 mat4_left(matrix4 matrix) {
     vec3 left;
-    left.x = matrix.data[0];
-    left.y = matrix.data[4];
-    left.z = matrix.data[8];
+    left.x = -matrix.data[0];
+    left.y = -matrix.data[4];
+    left.z = -matrix.data[8];
     vec3_normalize(&left);
     return left;
 }
@@ -1130,9 +1272,9 @@ INLINE vec3 mat4_left(matrix4 matrix) {
  */
 INLINE vec3 mat4_right(matrix4 matrix) {
     vec3 right;
-    right.x = -matrix.data[0];
-    right.y = -matrix.data[4];
-    right.z = -matrix.data[8];
+    right.x = matrix.data[0];
+    right.y = matrix.data[4];
+    right.z = matrix.data[8];
     vec3_normalize(&right);
     return right;
 }
@@ -1199,10 +1341,21 @@ INLINE vec4 vec4_mul_mat4(vec4 v, matrix4 m) {
 // Quaternion
 // ------------------------------------------
 
+/**
+ * @brief Creates an identity quaternion.
+ *
+ * @return An identity quaternion.
+ */
 INLINE quaterion quat_identity(void) {
     return (quaterion){0, 0, 0, 1.0f};
 }
 
+/**
+ * @brief Returns the normal of the provided quaternion.
+ *
+ * @param q The quaternion.
+ * @return The normal of the provided quaternion.
+ */
 INLINE f32 quat_normal(quaterion q) {
     return ksqrt(
         q.x * q.x +
@@ -1211,6 +1364,12 @@ INLINE f32 quat_normal(quaterion q) {
         q.w * q.w);
 }
 
+/**
+ * @brief Returns a normalized copy of the provided quaternion.
+ *
+ * @param q The quaternion to normalize.
+ * @return A normalized copy of the provided quaternion.
+ */
 INLINE quaterion quat_normalize(quaterion q) {
     f32 normal = quat_normal(q);
     return (quaterion){
@@ -1220,6 +1379,13 @@ INLINE quaterion quat_normalize(quaterion q) {
         q.w / normal};
 }
 
+/**
+ * @brief Returns the conjugate of the provided quaternion. That is,
+ * The x, y and z elements are negated, but the w element is untouched.
+ *
+ * @param q The quaternion to obtain a conjugate of.
+ * @return The conjugate quaternion.
+ */
 INLINE quaterion quat_conjugate(quaterion q) {
     return (quaterion){
         -q.x,
@@ -1228,10 +1394,23 @@ INLINE quaterion quat_conjugate(quaterion q) {
         q.w};
 }
 
+/**
+ * @brief Returns an inverse copy of the provided quaternion.
+ *
+ * @param q The quaternion to invert.
+ * @return An inverse copy of the provided quaternion.
+ */
 INLINE quaterion quat_inverse(quaterion q) {
     return quat_normalize(quat_conjugate(q));
 }
 
+/**
+ * @brief Multiplies the provided quaternions.
+ *
+ * @param q_0 The first quaternion.
+ * @param q_1 The second quaternion.
+ * @return The multiplied quaternion.
+ */
 INLINE quaterion quat_mul(quaterion q_0, quaterion q_1) {
     quaterion out_quaternion;
 
@@ -1258,6 +1437,13 @@ INLINE quaterion quat_mul(quaterion q_0, quaterion q_1) {
     return out_quaternion;
 }
 
+/**
+ * @brief Calculates the dot product of the provided quaternions.
+ *
+ * @param q_0 The first quaternion.
+ * @param q_1 The second quaternion.
+ * @return The dot product of the provided quaternions.
+ */
 INLINE f32 quat_dot(quaterion q_0, quaterion q_1) {
     return q_0.x * q_1.x +
            q_0.y * q_1.y +
@@ -1265,6 +1451,12 @@ INLINE f32 quat_dot(quaterion q_0, quaterion q_1) {
            q_0.w * q_1.w;
 }
 
+/**
+ * @brief Creates a rotation matrix from the given quaternion.
+ *
+ * @param q The quaternion to be used.
+ * @return A rotation matrix.
+ */
 INLINE matrix4 quat_to_mat4(quaterion q) {
     matrix4 out_matrix = mat4_identity();
 
@@ -1287,7 +1479,13 @@ INLINE matrix4 quat_to_mat4(quaterion q) {
     return out_matrix;
 }
 
-// Calculates a rotation matrix based on the quaternion and the passed in center point.
+/**
+ * @brief Calculates a rotation matrix based on the quaternion and the passed in center point.
+ *
+ * @param q The quaternion.
+ * @param center The center point.
+ * @return A rotation matrix.
+ */
 INLINE matrix4 quat_to_rotation_matrix(quaterion q, vec3 center) {
     matrix4 out_matrix;
 
@@ -1314,6 +1512,14 @@ INLINE matrix4 quat_to_rotation_matrix(quaterion q, vec3 center) {
     return out_matrix;
 }
 
+/**
+ * @brief Creates a quaternion from the given axis and angle.
+ *
+ * @param axis The axis of rotation.
+ * @param angle The angle of rotation.
+ * @param normalize Indicates if the quaternion should be normalized.
+ * @return A new quaternion.
+ */
 INLINE quaterion quat_from_axis_angle(vec3 axis, f32 angle, b8 normalize) {
     const f32 half_angle = 0.5f * angle;
     f32 s = ksin(half_angle);
@@ -1326,6 +1532,15 @@ INLINE quaterion quat_from_axis_angle(vec3 axis, f32 angle, b8 normalize) {
     return q;
 }
 
+/**
+ * @brief Calculates spherical linear interpolation of a given percentage
+ * between two quaternions.
+ *
+ * @param q_0 The first quaternion.
+ * @param q_1 The second quaternion.
+ * @param percentage The percentage of interpolation, typically a value from 0.0f-1.0f.
+ * @return An interpolated quaternion.
+ */
 INLINE quaterion quat_slerp(quaterion q_0, quaterion q_1, f32 percentage) {
     quaterion out_quaternion;
     // Source: https://en.wikipedia.org/wiki/Slerp
@@ -1399,20 +1614,6 @@ INLINE f32 rad_to_deg(f32 radians) {
 }
 
 /**
- * @brief Converts a vec3 of rgbvalues [0.0-1.0] to integer rgb values [0-255].
- * 
- * @param v The vector of rgb values [0.0-1.0] to be converted.
- * @param out_r A pointer to hold the red value.
- * @param out_g A pointer to hold the green value.
- * @param out_b A pointer to hold the blue value.
- */
-INLINE void vec3_to_rgb_u32(vec3 v, u32* out_r, u32* out_g, u32* out_b) {
-    *out_r = v.r * 255;
-    *out_g = v.g * 255;
-    *out_b = v.b * 255;
-}
-
-/**
  * @brief Converts value from the "old" range to the "new" range.
  *
  * @param value The value to be converted.
@@ -1428,7 +1629,7 @@ INLINE f32 range_convert_f32(f32 value, f32 old_min, f32 old_max, f32 new_min, f
 
 /**
  * @brief Converts rgb int values [0-255] to a single 32-bit integer.
- * 
+ *
  * @param r The red value [0-255].
  * @param g The green value [0-255].
  * @param b The blue value [0-255].
@@ -1440,7 +1641,7 @@ INLINE void rgbu_to_u32(u32 r, u32 g, u32 b, u32* out_u32) {
 
 /**
  * @brief Converts the given 32-bit integer to rgb values [0-255].
- * 
+ *
  * @param rgbu The integer holding a rgb value.
  * @param out_r A pointer to hold the red value.
  * @param out_g A pointer to hold the green value.
@@ -1454,7 +1655,7 @@ INLINE void u32_to_rgb(u32 rgbu, u32* out_r, u32* out_g, u32* out_b) {
 
 /**
  * @brief Converts rgb integer values [0-255] to a vec3 of floating-point values [0.0-1.0]
- * 
+ *
  * @param r The red value [0-255].
  * @param g The green value [0-255].
  * @param b The blue value [0-255].
@@ -1464,6 +1665,20 @@ INLINE void rgb_u32_to_vec3(u32 r, u32 g, u32 b, vec3* out_v) {
     out_v->r = r / 255.0f;
     out_v->g = g / 255.0f;
     out_v->b = b / 255.0f;
+}
+
+/**
+ * @brief Converts a vec3 of rgbvalues [0.0-1.0] to integer rgb values [0-255].
+ *
+ * @param v The vector of rgb values [0.0-1.0] to be converted.
+ * @param out_r A pointer to hold the red value.
+ * @param out_g A pointer to hold the green value.
+ * @param out_b A pointer to hold the blue value.
+ */
+INLINE void vec3_to_rgb_u32(vec3 v, u32* out_r, u32* out_g, u32* out_b) {
+    *out_r = v.r * 255;
+    *out_g = v.g * 255;
+    *out_b = v.b * 255;
 }
 
 API plane_3d plane_3d_create(vec3 p1, vec3 norm);
@@ -1515,20 +1730,20 @@ API b8 frustum_intersects_sphere(const frustum* f, const vec3* center, f32 radiu
 
 /**
  * @brief Indicates if plane p intersects an axis-aligned bounding box constructed via center and extents.
- * 
+ *
  * @param p A constant pointer to a plane.
  * @param center A constant pointer to a position representing the center of an axis-aligned bounding box.
  * @param extents The half-extents of an axis-aligned bounding box.
- * @return True if the axis-aligned bounding box intersects the plane; otherwise false. 
+ * @return True if the axis-aligned bounding box intersects the plane; otherwise false.
  */
 API b8 plane_intersects_aabb(const plane_3d* p, const vec3* center, const vec3* extents);
 
 /**
  * @brief Indicates if frustum f intersects an axis-aligned bounding box constructed via center and extents.
- * 
+ *
  * @param f A constant pointer to a frustum.
  * @param center A constant pointer to a position representing the center of an axis-aligned bounding box.
  * @param extents The half-extents of an axis-aligned bounding box.
- * @return True if the axis-aligned bounding box is intersected by or contained within the frustum f; otherwise false.  
+ * @return True if the axis-aligned bounding box is intersected by or contained within the frustum f; otherwise false.
  */
 API b8 frustum_intersects_aabb(const frustum* f, const vec3* center, const vec3* extents);

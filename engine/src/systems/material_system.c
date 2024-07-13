@@ -23,7 +23,6 @@ typedef struct material_shader_uniform_locations {
     u16 normal_texture;
     u16 model;
     u16 render_mode;
-
     u16 dir_light;
     u16 p_lights;
     u16 num_p_lights;
@@ -88,24 +87,25 @@ b8 material_system_initialize(u64* memory_requirement, void* state, void* config
 
     state_ptr = state;
     state_ptr->config = *typed_config;
+
     state_ptr->material_shader_id = INVALID_ID;
     state_ptr->material_locations.view = INVALID_ID_U16;
     state_ptr->material_locations.projection = INVALID_ID_U16;
     state_ptr->material_locations.diffuse_colour = INVALID_ID_U16;
     state_ptr->material_locations.diffuse_texture = INVALID_ID_U16;
     state_ptr->material_locations.specular_texture = INVALID_ID_U16;
+    state_ptr->material_locations.normal_texture = INVALID_ID_U16;
     state_ptr->material_locations.ambient_colour = INVALID_ID_U16;
     state_ptr->material_locations.shininess = INVALID_ID_U16;
     state_ptr->material_locations.model = INVALID_ID_U16;
     state_ptr->material_locations.render_mode = INVALID_ID_U16;
 
     state_ptr->ui_shader_id = INVALID_ID;
+    state_ptr->ui_locations.diffuse_colour = INVALID_ID_U16;
+    state_ptr->ui_locations.diffuse_texture = INVALID_ID_U16;
     state_ptr->ui_locations.view = INVALID_ID_U16;
     state_ptr->ui_locations.projection = INVALID_ID_U16;
     state_ptr->ui_locations.model = INVALID_ID_U16;
-    state_ptr->ui_locations.diffuse_colour = INVALID_ID_U16;
-    state_ptr->ui_locations.diffuse_texture = INVALID_ID_U16;
-    state_ptr->material_locations.normal_texture = INVALID_ID_U16;
 
     // The array block is after the state. Already allocated, so just set the pointer.
     void* array_block = state + struct_requirement;
@@ -138,6 +138,33 @@ b8 material_system_initialize(u64* memory_requirement, void* state, void* config
         return false;
     }
 
+    // Get the uniform indices.
+    // Save off the locations for known types for quick lookups.
+    shader* s = shader_system_get("Shader.Builtin.Material");
+    state_ptr->material_shader_id = s->id;
+    state_ptr->material_locations.projection = shader_system_uniform_index(s, "projection");
+    state_ptr->material_locations.view = shader_system_uniform_index(s, "view");
+    state_ptr->material_locations.ambient_colour = shader_system_uniform_index(s, "ambient_colour");
+    state_ptr->material_locations.view_position = shader_system_uniform_index(s, "view_position");
+    state_ptr->material_locations.diffuse_colour = shader_system_uniform_index(s, "diffuse_colour");
+    state_ptr->material_locations.diffuse_texture = shader_system_uniform_index(s, "diffuse_texture");
+    state_ptr->material_locations.specular_texture = shader_system_uniform_index(s, "specular_texture");
+    state_ptr->material_locations.normal_texture = shader_system_uniform_index(s, "normal_texture");
+    state_ptr->material_locations.shininess = shader_system_uniform_index(s, "shininess");
+    state_ptr->material_locations.model = shader_system_uniform_index(s, "model");
+    state_ptr->material_locations.render_mode = shader_system_uniform_index(s, "mode");
+    state_ptr->material_locations.dir_light = shader_system_uniform_index(s, "dir_light");
+    state_ptr->material_locations.p_lights = shader_system_uniform_index(s, "p_lights");
+    state_ptr->material_locations.num_p_lights = shader_system_uniform_index(s, "num_p_lights");
+
+    s = shader_system_get("Shader.Builtin.UI");
+    state_ptr->ui_shader_id = s->id;
+    state_ptr->ui_locations.projection = shader_system_uniform_index(s, "projection");
+    state_ptr->ui_locations.view = shader_system_uniform_index(s, "view");
+    state_ptr->ui_locations.diffuse_colour = shader_system_uniform_index(s, "diffuse_colour");
+    state_ptr->ui_locations.diffuse_texture = shader_system_uniform_index(s, "diffuse_texture");
+    state_ptr->ui_locations.model = shader_system_uniform_index(s, "model");
+
     return true;
 }
 
@@ -164,14 +191,13 @@ material* material_system_acquire(const char* name) {
     resource material_resource;
     if (!resource_system_load(name, RESOURCE_TYPE_MATERIAL, 0, &material_resource)) {
         DERROR("Failed to load material resource, returning nullptr.");
+        return 0;
     }
 
     // Now acquire from loaded config.
-    material* m;
+    material* m = 0;
     if (material_resource.data) {
         m = material_system_acquire_from_config(*(material_config*)material_resource.data);
-    } else {
-        m = 0;
     }
 
     // Clean up
@@ -222,34 +248,6 @@ material* material_system_acquire_from_config(material_config config) {
                 return 0;
             }
 
-            // Get the uniform indices.
-            shader* s = shader_system_get_by_id(m->shader_id);
-            // Save off the locations for known types for quick lookups.
-                if (state_ptr->material_shader_id == INVALID_ID && strings_equal(config.shader_name, "Shader.Builtin.Material")) {
-                state_ptr->material_shader_id = s->id;
-                state_ptr->material_locations.projection = shader_system_uniform_index(s, "projection");
-                state_ptr->material_locations.view = shader_system_uniform_index(s, "view");
-                state_ptr->material_locations.ambient_colour = shader_system_uniform_index(s, "ambient_colour");
-                state_ptr->material_locations.view_position = shader_system_uniform_index(s, "view_position");
-                state_ptr->material_locations.diffuse_colour = shader_system_uniform_index(s, "diffuse_colour");
-                state_ptr->material_locations.diffuse_texture = shader_system_uniform_index(s, "diffuse_texture");
-                state_ptr->material_locations.specular_texture = shader_system_uniform_index(s, "specular_texture");
-                state_ptr->material_locations.normal_texture = shader_system_uniform_index(s, "normal_texture");
-                state_ptr->material_locations.shininess = shader_system_uniform_index(s, "shininess");
-                state_ptr->material_locations.model = shader_system_uniform_index(s, "model");
-                state_ptr->material_locations.render_mode = shader_system_uniform_index(s, "mode");
-                state_ptr->material_locations.dir_light = shader_system_uniform_index(s, "dir_light");
-                state_ptr->material_locations.p_lights = shader_system_uniform_index(s, "p_lights");
-                state_ptr->material_locations.num_p_lights = shader_system_uniform_index(s, "num_p_lights");
-                } else if (state_ptr->ui_shader_id == INVALID_ID && strings_equal(config.shader_name, "Shader.Builtin.UI")) {
-                state_ptr->ui_shader_id = s->id;
-                state_ptr->ui_locations.projection = shader_system_uniform_index(s, "projection");
-                state_ptr->ui_locations.view = shader_system_uniform_index(s, "view");
-                state_ptr->ui_locations.diffuse_colour = shader_system_uniform_index(s, "diffuse_colour");
-                state_ptr->ui_locations.diffuse_texture = shader_system_uniform_index(s, "diffuse_texture");
-                state_ptr->ui_locations.model = shader_system_uniform_index(s, "model");
-            }
-
             if (m->generation == INVALID_ID) {
                 m->generation = 0;
             } else {
@@ -258,9 +256,9 @@ material* material_system_acquire_from_config(material_config config) {
 
             // Also use the handle as the material id.
             m->id = ref.handle;
-            DTRACE("Material '%s' does not yet exist. Created, and ref_count is now %i.", config.name, ref.reference_count);
+            // DTRACE("Material '%s' does not yet exist. Created, and ref_count is now %i.", config.name, ref.reference_count);
         } else {
-            DTRACE("Material '%s' already exists, ref_count increased to %i.", config.name, ref.reference_count);
+            // DTRACE("Material '%s' already exists, ref_count increased to %i.", config.name, ref.reference_count);
         }
 
         // Update the entry.
@@ -284,6 +282,12 @@ void material_system_release(const char* name) {
             DWARN("Tried to release non-existent material: '%s'", name);
             return;
         }
+
+        // Take a copy of the name since it would be wiped out if destroyed,
+        // (as passed in name is generally a pointer to the actual material's name).
+        char name_copy[MATERIAL_NAME_MAX_LENGTH];
+        string_ncopy(name_copy, name, MATERIAL_NAME_MAX_LENGTH);
+
         ref.reference_count--;
         if (ref.reference_count == 0 && ref.auto_release) {
             material* m = &state_ptr->registered_materials[ref.handle];
@@ -294,13 +298,13 @@ void material_system_release(const char* name) {
             // Reset the reference.
             ref.handle = INVALID_ID;
             ref.auto_release = false;
-            DTRACE("Released material '%s'., Material unloaded because reference count=0 and auto_release=true.", name);
+            // DTRACE("Released material '%s'., Material unloaded because reference count=0 and auto_release=true.", name_copy);
         } else {
-            DTRACE("Released material '%s', now has a reference count of '%i' (auto_release=%s).", name, ref.reference_count, ref.auto_release ? "true" : "false");
+            // DTRACE("Released material '%s', now has a reference count of '%i' (auto_release=%s).", name_copy, ref.reference_count, ref.auto_release ? "true" : "false");
         }
 
         // Update the entry.
-        hashtable_set(&state_ptr->registered_material_table, name, &ref);
+        hashtable_set(&state_ptr->registered_material_table, name_copy, &ref);
     } else {
         DERROR("material_system_release failed to release material '%s'.", name);
     }
@@ -346,14 +350,12 @@ b8 material_system_apply_global(u32 shader_id, u64 renderer_frame_number, const 
 
     // Sync the frame number.
     s->render_frame_number = renderer_frame_number;
-
     return true;
 }
 
 b8 material_system_apply_instance(material* m, b8 needs_update) {
     // Apply instance-level uniforms.
     MATERIAL_APPLY_OR_FAIL(shader_system_bind_instance(m->internal_id));
-
     if (needs_update) {
         if (m->shader_id == state_ptr->material_shader_id) {
             // Material shader
@@ -363,44 +365,33 @@ b8 material_system_apply_instance(material* m, b8 needs_update) {
             MATERIAL_APPLY_OR_FAIL(shader_system_uniform_set_by_index(state_ptr->material_locations.normal_texture, &m->normal_map));
             MATERIAL_APPLY_OR_FAIL(shader_system_uniform_set_by_index(state_ptr->material_locations.shininess, &m->shininess));
 
-            // // TODO: HACK: moving lighting code to CPU
-            // static directional_light dir_light = {
-            //     (vec4){0.4f, 0.4f, 0.2f, 1.0f},
-            //     (vec4){-0.57735f, -0.57735f, -0.57735f, 0.0f}};
-
-            // static i32 p_light_count = 3;
-            // static point_light p_lights[10] = {0};
-
-            // p_lights[0].colour = (vec4){1.0f, 0.0f, 0.0f, 1.0f};
-            // p_lights[0].position = (vec4){-5.5f, 0.0f, -5.5f, 0.0f};
-            // p_lights[0].constant_f = 1.0f;
-            // p_lights[0].linear = 0.35f;
-            // p_lights[0].quadratic = 0.44f;
-            // p_lights[0].padding = 0;
-
-            // p_lights[1].colour = (vec4){0.0f, 1.0f, 0.0f, 1.0f};
-            // p_lights[1].position = (vec4){5.5f, 0.0f, -5.5f, 0.0f};
-            // p_lights[1].constant_f = 1.0f;
-            // p_lights[1].linear = 0.35f;
-            // p_lights[1].quadratic = 0.44f;
-            // p_lights[1].padding = 0;
-
-            // p_lights[2].colour = (vec4){0.0f, 0.0f, 1.0f, 1.0f};
-            // p_lights[2].position = (vec4){5.5f, 0.0f, 5.5f, 0.0f};
-            // p_lights[2].constant_f = 1.0f;
-            // p_lights[2].linear = 0.35f;
-            // p_lights[2].quadratic = 0.44f;
-            // p_lights[2].padding = 0;
-
+            // Directional Light
             directional_light* dir_light = light_system_directional_light_get();
-            i32 p_light_count = light_system_point_light_count();
-            // TODO: frame allocator?
-            point_light* p_lights = kallocate(sizeof(point_light) * p_light_count, MEMORY_TAG_ARRAY);
-            light_system_point_lights_get(p_lights);
 
-            MATERIAL_APPLY_OR_FAIL(shader_system_uniform_set_by_index(state_ptr->material_locations.dir_light, dir_light));
-            MATERIAL_APPLY_OR_FAIL(shader_system_uniform_set_by_index(state_ptr->material_locations.p_lights, p_lights));
+            if (dir_light) {
+                MATERIAL_APPLY_OR_FAIL(shader_system_uniform_set_by_index(state_ptr->material_locations.dir_light, &dir_light->data));
+            } else {
+                directional_light_data data = {0};
+                MATERIAL_APPLY_OR_FAIL(shader_system_uniform_set_by_index(state_ptr->material_locations.dir_light, &data));
+            }
+            // Point lights.
+            u32 p_light_count = light_system_point_light_count();
+            if (p_light_count) {
+                // TODO: frame allocator?
+                point_light* p_lights = kallocate(sizeof(point_light) * p_light_count, MEMORY_TAG_ARRAY);
+                light_system_point_lights_get(p_lights);
+
+                point_light_data* p_light_datas = kallocate(sizeof(point_light_data) * p_light_count, MEMORY_TAG_ARRAY);
+                for (u32 i = 0; i < p_light_count; ++i) {
+                    p_light_datas[i] = p_lights[i].data;
+                }
+
+                MATERIAL_APPLY_OR_FAIL(shader_system_uniform_set_by_index(state_ptr->material_locations.p_lights, p_light_datas));
+                kfree(p_light_datas, sizeof(point_light_data), MEMORY_TAG_ARRAY);
+                kfree(p_lights, sizeof(point_light), MEMORY_TAG_ARRAY);
+            }
             MATERIAL_APPLY_OR_FAIL(shader_system_uniform_set_by_index(state_ptr->material_locations.num_p_lights, &p_light_count));
+
         } else if (m->shader_id == state_ptr->ui_shader_id) {
             // UI shader
             MATERIAL_APPLY_OR_FAIL(shader_system_uniform_set_by_index(state_ptr->ui_locations.diffuse_colour, &m->diffuse_colour));
@@ -426,10 +417,23 @@ b8 material_system_apply_local(material* m, const matrix4* model) {
     return false;
 }
 
+void material_system_dump(void) {
+    material_reference* refs = (material_reference*)state_ptr->registered_material_table.memory;
+    for (u32 i = 0; i < state_ptr->registered_material_table.element_count; ++i) {
+        material_reference* r = &refs[i];
+        if (r->reference_count > 0 || r->handle != INVALID_ID) {
+            DDEBUG("Found material ref (handle/refCount): (%u/%u)", r->handle, r->reference_count);
+            if (r->handle != INVALID_ID) {
+                DTRACE("Material name: %s", state_ptr->registered_materials[r->handle].name);
+            }
+        }
+    }
+}
+
 b8 load_material(material_config config, material* m) {
     kzero_memory(m, sizeof(material));
 
-    // Name
+    // name
     string_ncopy(m->name, config.name, MATERIAL_NAME_MAX_LENGTH);
 
     m->shader_id = shader_system_get_id(config.shader_name);
@@ -443,10 +447,7 @@ b8 load_material(material_config config, material* m) {
     // TODO: DRY
     m->diffuse_map.filter_minify = m->diffuse_map.filter_magnify = TEXTURE_FILTER_MODE_LINEAR;
     m->diffuse_map.repeat_u = m->diffuse_map.repeat_v = m->diffuse_map.repeat_w = TEXTURE_REPEAT_REPEAT;
-    if (!renderer_texture_map_acquire_resources(&m->diffuse_map)) {
-        DERROR("Unable to acquire resources for diffuse texture map.");
-        return false;
-    }
+
     if (string_length(config.diffuse_map_name) > 0) {
         m->diffuse_map.use = TEXTURE_USE_MAP_DIFFUSE;
         m->diffuse_map.texture = texture_system_acquire(config.diffuse_map_name, true);
@@ -461,47 +462,55 @@ b8 load_material(material_config config, material* m) {
         m->diffuse_map.texture = texture_system_get_default_diffuse_texture();
     }
 
+    if (!renderer_texture_map_acquire_resources(&m->diffuse_map)) {
+        DERROR("Unable to acquire resources for diffuse texture map.");
+        return false;
+    }
+
     // Specular map
     // TODO: Make this configurable.
     m->specular_map.filter_minify = m->specular_map.filter_magnify = TEXTURE_FILTER_MODE_LINEAR;
     m->specular_map.repeat_u = m->specular_map.repeat_v = m->specular_map.repeat_w = TEXTURE_REPEAT_REPEAT;
-    if (!renderer_texture_map_acquire_resources(&m->specular_map)) {
-        DERROR("Unable to acquire resources for specular texture map.");
-        return false;
-    }
+
     if (string_length(config.specular_map_name) > 0) {
         m->specular_map.use = TEXTURE_USE_MAP_SPECULAR;
         m->specular_map.texture = texture_system_acquire(config.specular_map_name, true);
         if (!m->specular_map.texture) {
-            DWARN("Unable to load texture '%s' for material '%s', using default.", config.specular_map_name, m->name);
-            m->specular_map.texture = texture_system_get_default_texture();
+            DWARN("Unable to load specular texture '%s' for material '%s', using default.", config.specular_map_name, m->name);
+            m->specular_map.texture = texture_system_get_default_specular_texture();
         }
     } else {
         // NOTE: Only set for clarity, as call to kzero_memory above does this already.
         m->specular_map.use = TEXTURE_USE_MAP_SPECULAR;
         m->specular_map.texture = texture_system_get_default_specular_texture();
     }
+    if (!renderer_texture_map_acquire_resources(&m->specular_map)) {
+        DERROR("Unable to acquire resources for specular texture map.");
+        return false;
+    }
 
     // Normal map
     // TODO: Make this configurable.
     m->normal_map.filter_minify = m->normal_map.filter_magnify = TEXTURE_FILTER_MODE_LINEAR;
     m->normal_map.repeat_u = m->normal_map.repeat_v = m->normal_map.repeat_w = TEXTURE_REPEAT_REPEAT;
-    if (!renderer_texture_map_acquire_resources(&m->normal_map)) {
-        DERROR("Unable to acquire resources for normal texture map.");
-        return false;
-    }
+
     if (string_length(config.normal_map_name) > 0) {
         m->normal_map.use = TEXTURE_USE_MAP_NORMAL;
         m->normal_map.texture = texture_system_acquire(config.normal_map_name, true);
         if (!m->normal_map.texture) {
             DWARN("Unable to load normal texture '%s' for material '%s', using default.", config.normal_map_name, m->name);
-            m->normal_map.texture = texture_system_get_default_texture();
+            m->normal_map.texture = texture_system_get_default_normal_texture();
         }
     } else {
+        // Use default
         m->normal_map.use = TEXTURE_USE_MAP_NORMAL;
         m->normal_map.texture = texture_system_get_default_normal_texture();
     }
 
+    if (!renderer_texture_map_acquire_resources(&m->normal_map)) {
+        DERROR("Unable to acquire resources for normal texture map.");
+        return false;
+    }
     // TODO: other maps
 
     // Send it off to the renderer to acquire resources.
@@ -510,6 +519,7 @@ b8 load_material(material_config config, material* m) {
         DERROR("Unable to load material because its shader was not found: '%s'. This is likely a problem with the material asset.", config.shader_name);
         return false;
     }
+
     // Gather a list of pointers to texture maps;
     texture_map* maps[3] = {&m->diffuse_map, &m->specular_map, &m->normal_map};
     if (!renderer_shader_acquire_instance_resources(s, maps, &m->internal_id)) {
@@ -521,17 +531,15 @@ b8 load_material(material_config config, material* m) {
 }
 
 void destroy_material(material* m) {
-    DTRACE("Destroying material '%s'...", m->name);
+    // DTRACE("Destroying material '%s'...", m->name);
 
     // Release texture references.
     if (m->diffuse_map.texture) {
         texture_system_release(m->diffuse_map.texture->name);
     }
-
     if (m->specular_map.texture) {
         texture_system_release(m->specular_map.texture->name);
     }
-
     if (m->normal_map.texture) {
         texture_system_release(m->normal_map.texture->name);
     }
@@ -562,9 +570,11 @@ b8 create_default_material(material_system_state* state) {
     string_ncopy(state->default_material.name, DEFAULT_MATERIAL_NAME, MATERIAL_NAME_MAX_LENGTH);
     state->default_material.diffuse_colour = vec4_one();  // white
     state->default_material.diffuse_map.use = TEXTURE_USE_MAP_DIFFUSE;
-    state->default_material.diffuse_map.texture = texture_system_get_default_diffuse_texture();
+    state->default_material.diffuse_map.texture = texture_system_get_default_texture();
+
     state->default_material.specular_map.use = TEXTURE_USE_MAP_SPECULAR;
     state->default_material.specular_map.texture = texture_system_get_default_specular_texture();
+
     state->default_material.normal_map.use = TEXTURE_USE_MAP_SPECULAR;
     state->default_material.normal_map.texture = texture_system_get_default_normal_texture();
 

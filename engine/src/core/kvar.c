@@ -21,7 +21,7 @@ typedef struct kvar_system_state {
 
 static kvar_system_state* state_ptr;
 
-void kvar_register_console_commands(void);
+static void kvar_console_commands_register(void);
 
 b8 kvar_initialize(u64* memory_requirement, void* memory, void* config) {
     *memory_requirement = sizeof(kvar_system_state);
@@ -34,7 +34,7 @@ b8 kvar_initialize(u64* memory_requirement, void* memory, void* config) {
 
     kzero_memory(state_ptr, sizeof(kvar_system_state));
 
-    kvar_register_console_commands();
+    kvar_console_commands_register();
 
     return true;
 }
@@ -44,7 +44,7 @@ void kvar_shutdown(void* state) {
     }
 }
 
-b8 kvar_create_int(const char* name, i32 value) {
+b8 kvar_int_create(const char* name, i32 value) {
     if (!state_ptr || !name) {
         return false;
     }
@@ -66,11 +66,11 @@ b8 kvar_create_int(const char* name, i32 value) {
         }
     }
 
-    DERROR("kvar_create_int could not find a free slot to store an entry in.");
+    DERROR("kvar_int_create could not find a free slot to store an entry in.");
     return false;
 }
 
-b8 kvar_get_int(const char* name, i32* out_value) {
+b8 kvar_int_get(const char* name, i32* out_value) {
     if (!state_ptr || !name) {
         return false;
     }
@@ -83,11 +83,11 @@ b8 kvar_get_int(const char* name, i32* out_value) {
         }
     }
 
-    DERROR("kvar_get_int could not find a kvar named '%s'.", name);
+    DERROR("kvar_int_get could not find a kvar named '%s'.", name);
     return false;
 }
 
-b8 kvar_set_int(const char* name, i32 value) {
+b8 kvar_int_set(const char* name, i32 value) {
     if (!state_ptr || !name) {
         return false;
     }
@@ -104,13 +104,13 @@ b8 kvar_set_int(const char* name, i32 value) {
         }
     }
 
-    DERROR("kvar_set_int could not find a kvar named '%s'.", name);
+    DERROR("kvar_int_set could not find a kvar named '%s'.", name);
     return false;
 }
 
-void kvar_console_command_create_int(console_command_context context) {
+void kvar_console_command_int_create(console_command_context context) {
     if (context.argument_count != 2) {
-        DERROR("kvar_console_command_create_int requires a context arg count of 2.");
+        DERROR("kvar_console_command_int_create requires a context arg count of 2.");
         return;
     }
 
@@ -122,20 +122,20 @@ void kvar_console_command_create_int(console_command_context context) {
         return;
     }
 
-    if (!kvar_create_int(name, value)) {
+    if (!kvar_int_create(name, value)) {
         DERROR("Failed to create int kvar.");
     }
 }
 
-void kvar_console_command_print_int(console_command_context context) {
+void kvar_console_command_int_print(console_command_context context) {
     if (context.argument_count != 1) {
-        DERROR("kvar_console_command_print_int requires a context arg count of 1.");
+        DERROR("kvar_console_command_int_print requires a context arg count of 1.");
         return;
     }
 
     const char* name = context.arguments[0].value;
     i32 value = 0;
-    if (!kvar_get_int(name, &value)) {
+    if (!kvar_int_get(name, &value)) {
         DERROR("Failed to find kvar called '%s'.", name);
         return;
     }
@@ -146,9 +146,9 @@ void kvar_console_command_print_int(console_command_context context) {
     console_write_line(LOG_LEVEL_INFO, val_str);
 }
 
-void kvar_console_command_set_int(console_command_context context) {
+void kvar_console_command_int_set(console_command_context context) {
     if (context.argument_count != 2) {
-        DERROR("kvar_console_command_set_int requires a context arg count of 2.");
+        DERROR("kvar_console_command_int_set requires a context arg count of 2.");
         return;
     }
 
@@ -160,7 +160,7 @@ void kvar_console_command_set_int(console_command_context context) {
         return;
     }
 
-    if (!kvar_set_int(name, value)) {
+    if (!kvar_int_set(name, value)) {
         DERROR("Failed to set int kvar called '%s' because it doesn't exist.", name);
     }
 
@@ -183,9 +183,9 @@ void kvar_console_command_print_all(console_command_context context) {
     // TODO: Other variable types.
 }
 
-void kvar_register_console_commands(void) {
-    console_register_command("kvar_create_int", 2, kvar_console_command_create_int);
-    console_register_command("kvar_print_int", 1, kvar_console_command_print_int);
-    console_register_command("kvar_set_int", 2, kvar_console_command_set_int);
-    console_register_command("kvar_print_all", 0, kvar_console_command_print_all);
+static void kvar_console_commands_register(void) {
+    console_command_register("kvar_int_create", 2, kvar_console_command_int_create);
+    console_command_register("kvar_print_int", 1, kvar_console_command_int_print);
+    console_command_register("kvar_int_set", 2, kvar_console_command_int_set);
+    console_command_register("kvar_print_all", 0, kvar_console_command_print_all);
 }

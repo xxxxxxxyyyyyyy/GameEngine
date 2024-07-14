@@ -20,7 +20,7 @@ typedef struct resource_loader {
 b8 resource_system_initialize(u64* memory_requirement, void* state, void* config);
 void resource_system_shutdown(void* state);
 
-API b8 resource_system_register_loader(resource_loader loader);
+API b8 resource_system_loader_register(resource_loader loader);
 
 API b8 resource_system_load(const char* name, resource_type type, void* params, resource* out_resource);
 API b8 resource_system_load_custom(const char* name, const char* custom_type, void* params, resource* out_resource);

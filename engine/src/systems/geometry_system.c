@@ -25,9 +25,9 @@ typedef struct geometry_system_state {
 
 static geometry_system_state* state_ptr = 0;
 
-b8 create_default_geometries(geometry_system_state* state);
-b8 create_geometry(geometry_system_state* state, geometry_config config, geometry* g);
-void destroy_geometry(geometry_system_state* state, geometry* g);
+static b8 create_default_geometries(geometry_system_state* state);
+static b8 geometry_create(geometry_system_state* state, geometry_config config, geometry* g);
+static void geometry_destroy(geometry_system_state* state, geometry* g);
 
 b8 geometry_system_initialize(u64* memory_requirement, void* state, void* config) {
     geometry_system_config* typed_config = (geometry_system_config*)config;
@@ -101,7 +101,7 @@ geometry* geometry_system_acquire_from_config(geometry_config config, b8 auto_re
         return 0;
     }
 
-    if (!create_geometry(state_ptr, config, g)) {
+    if (!geometry_create(state_ptr, config, g)) {
         DERROR("Failed to create geometry. Returning nullptr.");
         return 0;
     }
@@ -132,7 +132,7 @@ void geometry_system_release(geometry* geometry) {
 
             // Also blanks out the geometry id.
             if (ref->reference_count < 1 && ref->auto_release) {
-                destroy_geometry(state_ptr, &ref->geometry);
+                geometry_destroy(state_ptr, &ref->geometry);
                 ref->reference_count = 0;
                 ref->auto_release = false;
             }
@@ -163,9 +163,9 @@ geometry* geometry_system_get_default(void) {
     return 0;
 }
 
-b8 create_geometry(geometry_system_state* state, geometry_config config, geometry* g) {
+static b8 geometry_create(geometry_system_state* state, geometry_config config, geometry* g) {
     // Send the geometry off to the renderer to be uploaded to the GPU.
-    if (!renderer_create_geometry(g, config.vertex_size, config.vertex_count, config.vertices, config.index_size, config.index_count, config.indices)) {
+    if (!renderer_geometry_create(g, config.vertex_size, config.vertex_count, config.vertices, config.index_size, config.index_count, config.indices)) {
         // Invalidate the entry.
         state->registered_geometries[g->id].reference_count = 0;
         state->registered_geometries[g->id].auto_release = false;
@@ -193,8 +193,8 @@ b8 create_geometry(geometry_system_state* state, geometry_config config, geometr
     return true;
 }
 
-void destroy_geometry(geometry_system_state* state, geometry* g) {
-    renderer_destroy_geometry(g);
+static void geometry_destroy(geometry_system_state* state, geometry* g) {
+    renderer_geometry_destroy(g);
     g->internal_id = INVALID_ID;
     g->generation = INVALID_ID_U16;
     g->id = INVALID_ID;
@@ -208,7 +208,7 @@ void destroy_geometry(geometry_system_state* state, geometry* g) {
     }
 }
 
-b8 create_default_geometries(geometry_system_state* state) {
+static b8 create_default_geometries(geometry_system_state* state) {
     vertex_3d verts[4];
     kzero_memory(verts, sizeof(vertex_3d) * 4);
 
@@ -238,7 +238,7 @@ b8 create_default_geometries(geometry_system_state* state) {
 
     // Send the geometry off to the renderer to be uploaded to the GPU.
     state->default_geometry.internal_id = INVALID_ID;
-     if (!renderer_create_geometry(&state->default_geometry, sizeof(vertex_3d), ARRAY_LENGTH(verts), verts, sizeof(u32), ARRAY_LENGTH(indices), indices)) {
+     if (!renderer_geometry_create(&state->default_geometry, sizeof(vertex_3d), ARRAY_LENGTH(verts), verts, sizeof(u32), ARRAY_LENGTH(indices), indices)) {
         DFATAL("Failed to create default geometry. Application cannot continue.");
         return false;
     }
@@ -273,7 +273,7 @@ b8 create_default_geometries(geometry_system_state* state) {
     u32 indices2d[6] = {2, 1, 0, 3, 0, 1};
 
     // Send the geometry off to the renderer to be uploaded to the GPU.
-    if (!renderer_create_geometry(&state->default_2d_geometry, sizeof(vertex_2d), ARRAY_LENGTH(verts2d), verts2d, sizeof(u32), ARRAY_LENGTH(indices2d), indices2d)) {
+    if (!renderer_geometry_create(&state->default_2d_geometry, sizeof(vertex_2d), ARRAY_LENGTH(verts2d), verts2d, sizeof(u32), ARRAY_LENGTH(indices2d), indices2d)) {
         DFATAL("Failed to create default 2d geometry. Application cannot continue.");
         return false;
     }

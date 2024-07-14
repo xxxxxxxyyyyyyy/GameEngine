@@ -73,7 +73,7 @@ void light_system_shutdown(void* state);
  * @param light A pointer to the light to be added.
  * @return True on success; otherwise false.
  */
-API b8 light_system_add_directional(directional_light* light);
+API b8 light_system_directional_add(directional_light* light);
 
 /**
  * @brief Attempts to add a point light to the system.
@@ -81,7 +81,7 @@ API b8 light_system_add_directional(directional_light* light);
  * @param light A pointer to the light to be added.
  * @return True on success; otherwise false.
  */
-API b8 light_system_add_point(point_light* light);
+API b8 light_system_point_add(point_light* light);
 
 /**
  * @brief Attempts to remove the given light from the system. A pointer comparison
@@ -90,7 +90,7 @@ API b8 light_system_add_point(point_light* light);
  * @param light A pointer to the light to be removed.
  * @return True on successful removal; otherwise false.
  */
-API b8 light_system_remove_directional(directional_light* light);
+API b8 light_system_directional_remove(directional_light* light);
 
 /**
  * @brief Attempts to remove the given light from the system. A pointer comparison
@@ -99,7 +99,7 @@ API b8 light_system_remove_directional(directional_light* light);
  * @param light A pointer to the light to be removed.
  * @return True on successful removal; otherwise false.
  */
-API b8 light_system_remove_point(point_light* light);
+API b8 light_system_point_remove(point_light* light);
 
 /**
  * @brief Obtains a pointer to the current directional light. Can be NULL if one

@@ -71,7 +71,7 @@ API render_view* render_view_system_get(const char* name);
  * @param out_packet A pointer to hold the generated packet.
  * @return True on success; otherwise false.
  */
-API b8 render_view_system_build_packet(const render_view* view, struct linear_allocator* frame_allocator, void* data, struct render_view_packet* out_packet);
+API b8 render_view_system_packet_build(const render_view* view, struct linear_allocator* frame_allocator, void* data, struct render_view_packet* out_packet);
 
 /**
  * @brief Uses the given view and packet to render the contents therein.
@@ -84,4 +84,4 @@ API b8 render_view_system_build_packet(const render_view* view, struct linear_al
  */
 API b8 render_view_system_on_render(const render_view* view, const render_view_packet* packet, u64 frame_number, u64 render_target_index);
 
-void render_view_system_regenerate_render_targets(render_view* view);
+void render_view_system_render_targets_regenerate(render_view* view);

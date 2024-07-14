@@ -42,8 +42,8 @@ static b8 initialized = false;
 static engine_state_t* engine_state;
 
 // event handlers
-b8 engine_on_event(u16 code, void* sender, void* listener_inst, event_context context);
-b8 engine_on_resized(u16 code, void* sender, void* listener_inst, event_context context);
+static b8 engine_on_event(u16 code, void* sender, void* listener_inst, event_context context);
+static b8 engine_on_resized(u16 code, void* sender, void* listener_inst, event_context context);
 
 b8 engine_create(application* game_inst) {
     if (game_inst->engine_state) {
@@ -130,7 +130,7 @@ b8 engine_run(application* game_inst) {
     clock_update(&engine_state->clock);
     engine_state->last_time = engine_state->clock.elapsed;
     f64 running_time = 0;
-    u8 frame_count = 0;
+    // u8 frame_count = 0;
     f64 target_frame_seconds = 1.0f / 30;
     f64 frame_elapsed_time = 0;
 
@@ -179,7 +179,7 @@ b8 engine_run(application* game_inst) {
 
             // Clean-up
             for (u32 i = 0; i < packet.view_count; ++i) {
-                packet.views[i].view->on_destroy_packet(packet.views[i].view, &packet.views[i]);
+                packet.views[i].view->on_packet_destroy(packet.views[i].view, &packet.views[i]);
             }
 
             // figure out how long the frame took
@@ -197,7 +197,7 @@ b8 engine_run(application* game_inst) {
                     platform_sleep(remaining_ms - 1);
                 }
 
-                frame_count++;
+                // frame_count++;
             }
 
             // NOTE: input update/state copying should always be handled
@@ -230,7 +230,7 @@ b8 engine_run(application* game_inst) {
 //     *height = engine_state->height;
 // }
 
-void engine_on_event_system_initialized(void) {
+static void engine_on_event_system_initialized(void) {
     // Register for engine-level events.
     event_register(EVENT_CODE_APPLICATION_QUIT, 0, engine_on_event);
     event_register(EVENT_CODE_RESIZED, 0, engine_on_resized);
@@ -240,7 +240,7 @@ const struct frame_data* engine_frame_data_get(struct application* game_inst) {
     return &((engine_state_t*)game_inst->engine_state)->p_frame_data;
 }
 
-b8 engine_on_event(u16 code, void* sender, void* listener_inst, event_context context) {
+static b8 engine_on_event(u16 code, void* sender, void* listener_inst, event_context context) {
     switch (code) {
         case EVENT_CODE_APPLICATION_QUIT: {
             DINFO("EVENT_CODE_APPLICATION_QUIT received, shutting down. \n");

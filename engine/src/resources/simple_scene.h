@@ -124,21 +124,21 @@ API b8 simple_scene_update(simple_scene* scene, const struct frame_data* p_frame
  */
 API b8 simple_scene_populate_render_packet(simple_scene* scene, struct camera* current_camera, f32 aspect, struct frame_data* p_frame_data, struct render_packet* packet);
 
-API b8 simple_scene_add_directional_light(simple_scene* scene, const char* name, struct directional_light* light);
+API b8 simple_scene_directional_light_add(simple_scene* scene, const char* name, struct directional_light* light);
 
-API b8 simple_scene_add_point_light(simple_scene* scene, const char* name, struct point_light* light);
+API b8 simple_scene_point_light_add(simple_scene* scene, const char* name, struct point_light* light);
 
-API b8 simple_scene_add_mesh(simple_scene* scene, const char* name, struct mesh* m);
+API b8 simple_scene_mesh_add(simple_scene* scene, const char* name, struct mesh* m);
 
-API b8 simple_scene_add_skybox(simple_scene* scene, const char* name, struct skybox* sb);
+API b8 simple_scene_skybox_add(simple_scene* scene, const char* name, struct skybox* sb);
 
-API b8 simple_scene_remove_directional_light(simple_scene* scene, const char* name);
+API b8 simple_scene_directional_light_remove(simple_scene* scene, const char* name);
 
-API b8 simple_scene_remove_point_light(simple_scene* scene, const char* name);
+API b8 simple_scene_point_light_remove(simple_scene* scene, const char* name);
 
-API b8 simple_scene_remove_mesh(simple_scene* scene, const char* name);
+API b8 simple_scene_mesh_remove(simple_scene* scene, const char* name);
 
-API b8 simple_scene_remove_skybox(simple_scene* scene, const char* name);
+API b8 simple_scene_skybox_remove(simple_scene* scene, const char* name);
 
 API struct directional_light* simple_scene_directional_light_get(simple_scene* scene, const char* name);
 

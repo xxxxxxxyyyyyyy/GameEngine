@@ -207,11 +207,11 @@ void game_on_debug_cam_position(keys key, keymap_entry_bind_type type, keymap_mo
 
 void game_on_debug_vsync_toggle(keys key, keymap_entry_bind_type type, keymap_modifier modifiers, void* user_data) {
     char cmd[30];
-    string_ncopy(cmd, "kvar_set_int vsync 0", 29);
-    b8 vsync_enabled = renderer_flag_enabled(RENDERER_CONFIG_FLAG_VSYNC_ENABLED_BIT);
+    string_ncopy(cmd, "kvar_int_set vsync 0", 29);
+    b8 vsync_enabled = renderer_flag_enabled_get(RENDERER_CONFIG_FLAG_VSYNC_ENABLED_BIT);
     u32 length = string_length(cmd);
     cmd[length - 1] = vsync_enabled ? '1' : '0';
-    console_execute_command(cmd);
+    console_command_execute(cmd);
 }
 
 void game_print_memory_metrics(keys key, keymap_entry_bind_type type, keymap_modifier modifiers, void* user_data) {

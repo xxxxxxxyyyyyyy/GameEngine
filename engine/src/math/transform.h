@@ -2,7 +2,7 @@
 
 /**
  * @brief Creates and returns a new transform, using a zero
- * vector for position, identity quaterionernion for rotation, and
+ * vector for position, identity quaternion for rotation, and
  * a one vector for scale. Also has a null parent. Marked dirty
  * by default.
  */
@@ -52,7 +52,7 @@ API transform transform_from_position_rotation_scale(vec3 position, quaterion ro
  * @param t A pointer to the transform whose parent to retrieve.
  * @return A pointer to the parent transform.
  */
-API transform* transform_get_parent(transform* t);
+API transform* transform_parent_get(transform* t);
 
 /**
  * @brief Sets the parent of the provided transform.
@@ -60,7 +60,7 @@ API transform* transform_get_parent(transform* t);
  * @param t A pointer to the transform whose parent will be set.
  * @param parent A pointer to the parent transform.
  */
-API void transform_set_parent(transform* t, transform* parent);
+API void transform_parent_set(transform* t, transform* parent);
 
 /**
  * @brief Returns the position of the given transform.
@@ -68,7 +68,7 @@ API void transform_set_parent(transform* t, transform* parent);
  * @param t A constant pointer whose position to get.
  * @return A copy of the position.
  */
-API vec3 transform_get_position(const transform* t);
+API vec3 transform_position_get(const transform* t);
 
 /**
  * @brief Sets the position of the given transform.
@@ -76,7 +76,7 @@ API vec3 transform_get_position(const transform* t);
  * @param t A pointer to the transform to be updated.
  * @param position The position to be set.
  */
-API void transform_set_position(transform* t, vec3 position);
+API void transform_position_set(transform* t, vec3 position);
 
 /**
  * @brief Applies a translation to the given transform. Not the
@@ -93,7 +93,7 @@ API void transform_translate(transform* t, vec3 translation);
  * @param t A constant pointer whose rotation to get.
  * @return A copy of the rotation.
  */
-API quaterion transform_get_rotation(const transform* t);
+API quaterion transform_rotation_get(const transform* t);
 
 /**
  * @brief Sets the rotation of the given transform.
@@ -101,7 +101,7 @@ API quaterion transform_get_rotation(const transform* t);
  * @param t A pointer to the transform to be updated.
  * @param rotation The rotation to be set.
  */
-API void transform_set_rotation(transform* t, quaterion rotation);
+API void transform_rotation_set(transform* t, quaterion rotation);
 
 /**
  * @brief Applies a rotation to the given transform. Not the
@@ -118,7 +118,7 @@ API void transform_rotate(transform* t, quaterion rotation);
  * @param t A constant pointer whose scale to get.
  * @return A copy of the scale.
  */
-API vec3 transform_get_scale(const transform* t);
+API vec3 transform_scale_get(const transform* t);
 
 /**
  * @brief Sets the scale of the given transform.
@@ -126,7 +126,7 @@ API vec3 transform_get_scale(const transform* t);
  * @param t A pointer to the transform to be updated.
  * @param scale The scale to be set.
  */
-API void transform_set_scale(transform* t, vec3 scale);
+API void transform_scale_set(transform* t, vec3 scale);
 
 /**
  * @brief Applies a scale to the given transform. Not the
@@ -144,7 +144,7 @@ API void transform_scale(transform* t, vec3 scale);
  * @param position The position to be set.
  * @param rotation The rotation to be set.
  */
-API void transform_set_position_rotation(transform* t, vec3 position, quaterion rotation);
+API void transform_position_rotation_set(transform* t, vec3 position, quaterion rotation);
 
 /**
  * @brief Sets the position, rotation and scale of the given transform.
@@ -154,7 +154,7 @@ API void transform_set_position_rotation(transform* t, vec3 position, quaterion 
  * @param rotation The rotation to be set.
  * @param scale The scale to be set.
  */
-API void transform_set_position_rotation_scale(transform* t, vec3 position, quaterion rotation, vec3 scale);
+API void transform_position_rotation_scale_set(transform* t, vec3 position, quaterion rotation, vec3 scale);
 
 /**
  * @brief Applies translation and rotation to the given transform.
@@ -174,7 +174,7 @@ API void transform_translate_rotate(transform* t, vec3 translation, quaterion ro
  * @param t A pointer to the transform whose matrix to retrieve.
  * @return A copy of the local transformation matrix.
  */
-API matrix4 transform_get_local(transform* t);
+API matrix4 transform_local_get(transform* t);
 
 /**
  * @brief Obtains the world matrix of the given transform
@@ -184,4 +184,4 @@ API matrix4 transform_get_local(transform* t);
  * @param t A pointer to the transform whose world matrix to retrieve.
  * @return A copy of the world matrix.
  */
-API matrix4 transform_get_world(transform* t);
+API matrix4 transform_world_get(transform* t);

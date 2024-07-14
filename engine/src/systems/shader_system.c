@@ -1,10 +1,10 @@
 #include "shader_system.h"
 
-#include "core/logger.h"
+#include "containers/darray.h"
 #include "core/kmemory.h"
 #include "core/kstring.h"
+#include "core/logger.h"
 
-#include "containers/darray.h"
 #include "renderer/renderer_frontend.h"
 
 #include "systems/texture_system.h"
@@ -37,7 +37,7 @@ b8 shader_uniform_add_state_valid(shader* shader);
 void shader_destroy(shader* s);
 ///////////////////////
 
-b8 shader_system_initialize(u64* memory_requirement, void* memory, void* config) {\
+b8 shader_system_initialize(u64* memory_requirement, void* memory, void* config) {
     shader_system_config* typed_config = (shader_system_config*)config;
     // Verify configuration.
     if (typed_config->max_shader_count < 512) {
@@ -261,7 +261,7 @@ b8 shader_system_use(const char* shader_name) {
 
 b8 shader_system_use_by_id(u32 shader_id) {
     // Only perform the use if the shader id is different.
-    if (state_ptr->current_shader_id != shader_id) {
+    // if (state_ptr->current_shader_id != shader_id) {
         shader* next_shader = shader_system_get_by_id(shader_id);
         state_ptr->current_shader_id = shader_id;
         if (!renderer_shader_use(next_shader)) {
@@ -272,7 +272,7 @@ b8 shader_system_use_by_id(u32 shader_id) {
             DERROR("Failed to bind globals for shader '%s'.", next_shader->name);
             return false;
         }
-    }
+    // }
     return true;
 }
 
@@ -317,7 +317,7 @@ b8 shader_system_uniform_set_by_index(u16 index, const void* value) {
         }
         shader->bound_scope = uniform->scope;
     }
-    return renderer_uniform_set(shader, uniform, value);
+    return renderer_shader_uniform_set(shader, uniform, value);
 }
 b8 shader_system_sampler_set_by_index(u16 index, const texture* t) {
     return shader_system_uniform_set_by_index(index, t);
@@ -407,14 +407,13 @@ b8 add_sampler(shader* shader, shader_uniform_config* config) {
         default_map.filter_magnify = TEXTURE_FILTER_MODE_LINEAR;
         default_map.filter_minify = TEXTURE_FILTER_MODE_LINEAR;
         default_map.repeat_u = default_map.repeat_v = default_map.repeat_w = TEXTURE_REPEAT_REPEAT;
-        default_map.use = TEXTURE_USE_UNKNOWN;
 
         // Allocate a pointer assign the texture, and push into global texture maps.
         // NOTE: This allocation is only done for global texture maps.
         texture_map* map = kallocate(sizeof(texture_map), MEMORY_TAG_RENDERER);
         *map = default_map;
         map->texture = texture_system_get_default_texture();
-        if (!renderer_texture_map_resources_acquire(&default_map)) {
+        if (!renderer_texture_map_resources_acquire(map)) {
             DERROR("Failed to acquire resources for global texture map during shader creation.");
             return false;
         }

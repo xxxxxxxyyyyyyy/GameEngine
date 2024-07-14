@@ -1,12 +1,12 @@
 #include "image_loader.h"
 
-#include "core/logger.h"
 #include "core/kmemory.h"
 #include "core/kstring.h"
+#include "core/logger.h"
+#include "loader_utils.h"
+#include "platform/filesystem.h"
 #include "resources/resource_types.h"
 #include "systems/resource_system.h"
-#include "platform/filesystem.h"
-#include "loader_utils.h"
 
 // TODO: resource loader.
 #define STB_IMAGE_IMPLEMENTATION
@@ -14,24 +14,26 @@
 #define STBI_NO_STDIO
 #include "thirdlib/stb/stb_image.h"
 
-static b8 image_loader_load(struct resource_loader* self, const char* name, void* params, resource* out_resource) {
+static b8 image_loader_load(struct resource_loader *self, const char *name,
+                            void *params, resource *out_resource) {
     if (!self || !name || !out_resource) {
         return false;
     }
 
-    image_resource_params* typed_params = (image_resource_params*)params;
+    image_resource_params *typed_params = (image_resource_params *)params;
 
-    char* format_str = "%s/%s/%s%s";
+    char *format_str = "%s/%s/%s%s";
     const i32 required_channel_count = 4;
     stbi_set_flip_vertically_on_load_thread(typed_params->flip_y);
     char full_file_path[512];
 
-    // Try different extensions
+// Try different extensions
 #define IMAGE_EXTENSION_COUNT 4
     b8 found = false;
-    char* extensions[IMAGE_EXTENSION_COUNT] = {".tga", ".png", ".jpg", ".bmp"};
+    char *extensions[IMAGE_EXTENSION_COUNT] = {".tga", ".png", ".jpg", ".bmp"};
     for (u32 i = 0; i < IMAGE_EXTENSION_COUNT; ++i) {
-        string_format(full_file_path, format_str, resource_system_base_path(), self->type_path, name, extensions[i]);
+        string_format(full_file_path, format_str, resource_system_base_path(),
+                      self->type_path, name, extensions[i]);
         if (filesystem_exists(full_file_path)) {
             found = true;
             break;
@@ -43,7 +45,10 @@ static b8 image_loader_load(struct resource_loader* self, const char* name, void
     out_resource->name = name;
 
     if (!found) {
-        DERROR("Image resource loader failed find file '%s'.", full_file_path);
+        DERROR(
+            "Image resource loader failed find file '%s' or with any supported "
+            "extension.",
+            full_file_path);
         return false;
     }
 
@@ -65,7 +70,7 @@ static b8 image_loader_load(struct resource_loader* self, const char* name, void
     i32 height;
     i32 channel_count;
 
-    u8* raw_data = kallocate(file_size, MEMORY_TAG_TEXTURE);
+    u8 *raw_data = kallocate(file_size, MEMORY_TAG_TEXTURE);
     if (!raw_data) {
         DERROR("Unable to read file '%s'.", full_file_path);
         filesystem_close(&f);
@@ -82,11 +87,13 @@ static b8 image_loader_load(struct resource_loader* self, const char* name, void
     }
 
     if (bytes_read != file_size) {
-        DERROR("File size if %llu does not match expected: %llu", bytes_read, file_size);
+        DERROR("File size if %llu does not match expected: %llu", bytes_read,
+               file_size);
         return false;
     }
 
-    u8* data = stbi_load_from_memory(raw_data, file_size, &width, &height, &channel_count, required_channel_count);
+    u8 *data = stbi_load_from_memory(raw_data, file_size, &width, &height,
+                                     &channel_count, required_channel_count);
     if (!data) {
         DERROR("Image resource loader failed to load file '%s'.", full_file_path);
         return false;
@@ -94,7 +101,8 @@ static b8 image_loader_load(struct resource_loader* self, const char* name, void
 
     kfree(raw_data, file_size, MEMORY_TAG_TEXTURE);
 
-    image_resource_data* resource_data = kallocate(sizeof(image_resource_data), MEMORY_TAG_TEXTURE);
+    image_resource_data *resource_data =
+        kallocate(sizeof(image_resource_data), MEMORY_TAG_TEXTURE);
     resource_data->pixels = data;
     resource_data->width = width;
     resource_data->height = height;
@@ -102,16 +110,15 @@ static b8 image_loader_load(struct resource_loader* self, const char* name, void
 
     out_resource->data = resource_data;
     out_resource->data_size = sizeof(image_resource_data);
-    out_resource->name = name;
 
     return true;
 }
 
-static void image_loader_unload(struct resource_loader* self, resource* resource) {
-    stbi_image_free(((image_resource_data*)resource->data)->pixels);
+static void image_loader_unload(struct resource_loader *self,
+                                resource *resource) {
+    stbi_image_free(((image_resource_data *)resource->data)->pixels);
     if (!resource_unload(self, resource, MEMORY_TAG_TEXTURE)) {
         DWARN("image_loader_unload called with nullptr for self or resource.");
-        return;
     }
 }
 
@@ -121,7 +128,8 @@ resource_loader image_resource_loader_create(void) {
     loader.custom_type = 0;
     loader.load = image_loader_load;
     loader.unload = image_loader_unload;
-    loader.type_path = "textures";
+    loader.type_path = "textures";  // FIXME: Shouldn't make assumptions about
+                                    // this, should be passed as a param.
 
     return loader;
 }

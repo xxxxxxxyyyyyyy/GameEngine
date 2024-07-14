@@ -34,7 +34,7 @@ b8 render_view_system_initialize(u64* memory_requirement, void* state, void* con
     u64 array_requirement = sizeof(render_view) * typed_config->max_view_count;
     *memory_requirement = struct_requirement + hashtable_requirement + array_requirement;
 
-     if (!state) {
+    if (!state) {
         return true;
     }
 
@@ -67,7 +67,6 @@ void render_view_system_shutdown(void* state) {
     for (u32 i = 0; i < state_ptr->max_view_count; ++i) {
         render_view* view = &state_ptr->registered_views[i];
         if (view->id != INVALID_ID_U16) {
-
             // Call its destroy routine first.
             view->on_destroy(view);
 
@@ -79,6 +78,8 @@ void render_view_system_shutdown(void* state) {
             view->id = INVALID_ID_U16;
         }
     }
+
+    state_ptr = 0;
 }
 
 b8 render_view_system_create(const render_view_config* config) {
@@ -86,10 +87,12 @@ b8 render_view_system_create(const render_view_config* config) {
         DERROR("render_view_system_create requires a pointer to a valid config.");
         return false;
     }
-    if(!config->name || string_length(config->name) < 1) {
+
+    if (!config->name || string_length(config->name) < 1) {
         DERROR("render_view_system_create: name is required");
         return false;
     }
+
     if (config->pass_count < 1) {
         DERROR("render_view_system_create - Config must have at least one renderpass.");
         return false;
@@ -215,12 +218,12 @@ b8 render_view_system_packet_build(const render_view* view, struct linear_alloca
     return false;
 }
 
-b8 render_view_system_on_render(const render_view* view, const render_view_packet* packet, u64 frame_number, u64 render_target_index) {
+b8 render_view_system_on_render(const render_view* view, const render_view_packet* packet, u64 frame_number, u64 render_target_index, const struct frame_data* p_frame_data) {
     if (view && packet) {
-        return view->on_render(view, packet, frame_number, render_target_index);
+        return view->on_render(view, packet, frame_number, render_target_index, p_frame_data);
     }
 
-    DERROR("render_view_system_on_render requires valid pointers to a view and a packet.");
+    DERROR("render_view_system_on_render requires a valid pointer to a data.");
     return false;
 }
 

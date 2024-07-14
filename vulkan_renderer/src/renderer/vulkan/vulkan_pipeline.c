@@ -3,6 +3,7 @@
 
 #include "core/kmemory.h"
 #include "core/logger.h"
+#include "core/kstring.h"
 #include "systems/shader_system.h"
 #include "math/math_types.h"
 
@@ -146,6 +147,12 @@ b8 vulkan_graphics_pipeline_create(vulkan_context* context, const vulkan_pipelin
         context->allocator,
         &out_pipeline->pipeline_layout));
 
+    char pipeline_layout_name_buf[512] = {0};
+    string_format(pipeline_layout_name_buf, "pipeline_layout_shader_%s", config->name);
+    if (!vulkan_set_debug_object_name(context, VK_OBJECT_TYPE_PIPELINE_LAYOUT, out_pipeline->pipeline_layout, pipeline_layout_name_buf)) {
+        DWARN("Unable to setup debug object name for %s.", pipeline_layout_name_buf);
+    }
+
     // Pipeline create
     VkGraphicsPipelineCreateInfo pipeline_create_info = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
     pipeline_create_info.stageCount = config->stage_count;
@@ -175,6 +182,12 @@ b8 vulkan_graphics_pipeline_create(vulkan_context* context, const vulkan_pipelin
         &pipeline_create_info,
         context->allocator,
         &out_pipeline->handle);
+
+    char pipeline_name_buf[512] = {0};
+    string_format(pipeline_name_buf, "pipeline_shader_%s", config->name);
+    if (!vulkan_set_debug_object_name(context, VK_OBJECT_TYPE_PIPELINE, out_pipeline->handle, pipeline_name_buf)) {
+        DWARN("Unable to setup debug object name for %s.", pipeline_name_buf);
+    }
 
     if (vulkan_result_is_success(result)) {
         DDEBUG("Graphics pipeline created!");

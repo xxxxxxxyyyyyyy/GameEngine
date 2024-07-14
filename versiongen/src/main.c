@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 void print_use(void) {
-    printf("Kohi Version Generator Utility\n    usage: 'versiongen -n|<major> <minor>'\n    example: 'versiongen 1 3' generates something like '1.3.22278.12345', while 'versiongen -n' generates something like '2227812345'.");
+    printf("Version Generator Utility\n    usage: 'versiongen -n|<major> <minor>'\n    example: 'versiongen 1 3' generates something like '1.3.22278.12345', while 'versiongen -n' generates something like '2227812345'.");
 }
 
 int main(int argc, const char** argv) {

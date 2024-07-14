@@ -292,7 +292,7 @@ b8 vulkan_renderer_backend_initialize(renderer_plugin *plugin,
     app_info.apiVersion = VK_API_VERSION_1_2;
     app_info.pApplicationName = config->application_name;
     app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.pEngineName = "Kohi Engine";
+    app_info.pEngineName = "DOD Engine";
     app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 
     VkInstanceCreateInfo create_info = {VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
@@ -2004,9 +2004,12 @@ b8 vulkan_renderer_shader_initialize(renderer_plugin *plugin, shader *s) {
     pipeline_config.shader_flags = s->flags;
     pipeline_config.push_constant_range_count = s->push_constant_range_count;
     pipeline_config.push_constant_ranges = s->push_constant_ranges;
+    pipeline_config.name = string_duplicate(s->name);
 
     b8 pipeline_result = vulkan_graphics_pipeline_create(
         context, &pipeline_config, &internal_shader->pipeline);
+
+    kfree(pipeline_config.name, string_length(pipeline_config.name) + 1, MEMORY_TAG_STRING);
 
     if (!pipeline_result) {
         DERROR("Failed to load graphics pipeline for object shader.");

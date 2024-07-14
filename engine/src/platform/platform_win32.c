@@ -78,7 +78,7 @@ b8 platform_system_startup(u64 *memory_requirement, void *state, void *config) {
     wc.hIcon = icon;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);  // NULL; // Manage the cursor manually
     wc.hbrBackground = NULL;                   // Transparent
-    wc.lpszClassName = "kohi_window_class";
+    wc.lpszClassName = "dod_window_class";
 
     if (!RegisterClassA(&wc)) {
         MessageBoxA(0, "Window registration failed", "Error", MB_ICONEXCLAMATION | MB_OK);
@@ -116,7 +116,7 @@ b8 platform_system_startup(u64 *memory_requirement, void *state, void *config) {
     window_height += border_rect.bottom - border_rect.top;
 
     HWND handle = CreateWindowExA(
-        window_ex_style, "kohi_window_class", typed_config->application_name,
+        window_ex_style, "dod_window_class", typed_config->application_name,
         window_style, window_x, window_y, window_width, window_height,
         0, 0, state_ptr->handle.h_instance, 0);
 

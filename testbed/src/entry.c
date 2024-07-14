@@ -111,7 +111,7 @@ b8 create_application(application* out_application) {
     out_application->app_config.start_pos_y = 100;
     out_application->app_config.start_width = 1280;
     out_application->app_config.start_height = 720;
-    out_application->app_config.name = "Kohi Engine Testbed";
+    out_application->app_config.name = "DOD Engine Testbed";
 
     // Dynamically load game library
     // if (!platform_dynamic_library_load("libtestbed_lib_loaded", &out_application->game_library)) {

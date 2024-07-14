@@ -66,9 +66,6 @@ i32 process_shaders(i32 argc, char** argv) {
             string_ncopy(stage, "geom", 4);
         } else if (strings_equali(end_path, "comp.glsl")) {
             string_ncopy(stage, "comp", 4);
-        } else {
-            DERROR("Unrecognized stage '%s'", end_path);
-            return -5;
         }
         stage[4] = 0;
 

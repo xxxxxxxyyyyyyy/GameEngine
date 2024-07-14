@@ -198,7 +198,6 @@ static b8 load_ksm_file(file_handle *ksm_file,
                         &bytes_read);
 
         // Handles backward compatability for
-        // https://github.com/travisvroman/kohi/issues/130
         u64 extent_size = sizeof(vec3);
         if (version == 0x0001U) {
             extent_size = sizeof(vertex_3d);
@@ -887,7 +886,7 @@ static const char *string_from_type(shader_uniform_type type) {
 }
 
 /**
- * @brief Write out a kohi material file from config. This gets loaded by name
+ * @brief Write out a material file from config. This gets loaded by name
  * later when the mesh is requested for load.
  *
  * @param mtl_file_path The filepath of the material library file which

@@ -1,17 +1,26 @@
 @ECHO OFF
-REM Build Everything
+REM Build script for cleaning and/or building everything
 
-ECHO "Building Everything..."
+SET PLATFORM=%1
+SET ACTION=%2
+SET TARGET=%3
 
-@REM PUSHD engine 
-@REM CALL build.bat
-@REM POPD
-@REM IF %ERRORLEVEL% NEQ 0 (echo Error:%ERRORLEVEL% && exit)
 
-@REM PUSHD testbed
-@REM CALL build.bat
-@REM POPD
-@REM IF %ERRORLEVEL% NEQ 0 (echo Error:%ERRORLEVEL% && exit)
+if "%ACTION%" == "build" (
+    SET ACTION=all
+    SET ACTION_STR=Building
+    SET ACTION_STR_PAST=built
+    SET DO_VERSION=yes
+) else (
+    if "%ACTION%" == "clean" (
+        SET ACTION=clean
+        SET ACTION_STR=Cleaning
+        SET ACTION_STR_PAST=cleaned
+        SET DO_VERSION=no
+    ) else (
+        echo "Unknown action %ACTION%. Aborting" && exit
+    )
+)
 
 del bin\*.pdb
 

@@ -42,7 +42,7 @@ static b8 render_view_on_event(u16 code, void* sender, void* listener_inst, even
     return false;
 }
 
-b8 render_view_ui_on_create(struct render_view* self) {
+b8 render_view_ui_on_registered(struct render_view* self) {
     if (self) {
         self->internal_data = kallocate(sizeof(render_view_ui_internal_data), MEMORY_TAG_RENDERER);
         render_view_ui_internal_data* data = self->internal_data;
@@ -81,7 +81,7 @@ b8 render_view_ui_on_create(struct render_view* self) {
 
         return true;
     }
-    DERROR("render_view_ui_on_create - Requires a valid pointer to a view.");
+    DERROR("render_view_ui_on_registered - Requires a valid pointer to a view.");
     return false;
 }
 

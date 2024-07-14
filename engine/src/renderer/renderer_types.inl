@@ -116,7 +116,9 @@ typedef struct renderpass_config {
 typedef struct renderpass {
     /** @brief The id of the renderpass */
     u16 id;
+
     char* name;
+
     /** @brief The current render area of the renderpass. */
     vec4 render_area;
     /** @brief The clear colour used for this renderpass. */
@@ -236,17 +238,17 @@ typedef struct renderer_plugin {
      * that it should be attempted again on the next loop. End frame does not need to (and
      * should not) be called if this is the case.
      * @param plugin A pointer to the renderer plugin interface.
-     * @param delta_time The time in seconds since the last frame.
+     * @param p_frame_data A constant pointer to the current frame's data.
      * @return True if successful; otherwise false.
      */
     b8 (*frame_begin)(struct renderer_plugin* plugin, const struct frame_data* p_frame_data);
 
     /**
      * @brief Performs routines required to draw a frame, such as presentation. Should only be called
-     * after a successful return of frame_begin.
+     * after a successful return of begin_frame.
      *
      * @param plugin A pointer to the renderer plugin interface.
-     * @param delta_time The time in seconds since the last frame.
+     * @param p_frame_data A constant pointer to the current frame's data.
      * @return True on success; otherwise false.
      */
     b8 (*frame_end)(struct renderer_plugin* plugin, const struct frame_data* p_frame_data);
@@ -263,7 +265,7 @@ typedef struct renderer_plugin {
      * @brief Resets the viewport to the default, which matches the application window.
      * Must be done within a renderpass.
      * @param plugin A pointer to the renderer plugin interface.
-     * 
+     *
      */
     void (*viewport_reset)(struct renderer_plugin* plugin);
 
@@ -278,7 +280,7 @@ typedef struct renderer_plugin {
     /**
      * @brief Resets the scissor to the default, which matches the application window.
      * Must be done within a renderpass.
-     * 
+     *
      * @param plugin A pointer to the renderer plugin interface.
      */
     void (*scissor_reset)(struct renderer_plugin* plugin);
@@ -400,6 +402,17 @@ typedef struct renderer_plugin {
     b8 (*geometry_create)(struct renderer_plugin* plugin, geometry* geometry, u32 vertex_size, u32 vertex_count, const void* vertices, u32 index_size, u32 index_count, const void* indices);
 
     /**
+     * @brief Updates vertex data in the given geometry with the provided data in the given range.
+     *
+     * @param plugin A pointer to the renderer plugin interface.
+     * @param g A pointer to the geometry to be created.
+     * @param offset The offset in bytes to update. 0 if updating from the beginning.
+     * @param vertex_count The number of vertices which will be updated.
+     * @param vertices The vertex data.
+     */
+    void (*geometry_vertex_update)(struct renderer_plugin* plugin, geometry* g, u32 offset, u32 vertex_count, void* vertices);
+
+    /**
      * @brief Destroys the given geometry, releasing internal resources.
      *
      * @param plugin A pointer to the renderer plugin interface.
@@ -423,7 +436,7 @@ typedef struct renderer_plugin {
 
     /**
      * @brief Destroys the given shader and releases any resources held by it.
-     * 
+     *
      * @param plugin A pointer to the renderer plugin interface.
      * @param s A pointer to the shader to be destroyed.
      */
@@ -492,6 +505,7 @@ typedef struct renderer_plugin {
      *
      * @param plugin A pointer to the renderer plugin interface.
      * @param s A pointer to the shader to acquire resources from.
+     * @param texture_map_count The number of texture maps used.
      * @param maps An array of pointers to texture maps. Must be one map per instance texture.
      * @param out_instance_id A pointer to hold the new instance identifier.
      * @return True on success; otherwise false.
@@ -586,7 +600,7 @@ typedef struct renderer_plugin {
 
     /**
      * @brief Returns a pointer to the main depth texture target.
-     * 
+     *
      * @param plugin A pointer to the renderer plugin interface.
      * @param index The index of the attachment to get. Must be within the range of window render target count.
      * @return A pointer to a texture attachment if successful; otherwise 0.
@@ -595,21 +609,21 @@ typedef struct renderer_plugin {
 
     /**
      * @brief Returns the current window attachment index.
-     * 
+     *
      * @param plugin A pointer to the renderer plugin interface.
      */
     u8 (*window_attachment_index_get)(struct renderer_plugin* plugin);
 
     /**
      * @brief Returns the number of attachments required for window-based render targets.
-     * 
+     *
      * @param plugin A pointer to the renderer plugin interface.
      */
     u8 (*window_attachment_count_get)(struct renderer_plugin* plugin);
 
     /**
      * @brief Indicates if the renderer is capable of multi-threading.
-     * 
+     *
      * @param plugin A pointer to the renderer plugin interface.
      */
     b8 (*is_multithreaded)(struct renderer_plugin* plugin);
@@ -671,7 +685,7 @@ typedef struct renderer_plugin {
     /**
      * @brief Maps memory from the given buffer in the provided range to a block of memory and returns it.
      * This memory should be considered invalid once unmapped.
-     * 
+     *
      * @param plugin A pointer to the renderer plugin interface.
      * @param buffer A pointer to the buffer to map.
      * @param offset The number of bytes from the beginning of the buffer to map.
@@ -682,7 +696,7 @@ typedef struct renderer_plugin {
     /**
      * @brief Unmaps memory from the given buffer in the provided range to a block of memory.
      * This memory should be considered invalid once unmapped.
-     * 
+     *
      * @param plugin A pointer to the renderer plugin interface.
      * @param buffer A pointer to the buffer to unmap.
      * @param offset The number of bytes from the beginning of the buffer to unmap.
@@ -692,7 +706,7 @@ typedef struct renderer_plugin {
 
     /**
      * @brief Flushes buffer memory at the given range. Should be done after a write.
-     * 
+     *
      * @param plugin A pointer to the renderer plugin interface.
      * @param buffer A pointer to the buffer to unmap.
      * @param offset The number of bytes from the beginning of the buffer to flush.
@@ -703,7 +717,7 @@ typedef struct renderer_plugin {
 
     /**
      * @brief Reads memory from the provided buffer at the given range to the output variable.
-     * 
+     *
      * @param plugin A pointer to the renderer plugin interface.
      * @param buffer A pointer to the buffer to read from.
      * @param offset The number of bytes from the beginning of the buffer to read.
@@ -765,61 +779,6 @@ typedef struct renderer_plugin {
 
 } renderer_plugin;
 
-/** @brief Known render view types, which have logic associated with them. */
-typedef enum render_view_known_type {
-    /** @brief A view which only renders objects with *no* transparency. */
-    RENDERER_VIEW_KNOWN_TYPE_WORLD = 0x01,
-    /** @brief A view which only renders ui objects. */
-    RENDERER_VIEW_KNOWN_TYPE_UI = 0x02,
-    /** @brief A view which only renders skybox objects. */
-    RENDERER_VIEW_KNOWN_TYPE_SKYBOX = 0x03,
-    /** @brief A view which only renders ui and world objects to be picked. */
-    RENDERER_VIEW_KNOWN_TYPE_PICK = 0x04,
-} render_view_known_type;
-
-/** @brief Known view matrix sources. */
-typedef enum render_view_view_matrix_source {
-    RENDER_VIEW_VIEW_MATRIX_SOURCE_SCENE_CAMERA = 0x01,
-    RENDER_VIEW_VIEW_MATRIX_SOURCE_UI_CAMERA = 0x02,
-    RENDER_VIEW_VIEW_MATRIX_SOURCE_LIGHT_CAMERA = 0x03,
-} render_view_view_matrix_source;
-
-/** @brief Known projection matrix sources. */
-typedef enum render_view_projection_matrix_source {
-    RENDER_VIEW_PROJECTION_MATRIX_SOURCE_DEFAULT_PERSPECTIVE = 0x01,
-    RENDER_VIEW_PROJECTION_MATRIX_SOURCE_DEFAULT_ORTHOGRAPHIC = 0x02,
-} render_view_projection_matrix_source;
-
-/**
- * @brief The configuration of a render view.
- * Used as a serialization target.
- */
-typedef struct render_view_config {
-    /** @brief The name of the view. */
-    const char* name;
-
-    /**
-     * @brief The name of a custom shader to be used
-     * instead of the view's default. Must be 0 if
-     * not used.
-     */
-    const char* custom_shader_name;
-    /** @brief The width of the view. Set to 0 for 100% width. */
-    u16 width;
-    /** @brief The height of the view. Set to 0 for 100% height. */
-    u16 height;
-    /** @brief The known type of the view. Used to associate with view logic. */
-    render_view_known_type type;
-    /** @brief The source of the view matrix. */
-    render_view_view_matrix_source view_matrix_source;
-    /** @brief The source of the projection matrix. */
-    render_view_projection_matrix_source projection_matrix_source;
-    /** @brief The number of renderpasses used in this view. */
-    u8 pass_count;
-    /** @brief The configuration of renderpasses used in this view. */
-    renderpass_config* passes;
-} render_view_config;
-
 struct render_view_packet;
 struct linear_allocator;
 
@@ -828,16 +787,12 @@ struct linear_allocator;
  * of view packets based on internal logic and given config.
  */
 typedef struct render_view {
-    /** @brief The unique identifier of this view. */
-    u16 id;
     /** @brief The name of the view. */
     const char* name;
     /** @brief The current width of this view. */
     u16 width;
     /** @brief The current height of this view. */
     u16 height;
-    /** @brief The known type of this view. */
-    render_view_known_type type;
 
     /** @brief The number of renderpasses used by this view. */
     u8 renderpass_count;
@@ -850,12 +805,12 @@ typedef struct render_view {
     void* internal_data;
 
     /**
-     * @brief A pointer to a function to be called when this view is created.
+     * @brief A pointer to a function to be called when this view is registered with the view system.
      *
-     * @param self A pointer to the view being created.
+     * @param self A pointer to the view being registered.
      * @return True on success; otherwise false.
      */
-    b8 (*on_create)(struct render_view* self);
+    b8 (*on_registered)(struct render_view* self);
     /**
      * @brief A pointer to a function to be called when this view is destroyed.
      *
@@ -885,6 +840,8 @@ typedef struct render_view {
     b8 (*on_packet_build)(const struct render_view* self, struct linear_allocator* frame_allocator, void* data, struct render_view_packet* out_packet);
 
     /**
+     * @brief Destroys a render view packet.
+     *
      * @param self A pointer to the view to use.
      * @param packet A pointer to the packet to be destroyed.
      */
@@ -931,10 +888,16 @@ typedef struct render_view_packet {
     u32 geometry_count;
     /** @brief The geometries to be drawn. */
     geometry_render_data* geometries;
+
     /** @brief The number of terrain geometries to be drawn. */
     u32 terrain_geometry_count;
     /** @brief The terrain geometries to be drawn. */
     geometry_render_data* terrain_geometries;
+
+    /** @brief The number of debug geometries to be drawn. */
+    u32 debug_geometry_count;
+    /** @brief The debug geometries to be drawn. */
+    geometry_render_data* debug_geometries;
 
     struct terrain** terrains;
     /** @brief The name of the custom shader to use, if applicable. Otherwise 0. */

@@ -47,7 +47,7 @@ void render_view_system_shutdown(void* state);
  * @param config A constant pointer to the view configuration.
  * @return True on success; otherwise false.
  */
-API b8 render_view_system_create(const render_view_config* config);
+API b8 render_view_system_register(render_view* view);
 
 /**
  * @brief Called when the owner of this view (i.e. the window) is resized.
@@ -86,4 +86,4 @@ API b8 render_view_system_packet_build(const render_view* view, struct linear_al
  */
 API b8 render_view_system_on_render(const render_view* view, const render_view_packet* packet, u64 frame_number, u64 render_target_index, const struct frame_data* p_frame_data);
 
-void render_view_system_render_targets_regenerate(render_view* view);
+API void render_view_system_render_targets_regenerate(render_view* view);

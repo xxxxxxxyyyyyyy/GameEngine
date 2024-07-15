@@ -1,14 +1,14 @@
 #include "texture_system.h"
 
+#include "containers/hashtable.h"
 #include "core/logger.h"
 #include "core/kstring.h"
 #include "core/kmemory.h"
-#include "containers/hashtable.h"
 
 #include "renderer/renderer_frontend.h"
 
-#include "systems/resource_system.h"
 #include "systems/job_system.h"
+#include "systems/resource_system.h"
 
 typedef struct texture_system_state {
     texture_system_config config;
@@ -163,12 +163,12 @@ texture* texture_system_acquire_cube(const char* name, b8 auto_release) {
     return &state_ptr->registered_textures[id];
 }
 
-texture* texture_system_aquire_writeable(const char* name, u32 width, u32 height, u8 channel_count, b8 has_transparency) {
+texture* texture_system_acquire_writeable(const char* name, u32 width, u32 height, u8 channel_count, b8 has_transparency) {
     u32 id = INVALID_ID;
     // NOTE: Wrapped textures are never auto-released because it means that thier
     // resources are created and managed somewhere within the renderer internals.
     if (!process_texture_reference(name, TEXTURE_TYPE_2D, 1, false, true, &id)) {
-        DERROR("texture_system_aquire_writeable failed to obtain a new texture id.");
+        DERROR("texture_system_acquire_writeable failed to obtain a new texture id.");
         return 0;
     }
 
@@ -180,6 +180,7 @@ texture* texture_system_aquire_writeable(const char* name, u32 width, u32 height
     t->height = height;
     t->channel_count = channel_count;
     t->generation = INVALID_ID;
+    t->mip_levels = 1;
     t->flags |= has_transparency ? TEXTURE_FLAG_HAS_TRANSPARENCY : 0;
     t->flags |= TEXTURE_FLAG_IS_WRITEABLE;
     t->internal_data = 0;
@@ -330,6 +331,7 @@ static b8 create_default_textures(texture_system_state* state) {
     state->default_texture.generation = INVALID_ID;
     state->default_texture.flags = 0;
     state->default_texture.type = TEXTURE_TYPE_2D;
+    state->default_texture.mip_levels = 1;
     renderer_texture_create(pixels, &state->default_texture);
     // Manually set the texture generation to invalid since this is a default texture.
     state->default_texture.generation = INVALID_ID;
@@ -346,6 +348,7 @@ static b8 create_default_textures(texture_system_state* state) {
     state->default_diffuse_texture.generation = INVALID_ID;
     state->default_diffuse_texture.flags = 0;
     state->default_diffuse_texture.type = TEXTURE_TYPE_2D;
+    state->default_diffuse_texture.mip_levels = 1;
     renderer_texture_create(diff_pixels, &state->default_diffuse_texture);
     // Manually set the texture generation to invalid since this is a default texture.
     state->default_diffuse_texture.generation = INVALID_ID;
@@ -362,6 +365,7 @@ static b8 create_default_textures(texture_system_state* state) {
     state->default_specular_texture.generation = INVALID_ID;
     state->default_specular_texture.flags = 0;
     state->default_specular_texture.type = TEXTURE_TYPE_2D;
+    state->default_specular_texture.mip_levels = 1;
     renderer_texture_create(spec_pixels, &state->default_specular_texture);
     // Manually set the texture generation to invalid since this is a default texture.
     state->default_specular_texture.generation = INVALID_ID;
@@ -391,6 +395,7 @@ static b8 create_default_textures(texture_system_state* state) {
     state->default_normal_texture.generation = INVALID_ID;
     state->default_normal_texture.flags = 0;
     state->default_normal_texture.type = TEXTURE_TYPE_2D;
+    state->default_normal_texture.mip_levels = 1;
     renderer_texture_create(normal_pixels, &state->default_normal_texture);
     // Manually set the texture generation to invalid since this is a default texture.
     state->default_normal_texture.generation = INVALID_ID;
@@ -427,6 +432,7 @@ static b8 load_cube_textures(const char* name, const char texture_names[6][TEXTU
             t->channel_count = resource_data->channel_count;
             t->flags = 0;
             t->generation = 0;
+            t->mip_levels = 1;
             // Take a copy of the name.
             string_ncopy(t->name, name, TEXTURE_NAME_MAX_LENGTH);
 
@@ -518,9 +524,11 @@ b8 texture_load_job_start(void* params, void* result_data) {
     load_params->temp_texture.width = resource_data->width;
     load_params->temp_texture.height = resource_data->height;
     load_params->temp_texture.channel_count = resource_data->channel_count;
+    load_params->temp_texture.mip_levels = resource_data->mip_levels;
 
     load_params->current_generation = load_params->out_texture->generation;
     load_params->out_texture->generation = INVALID_ID;
+    load_params->out_texture->mip_levels = resource_data->mip_levels;
 
     u64 total_size = load_params->temp_texture.width * load_params->temp_texture.height * load_params->temp_texture.channel_count;
     // Check for transparency

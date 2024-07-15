@@ -14,6 +14,7 @@ void vulkan_image_create(
     b32 create_view,
     VkImageAspectFlags view_aspect_flags,
     const char* name,
+    u32 mip_levels,
     vulkan_image* out_image);
 
 void vulkan_image_view_create(
@@ -31,6 +32,20 @@ void vulkan_image_transition_layout(
     VkFormat format,
     VkImageLayout old_layout,
     VkImageLayout new_layout);
+
+/**
+ * @brief Generates mipmaps for the given image based on mip_levels set in the image.
+ * mip_levels must be > 1 for this to succeed.
+ *
+ * @param context A pointer to the Vulkan context.
+ * @param image A pointer to the image to generate mips for.
+ * @param command_buffer A pointer to the command buffer to be used for this operation.
+ * @returns True on success; otherwise false.
+ */
+b8 vulkan_image_mipmaps_generate(
+    vulkan_context* context,
+    vulkan_image* image,
+    vulkan_command_buffer* command_buffer);
 
 void vulkan_image_copy_from_buffer(
     vulkan_context* context,

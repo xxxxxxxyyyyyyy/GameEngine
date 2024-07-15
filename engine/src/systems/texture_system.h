@@ -52,7 +52,7 @@ API texture* texture_system_acquire_cube(const char* name, b8 auto_release);
  * @param has_transparency Indicates if the texture will have transparency.
  * @return A pointer to the generated texture.
  */
-API texture* texture_system_aquire_writeable(const char* name, u32 width, u32 height, u8 channel_count, b8 has_transparency);
+API texture* texture_system_acquire_writeable(const char* name, u32 width, u32 height, u8 channel_count, b8 has_transparency);
 
 API void texture_system_release(const char* name);
 /*

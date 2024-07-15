@@ -10,13 +10,17 @@
 #include <core/kstring.h>
 #include <core/logger.h>
 #include <core/metrics.h>
+#include <math/geometry_3d.h>
 #include <math/kmath.h>
 #include <memory/linear_allocator.h>
+#include <renderer/camera.h>
 #include <renderer/renderer_frontend.h>
 
 #include <renderer/renderer_types.inl>
 
+#include "defines.h"
 #include "game_state.h"
+#include "math/math_types.h"
 #include "testbed_types.h"
 
 // Views
@@ -27,6 +31,9 @@
 #include "views/render_view_world.h"
 
 // TODO: Editor temp
+#include <resources/debug/debug_box3d.h>
+#include <resources/debug/debug_line3d.h>
+
 #include "editor/editor_gizmo.h"
 #include "editor/render_view_editor_world.h"
 
@@ -52,6 +59,30 @@ b8 configure_render_views(application_config* config);
 void application_register_events(struct application* game_inst);
 void application_unregister_events(struct application* game_inst);
 static b8 load_main_scene(struct application* game_inst);
+
+static void clear_debug_objects(struct application* game_inst) {
+    testbed_game_state* state = (testbed_game_state*)game_inst->state;
+
+    if (state->test_boxes) {
+        u32 box_count = darray_length(state->test_boxes);
+        for (u32 i = 0; i < box_count; ++i) {
+            debug_box3d* box = &state->test_boxes[i];
+            debug_box3d_unload(box);
+            debug_box3d_destroy(box);
+        }
+        darray_clear(state->test_boxes);
+    }
+
+    if (state->test_lines) {
+        u32 line_count = darray_length(state->test_lines);
+        for (u32 i = 0; i < line_count; ++i) {
+            debug_line3d* line = &state->test_lines[i];
+            debug_line3d_unload(line);
+            debug_line3d_destroy(line);
+        }
+        darray_clear(state->test_lines);
+    }
+}
 
 b8 game_on_event(u16 code, void* sender, void* listener_inst, event_context context) {
     application* game_inst = (application*)listener_inst;
@@ -111,7 +142,7 @@ b8 game_on_debug_event(u16 code, void* sender, void* listener_inst, event_contex
             DDEBUG("Unloading scene...");
 
             simple_scene_unload(&state->main_scene, false);
-
+            clear_debug_objects(game_inst);
             DDEBUG("Done.");
         }
         return true;
@@ -121,24 +152,189 @@ b8 game_on_debug_event(u16 code, void* sender, void* listener_inst, event_contex
 }
 
 b8 game_on_key(u16 code, void* sender, void* listener_inst, event_context context) {
-    // if (code == EVENT_CODE_KEY_PRESSED) {
-    //     u16 key_code = context.data.u16[0];
-    //     if (key_code == KEY_A) {
-    //         // Example on checking for a key
-    //         DDEBUG("Explicit - A key pressed!");
-    //     } else {
-    //         // DTRACE("'%s' key pressed in window.", input_keycode_str(key_code));
-    //     }
-    // } else if (code == EVENT_CODE_KEY_RELEASED) {
-    //     u16 key_code = context.data.u16[0];
-    //     if (key_code == KEY_B) {
-    //         // Example on checking for a key
-    //         DDEBUG("Explicit - B key released!");
-    //     } else {
-    //         // DTRACE("'%s' key released in window.", input_keycode_str(key_code));
-    //     }
-    // }
+    application* game_inst = (application*)listener_inst;
+    testbed_game_state* state = (testbed_game_state*)game_inst->state;
+    if (code == EVENT_CODE_KEY_RELEASED) {
+        u16 key_code = context.data.u16[0];
+        // Change gizmo orientation.
+        if (key_code == KEY_G) {
+            editor_gizmo_orientation orientation = editor_gizmo_orientation_get(&state->gizmo);
+            orientation++;
+            if (orientation > EDITOR_GIZMO_ORIENTATION_MAX) {
+                orientation = 0;
+            }
+            editor_gizmo_orientation_set(&state->gizmo, orientation);
+        }
+    }
     return false;
+}
+
+static b8 game_on_drag(u16 code, void* sender, void* listener_inst, event_context context) {
+    i16 x = context.data.i16[0];
+    i16 y = context.data.i16[1];
+    u16 drag_button = context.data.u16[2];
+    testbed_game_state* state = (testbed_game_state*)listener_inst;
+
+    // Only care about left button drags.
+    if (drag_button == BUTTON_LEFT) {
+        matrix4 view = camera_view_get(state->world_camera);
+        vec3 origin = camera_position_get(state->world_camera);
+
+        // TODO: Get this from a viewport.
+        matrix4 projection_matrix = mat4_perspective(deg_to_rad(45.0f), (f32)state->width / state->height, 0.1f, 4000.0f);
+
+        ray r = ray_from_screen(
+            vec2_create((f32)x, (f32)y),
+            vec2_create((f32)state->width, (f32)state->height),
+            origin,
+            view,
+            projection_matrix);
+
+        if (code == EVENT_CODE_MOUSE_DRAG_BEGIN) {
+            state->using_gizmo = true;
+            // Drag start -- change the interaction mode to "dragging".
+            editor_gizmo_interaction_begin(&state->gizmo, state->world_camera, &r, EDITOR_GIZMO_INTERACTION_TYPE_MOUSE_DRAG);
+        } else if (code == EVENT_CODE_MOUSE_DRAGGED) {
+            editor_gizmo_handle_interaction(&state->gizmo, state->world_camera, &r, EDITOR_GIZMO_INTERACTION_TYPE_MOUSE_DRAG);
+        } else if (code == EVENT_CODE_MOUSE_DRAG_END) {
+            editor_gizmo_interaction_end(&state->gizmo);
+            state->using_gizmo = false;
+        }
+    }
+
+    return false;  // Let other handlers handle.
+}
+
+b8 game_on_button(u16 code, void* sender, void* listener_inst, event_context context) {
+    if (code == EVENT_CODE_BUTTON_PRESSED) {
+        //
+    } else if (code == EVENT_CODE_BUTTON_RELEASED) {
+        u16 button = context.data.u16[0];
+        switch (button) {
+            case BUTTON_LEFT: {
+                i16 x = context.data.i16[1];
+                i16 y = context.data.i16[2];
+                testbed_game_state* state = (testbed_game_state*)listener_inst;
+
+                // If the scene isn't loaded, don't do anything else.
+                if (state->main_scene.state < SIMPLE_SCENE_STATE_LOADED) {
+                    return false;
+                }
+
+                // If "manipulating gizmo", don't do below logic.
+                if (state->using_gizmo) {
+                    return false;
+                }
+
+                matrix4 view = camera_view_get(state->world_camera);
+                vec3 origin = camera_position_get(state->world_camera);
+
+                // TODO: Get this from the viewport.
+                matrix4 projection_matrix = mat4_perspective(deg_to_rad(45.0f), (f32)state->width / state->height, 0.1f, 4000.0f);
+                ray r = ray_from_screen(
+                    vec2_create((f32)x, (f32)y),
+                    vec2_create((f32)state->width, (f32)state->height),
+                    origin,
+                    view,
+                    projection_matrix);
+
+                raycast_result r_result;
+                if (simple_scene_raycast(&state->main_scene, &r, &r_result)) {
+                    u32 hit_count = darray_length(r_result.hits);
+                    for (u32 i = 0; i < hit_count; ++i) {
+                        raycast_hit* hit = &r_result.hits[i];
+                        DINFO("Hit! id: %u, dist: %f", hit->unique_id, hit->distance);
+
+                        // Create a debug line where the ray cast starts and ends (at the intersection).
+                        debug_line3d test_line;
+                        debug_line3d_create(r.origin, hit->position, 0, &test_line);
+                        debug_line3d_initialize(&test_line);
+                        debug_line3d_load(&test_line);
+                        // Yellow for hits.
+                        debug_line3d_colour_set(&test_line, (vec4){1.0f, 1.0f, 0.0f, 1.0f});
+
+                        darray_push(state->test_lines, test_line);
+
+                        // Create a debug box to show the intersection point.
+                        debug_box3d test_box;
+
+                        debug_box3d_create((vec3){0.1f, 0.1f, 0.1f}, 0, &test_box);
+                        debug_box3d_initialize(&test_box);
+                        debug_box3d_load(&test_box);
+
+                        extents_3d ext;
+                        ext.min = vec3_create(hit->position.x - 0.05f, hit->position.y - 0.05f, hit->position.z - 0.05f);
+                        ext.max = vec3_create(hit->position.x + 0.05f, hit->position.y + 0.05f, hit->position.z + 0.05f);
+                        debug_box3d_extents_set(&test_box, ext);
+
+                        darray_push(state->test_boxes, test_box);
+
+                        // Object selection
+                        if (i == 0) {
+                            state->selection.unique_id = hit->unique_id;
+                            state->selection.xform = simple_scene_transform_get_by_id(&state->main_scene, hit->unique_id);
+                            if (state->selection.xform) {
+                                DINFO("Selected object id %u", hit->unique_id);
+                                // state->gizmo.selected_xform = state->selection.xform;
+                                editor_gizmo_selected_transform_set(&state->gizmo, state->selection.xform);
+                                // transform_parent_set(&state->gizmo.xform, state->selection.xform);
+                            }
+                        }
+                    }
+                } else {
+                    DINFO("No hit");
+
+                    // Create a debug line where the ray cast starts and continues to.
+                    debug_line3d test_line;
+                    debug_line3d_create(r.origin, vec3_add(r.origin, vec3_mul_scalar(r.direction, 100.0f)), 0, &test_line);
+                    debug_line3d_initialize(&test_line);
+                    debug_line3d_load(&test_line);
+                    // Magenta for non-hits.
+                    debug_line3d_colour_set(&test_line, (vec4){1.0f, 0.0f, 1.0f, 1.0f});
+
+                    darray_push(state->test_lines, test_line);
+
+                    if (state->selection.xform) {
+                        DINFO("Object deselected.");
+                        state->selection.xform = 0;
+                        state->selection.unique_id = INVALID_ID;
+
+                        editor_gizmo_selected_transform_set(&state->gizmo, 0);
+                    }
+
+                    // TODO: hide gizmo, disable input, etc.
+                }
+
+            } break;
+        }
+    }
+
+    return false;
+}
+
+static b8 game_on_mouse_move(u16 code, void* sender, void* listener_inst, event_context context) {
+    if (code == EVENT_CODE_MOUSE_MOVED && !input_is_button_dragging(BUTTON_LEFT)) {
+        i16 x = context.data.i16[0];
+        i16 y = context.data.i16[1];
+
+        testbed_game_state* state = (testbed_game_state*)listener_inst;
+
+        matrix4 view = camera_view_get(state->world_camera);
+        vec3 origin = camera_position_get(state->world_camera);
+
+        // TODO: Get this from a viewport.
+        matrix4 projection_matrix = mat4_perspective(deg_to_rad(45.0f), (f32)state->width / state->height, 0.1f, 4000.0f);
+
+        ray r = ray_from_screen(
+            vec2_create((f32)x, (f32)y),
+            vec2_create((f32)state->width, (f32)state->height),
+            origin,
+            view,
+            projection_matrix);
+
+        editor_gizmo_handle_interaction(&state->gizmo, state->world_camera, &r, EDITOR_GIZMO_INTERACTION_TYPE_MOUSE_HOVER);
+    }
+    return false;  // Allow other event handlers to recieve this event.
 }
 
 u64 application_state_size(void) {
@@ -206,7 +402,13 @@ b8 application_initialize(struct application* game_inst) {
     resource_system_loader_register(simple_scene_resource_loader_create());
 
     testbed_game_state* state = (testbed_game_state*)game_inst->state;
+    state->selection.unique_id = INVALID_ID;
+    state->selection.xform = 0;
+
     debug_console_load(&state->debug_console);
+
+    state->test_lines = darray_create(debug_line3d);
+    state->test_boxes = darray_create(debug_box3d);
 
     state->forward_move_speed = 5.0f;
     state->backward_move_speed = 2.5f;
@@ -292,15 +494,15 @@ b8 application_initialize(struct application* game_inst) {
     state->ui_meshes[0].generation = 0;
 
     // Move and rotate it some.
-    // quat rotation = quat_from_axis_angle((vec3){0, 0, 1}, deg_to_rad(-45.0f), false);
+    // quaterion rotation = quat_from_axis_angle((vec3){0, 0, 1}, deg_to_rad(-45.0f), false);
     // transform_translate_rotate(&state->ui_meshes[0].transform, (vec3){5, 5, 0}, rotation);
     transform_translate(&state->ui_meshes[0].transform, (vec3){650, 5, 0});
 
     // TODO: end temp load/prepare stuff
 
     state->world_camera = camera_system_get_default();
-    camera_position_set(state->world_camera, (vec3){1.45f, 3.34f, 17.15f});
-    camera_rotation_euler_set(state->world_camera, (vec3){-11.083f, 18.250f, 0.0f});
+    camera_position_set(state->world_camera, (vec3){2.07f, 3.09f, 2.46f});
+    camera_rotation_euler_set(state->world_camera, (vec3){-47.34f, 38.450f, 0.0f});
 
     // kzero_memory(&game_inst->frame_data, sizeof(app_frame_data));
 
@@ -333,8 +535,10 @@ b8 application_update(struct application* game_inst, struct frame_data* p_frame_
             DWARN("Failed to update main scene.");
         }
 
+        editor_gizmo_update(&state->gizmo);
+
         // // Perform a small rotation on the first mesh.
-        // quat rotation = quat_from_axis_angle((vec3){0, 1, 0}, -0.5f * p_frame_data->delta_time, false);
+        // quaterion rotation = quat_from_axis_angle((vec3){0, 1, 0}, -0.5f * p_frame_data->delta_time, false);
         // transform_rotate(&state->meshes[0].transform, rotation);
 
         // // Perform a similar rotation on the second mesh, if it exists.
@@ -435,6 +639,28 @@ b8 application_render(struct application* game_inst, struct render_packet* packe
         if (!simple_scene_populate_render_packet(&state->main_scene, state->world_camera, (f32)state->width / state->height, p_frame_data, packet)) {
             DERROR("Failed populare render packet for main scene.");
             return false;
+        }
+    }
+
+    // HACK: Inject debug geometries into world packet.
+    if (state->main_scene.state == SIMPLE_SCENE_STATE_LOADED) {
+        u32 line_count = darray_length(state->test_lines);
+        for (u32 i = 0; i < line_count; ++i) {
+            geometry_render_data rd = {0};
+            rd.model = transform_world_get(&state->test_lines[i].xform);
+            rd.geometry = &state->test_lines[i].geo;
+            rd.unique_id = INVALID_ID_U16;
+            darray_push(packet->views[TESTBED_PACKET_VIEW_WORLD].debug_geometries, rd);
+            packet->views[TESTBED_PACKET_VIEW_WORLD].debug_geometry_count++;
+        }
+        u32 box_count = darray_length(state->test_boxes);
+        for (u32 i = 0; i < box_count; ++i) {
+            geometry_render_data rd = {0};
+            rd.model = transform_world_get(&state->test_boxes[i].xform);
+            rd.geometry = &state->test_boxes[i].geo;
+            rd.unique_id = INVALID_ID_U16;
+            darray_push(packet->views[TESTBED_PACKET_VIEW_WORLD].debug_geometries, rd);
+            packet->views[TESTBED_PACKET_VIEW_WORLD].debug_geometry_count++;
         }
     }
 
@@ -540,6 +766,7 @@ void application_shutdown(struct application* game_inst) {
         DDEBUG("Unloading scene...");
 
         simple_scene_unload(&state->main_scene, true);
+        clear_debug_objects(game_inst);
 
         DDEBUG("Done.");
     }
@@ -589,6 +816,11 @@ void application_register_events(struct application* game_inst) {
         event_register(EVENT_CODE_DEBUG1, game_inst, game_on_debug_event);
         event_register(EVENT_CODE_DEBUG2, game_inst, game_on_debug_event);
         event_register(EVENT_CODE_OBJECT_HOVER_ID_CHANGED, game_inst, game_on_event);
+        event_register(EVENT_CODE_BUTTON_RELEASED, game_inst->state, game_on_button);
+        event_register(EVENT_CODE_MOUSE_MOVED, game_inst->state, game_on_mouse_move);
+        event_register(EVENT_CODE_MOUSE_DRAG_BEGIN, game_inst->state, game_on_drag);
+        event_register(EVENT_CODE_MOUSE_DRAG_END, game_inst->state, game_on_drag);
+        event_register(EVENT_CODE_MOUSE_DRAGGED, game_inst->state, game_on_drag);
         // TODO: end temp
 
         event_register(EVENT_CODE_KEY_PRESSED, game_inst, game_on_key);
@@ -603,6 +835,11 @@ void application_unregister_events(struct application* game_inst) {
     event_unregister(EVENT_CODE_DEBUG1, game_inst, game_on_debug_event);
     event_unregister(EVENT_CODE_DEBUG2, game_inst, game_on_debug_event);
     event_unregister(EVENT_CODE_OBJECT_HOVER_ID_CHANGED, game_inst, game_on_event);
+    event_unregister(EVENT_CODE_BUTTON_RELEASED, game_inst->state, game_on_button);
+    event_unregister(EVENT_CODE_MOUSE_MOVED, game_inst->state, game_on_mouse_move);
+    event_unregister(EVENT_CODE_MOUSE_DRAG_BEGIN, game_inst->state, game_on_drag);
+    event_unregister(EVENT_CODE_MOUSE_DRAG_END, game_inst->state, game_on_drag);
+    event_unregister(EVENT_CODE_MOUSE_DRAGGED, game_inst->state, game_on_drag);
     // TODO: end temp
 
     event_unregister(EVENT_CODE_KEY_PRESSED, game_inst, game_on_key);

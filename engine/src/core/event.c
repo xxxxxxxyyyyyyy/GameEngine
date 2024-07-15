@@ -1,7 +1,8 @@
-#include "core/event.h"
+#include "containers/darray.h"
 
 #include "core/kmemory.h"
-#include "containers/darray.h"
+#include "core/logger.h"
+#include "core/event.h"
 #include "core/engine.h"
 
 typedef struct registered_event {

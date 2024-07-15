@@ -1,0 +1,39 @@
+#pragma once
+#include "math_types.h"
+
+/**
+ * @brief Represents a line which starts at an origin
+ * and proceed infinitely in the given direction. Typically
+ * used for hit tests, picking, etc.
+ */
+typedef struct ray {
+    vec3 origin;
+    vec3 direction;
+} ray;
+
+typedef enum raycast_hit_type {
+    RAYCAST_HIT_TYPE_OBB,
+    RAYCAST_HIT_TYPE_SURFACE
+} raycast_hit_type;
+
+typedef struct raycast_hit {
+    raycast_hit_type type;
+    u32 unique_id;
+    vec3 position;
+    f32 distance;
+} raycast_hit;
+
+typedef struct raycast_result {
+    // Darray - only created if a hit exists; otherwise null.
+    raycast_hit* hits;
+} raycast_result;
+
+API ray ray_create(vec3 position, vec3 direction);
+API ray ray_from_screen(vec2 screen_pos, vec2 viewport_size, vec3 origin, matrix4 view, matrix4 projection);
+
+API b8 raycast_aabb(extents_3d bb_extents, const ray* r, vec3* out_point);
+API b8 raycast_oriented_extents(extents_3d bb_extents, matrix4 model, const ray* r, f32* out_dist);
+
+API b8 raycast_plane_3d(const ray* r, const plane_3d* p, vec3* out_point, f32* out_distance);
+
+API b8 raycast_disc_3d(const ray* r, vec3 center, vec3 normal, f32 outer_radius, f32 inner_radius, vec3* out_point, f32* out_distance);

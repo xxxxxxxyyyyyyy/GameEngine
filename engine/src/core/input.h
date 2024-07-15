@@ -199,6 +199,14 @@ API void input_get_previous_mouse_position(i32* x, i32* y);
 void input_process_button(buttons button, b8 pressed);
 void input_process_mouse_move(i16 x, i16 y);
 void input_process_mouse_wheel(i8 z_delta);
+/**
+ * @brief Indicates if the mouse is currently being dragged with the provided button
+ * being held down.
+ *
+ * @param button The button to check.
+ * @returns True if dragging; otherwise false.
+ */
+API b8 input_is_button_dragging(buttons button);
 API void input_keymap_push(const struct keymap* map);
 
 API b8 input_keymap_pop(void);

@@ -63,6 +63,35 @@
 // ------------------------------------------
 
 /**
+ * Swaps the values in the given float pointers.
+ * @param a A pointer to the first float.
+ * @param b A pointer to the second float.
+ */
+INLINE void kswapf(f32 *a, f32 *b) {
+    f32 temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+#define KSWAP(type, a, b) \
+    {                     \
+        type temp = a;    \
+        a = b;            \
+        b = temp;         \
+    }
+
+/** @brief Returns 0.0f if x == 0.0f, -1.0f if negative, otherwise 1.0f. */
+INLINE f32 ksign(f32 x) {
+    return x == 0.0f ? 0.0f : x < 0.0f ? -1.0f
+                                       : 1.0f;
+}
+
+/** @brief Compares x to edge, returning 0 if x < edge; otherwise 1.0f; */
+INLINE f32 kstep(f32 edge, f32 x) {
+    return x < edge ? 0.0f : 1.0f;
+}
+
+/**
  * @brief Calculates the sine of x.
  *
  * @param x The number to calculate the sine of.
@@ -155,7 +184,7 @@ API f32 kfrandom_in_range(f32 min, f32 max);
 
 /**
  * @brief Perform Hermite interpolation between two values.
- * 
+ *
  * @param edge_0 The lower edge of the Hermite function.
  * @param edge_1 The upper edge of the Hermite function.
  * @param x The value to interpolate.
@@ -164,6 +193,14 @@ API f32 kfrandom_in_range(f32 min, f32 max);
 INLINE f32 ksmoothstep(f32 edge_0, f32 edge_1, f32 x) {
     f32 t = CLAMP((x - edge_0) / (edge_1 - edge_0), 0.0f, 1.0f);
     return t * t * (3.0 - 2.0 * t);
+}
+
+/**
+ * @brief Compares the two floats and returns true if both are less
+ * than K_FLOAT_EPSILON apart; otherwise false.
+ */
+INLINE b8 kfloat_compare(f32 f_0, f32 f_1) {
+    return kabs(f_0 - f_1) < K_FLOAT_EPSILON;
 }
 
 // ------------------------------------------
@@ -247,6 +284,32 @@ INLINE vec2 vec2_sub(vec2 vector_0, vec2 vector_1) {
  */
 INLINE vec2 vec2_mul(vec2 vector_0, vec2 vector_1) {
     return (vec2){vector_0.x * vector_1.x, vector_0.y * vector_1.y};
+}
+
+/**
+ * @brief Multiplies all elements of vector_0 by scalar and returns a copy of
+ * the result.
+ *
+ * @param vector_0 The vector to be multiplied.
+ * @param scalar The scalar value.
+ * @return A copy of the resulting vector.
+ */
+INLINE vec2 vec2_mul_scalar(vec2 vector_0, f32 scalar) {
+    return (vec2){vector_0.x * scalar, vector_0.y * scalar};
+}
+
+/**
+ * @brief Multiplies vector_0 by vector_1, then adds the result to vector_2.
+ *
+ * @param vector_0 The first vector.
+ * @param vector_1 The second vector.
+ * @param vector_2 The third vector.
+ * @return The resulting vector.
+ */
+INLINE vec2 vec2_mul_add(vec2 vector_0, vec2 vector_1, vec2 vector_2) {
+    return (vec2){
+        vector_0.x * vector_1.x + vector_2.x,
+        vector_0.y * vector_1.y + vector_2.y};
 }
 
 /**
@@ -464,6 +527,21 @@ INLINE vec3 vec3_mul_scalar(vec3 vector_0, f32 scalar) {
 }
 
 /**
+ * @brief Multiplies vector_0 by vector_1, then adds the result to vector_2.
+ *
+ * @param vector_0 The first vector.
+ * @param vector_1 The second vector.
+ * @param vector_2 The third vector.
+ * @return The resulting vector.
+ */
+INLINE vec3 vec3_mul_add(vec3 vector_0, vec3 vector_1, vec3 vector_2) {
+    return (vec3){
+        vector_0.x * vector_1.x + vector_2.x,
+        vector_0.y * vector_1.y + vector_2.y,
+        vector_0.z * vector_1.z + vector_2.z};
+}
+
+/**
  * @brief Divides vector_0 by vector_1 and returns a copy of the result.
  *
  * @param vector_0 The first vector.
@@ -589,22 +667,31 @@ INLINE f32 vec3_distance(vec3 vector_0, vec3 vector_1) {
 }
 
 /**
- * @brief Transform v by m. NOTE: It is assumed by this function that the
- * vector v is a point, not a direction, and is calculated as if a w component
- * with a value of 1.0f is there.
+ * @brief Returns the squared distance between vector_0 and vector_1.
+ * Less intensive than calling the non-squared version due to sqrt.
  *
+ * @param vector_0 The first vector.
+ * @param vector_1 The second vector.
+ * @return The squared distance between vector_0 and vector_1.
+ */
+INLINE f32 vec3_distance_squared(vec3 vector_0, vec3 vector_1) {
+    vec3 d = (vec3){vector_0.x - vector_1.x, vector_0.y - vector_1.y,
+                    vector_0.z - vector_1.z};
+    return vec3_length_squared(d);
+}
+
+/**
+ * @brief Transform v by m.
  * @param v The vector to transform.
+ * @param w Pass 1.0f for a point, or 0.0f for a direction.
  * @param m The matrix to transform by.
  * @return A transformed copy of v.
  */
-INLINE vec3 vec3_transform(vec3 v, matrix4 m) {
+INLINE vec3 vec3_transform(vec3 v, f32 w, matrix4 m) {
     vec3 out;
-    out.x = v.x * m.data[0 + 0] + v.y * m.data[4 + 0] + v.z * m.data[8 + 0] +
-            1.0f * m.data[12 + 0];
-    out.y = v.x * m.data[0 + 1] + v.y * m.data[4 + 1] + v.z * m.data[8 + 1] +
-            1.0f * m.data[12 + 1];
-    out.z = v.x * m.data[0 + 2] + v.y * m.data[4 + 2] + v.z * m.data[8 + 2] +
-            1.0f * m.data[12 + 2];
+    out.x = v.x * m.data[0 + 0] + v.y * m.data[4 + 0] + v.z * m.data[8 + 0] + w * m.data[12 + 0];
+    out.y = v.x * m.data[0 + 1] + v.y * m.data[4 + 1] + v.z * m.data[8 + 1] + w * m.data[12 + 1];
+    out.z = v.x * m.data[0 + 2] + v.y * m.data[4 + 2] + v.z * m.data[8 + 2] + w * m.data[12 + 2];
     return out;
 }
 
@@ -718,6 +805,35 @@ INLINE vec4 vec4_mul(vec4 vector_0, vec4 vector_1) {
         result.elements[i] = vector_0.elements[i] * vector_1.elements[i];
     }
     return result;
+}
+
+/**
+ * @brief Multiplies all elements of vector_0 by scalar and returns a copy of
+ * the result.
+ *
+ * @param vector_0 The vector to be multiplied.
+ * @param scalar The scalar value.
+ * @return A copy of the resulting vector.
+ */
+INLINE vec4 vec4_mul_scalar(vec4 vector_0, f32 scalar) {
+    return (vec4){vector_0.x * scalar, vector_0.y * scalar, vector_0.z * scalar, vector_0.w * scalar};
+}
+
+/**
+ * @brief Multiplies vector_0 by vector_1, then adds the result to vector_2.
+ *
+ * @param vector_0 The first vector.
+ * @param vector_1 The second vector.
+ * @param vector_2 The third vector.
+ * @return The resulting vector.
+ */
+INLINE vec4 vec4_mul_add(vec4 vector_0, vec4 vector_1, vec4 vector_2) {
+    return (vec4){
+        vector_0.x * vector_1.x + vector_2.x,
+        vector_0.y * vector_1.y + vector_2.y,
+        vector_0.z * vector_1.z + vector_2.z,
+        vector_0.w * vector_1.w + vector_2.w,
+    };
 }
 
 /**
@@ -997,6 +1113,44 @@ INLINE matrix4 mat4_transposed(matrix4 matrix) {
     out_matrix.data[14] = matrix.data[11];
     out_matrix.data[15] = matrix.data[15];
     return out_matrix;
+}
+
+/**
+ * @brief Calculates the determinant of the given matrix.
+ *
+ * @param matrix The matrix to calculate the determinant of.
+ * @return The determinant of the given matrix.
+ */
+INLINE f32 mat4_determinant(matrix4 matrix) {
+    const f32 *m = matrix.data;
+
+    f32 t0 = m[10] * m[15];
+    f32 t1 = m[14] * m[11];
+    f32 t2 = m[6] * m[15];
+    f32 t3 = m[14] * m[7];
+    f32 t4 = m[6] * m[11];
+    f32 t5 = m[10] * m[7];
+    f32 t6 = m[2] * m[15];
+    f32 t7 = m[14] * m[3];
+    f32 t8 = m[2] * m[11];
+    f32 t9 = m[10] * m[3];
+    f32 t10 = m[2] * m[7];
+    f32 t11 = m[6] * m[3];
+
+    matrix3 temp_mat;
+    f32 *o = temp_mat.data;
+
+    o[0] = (t0 * m[5] + t3 * m[9] + t4 * m[13]) -
+           (t1 * m[5] + t2 * m[9] + t5 * m[13]);
+    o[1] = (t1 * m[1] + t6 * m[9] + t9 * m[13]) -
+           (t0 * m[1] + t7 * m[9] + t8 * m[13]);
+    o[2] = (t2 * m[1] + t7 * m[5] + t10 * m[13]) -
+           (t3 * m[1] + t6 * m[5] + t11 * m[13]);
+    o[3] = (t5 * m[1] + t8 * m[5] + t11 * m[9]) -
+           (t4 * m[1] + t9 * m[5] + t10 * m[9]);
+
+    f32 determinant = 1.0f / (m[0] * o[0] + m[4] * o[1] + m[8] * o[2] + m[12] * o[3]);
+    return determinant;
 }
 
 /**
@@ -1411,6 +1565,35 @@ INLINE quaterion quat_mul(quaterion q_0, quaterion q_1) {
  */
 INLINE f32 quat_dot(quaterion q_0, quaterion q_1) {
     return q_0.x * q_1.x + q_0.y * q_1.y + q_0.z * q_1.z + q_0.w * q_1.w;
+}
+
+INLINE vec3 vec3_min(vec3 vector_0, vec3 vector_1) {
+    return vec3_create(
+        KMIN(vector_0.x, vector_1.y),
+        KMIN(vector_0.y, vector_1.y),
+        KMIN(vector_0.z, vector_1.z));
+}
+
+INLINE vec3 vec3_max(vec3 vector_0, vec3 vector_1) {
+    return vec3_create(
+        KMAX(vector_0.x, vector_1.y),
+        KMAX(vector_0.y, vector_1.y),
+        KMAX(vector_0.z, vector_1.z));
+}
+
+INLINE vec3 vec3_sign(vec3 v) {
+    return vec3_create(ksign(v.x), ksign(v.y), ksign(v.z));
+}
+
+INLINE vec3 vec3_rotate(vec3 v, quaterion q) {
+    vec3 u = vec3_create(q.x, q.y, q.z);
+    f32 s = q.w;
+
+    return vec3_add(
+        vec3_add(
+            vec3_mul_scalar(u, 2.0f * vec3_dot(u, v)),
+            vec3_mul_scalar(v, (s * s - vec3_dot(u, u)))),
+        vec3_mul_scalar(vec3_cross(u, v), 2.0f * s));
 }
 
 /**

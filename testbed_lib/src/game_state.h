@@ -17,6 +17,15 @@
 
 #include "debug_console.h"
 
+// struct debug_line3d;
+// struct debug_box3d;
+struct transform;
+
+typedef struct selected_object {
+    u32 unique_id;
+    struct transform* xform;
+} selected_object;
+
 typedef struct testbed_game_state {
     b8 running;
     camera* world_camera;
@@ -53,6 +62,12 @@ typedef struct testbed_game_state {
     f32 backward_move_speed;
     // TODO: end temp
     editor_gizmo gizmo;
+    // Used for visualization of our casts/collisions.
+    struct debug_line3d* test_lines;
+    struct debug_box3d* test_boxes;
+
+    selected_object selection;
+    b8 using_gizmo;
 } testbed_game_state;
 
 typedef struct testbed_application_frame_data {

@@ -8,7 +8,10 @@
 #include "defines.h"
 #include "renderer/renderer_types.inl"
 
-
+/**
+ * @brief Checks the given expression's return value against VK_SUCCESS.
+ * @param expr The expression whose result should be checked.
+ */
 #define VK_CHECK(expr)               \
     {                                \
         KASSERT(expr == VK_SUCCESS); \
@@ -16,121 +19,242 @@
 
 struct vulkan_context;
 
+/**
+ * @brief Represents a Vulkan-specific buffer.
+ * Used to load data onto the GPU.
+ */
 typedef struct vulkan_buffer {
+    /** @brief The handle to the internal buffer. */
     VkBuffer handle;
+    /** @brief The usage flags. */
     VkBufferUsageFlagBits usage;
+    /** @brief Indicates if the buffer's memory is currently locked. */
     b8 is_locked;
+    /** @brief The memory used by the buffer. */
     VkDeviceMemory memory;
     /** @brief The memory requirements for this buffer. */
     VkMemoryRequirements memory_requirements;
+    /** @brief The index of the memory used by the buffer. */
     i32 memory_index;
+    /** @brief The property flags for the memory used by the buffer. */
     u32 memory_property_flags;
 } vulkan_buffer;
 
+/** @brief Contains swapchain support information and capabilities. */
 typedef struct vulkan_swapchain_support_info {
+    /** @brief The surface capabilities. */
     VkSurfaceCapabilitiesKHR capabilities;
+    /** @brief The number of available surface formats. */
     u32 format_count;
+    /** @brief An array of the available surface formats. */
     VkSurfaceFormatKHR* formats;
+    /** @brief The number of available presentation modes. */
     u32 present_mode_count;
+    /** @brief An array of available presentation modes. */
     VkPresentModeKHR* present_modes;
 } vulkan_swapchain_support_info;
 
-// a vulkan instance can have multiple physical-device
-// a physical-device can have multiple logical-device.
+typedef enum vulkan_device_support_flag_bits {
+    VULKAN_DEVICE_SUPPORT_FLAG_NONE_BIT = 0x0,
+
+    /** @brief Indicates if the device supports native dynamic topology (i.e. * using Vulkan API >= 1.3). */
+    VULKAN_DEVICE_SUPPORT_FLAG_NATIVE_DYNAMIC_TOPOLOGY_BIT = 0x1,
+
+    /** @brief Indicates if this device supports dynamic topology. If not, the renderer will need to generate a separate pipeline per topology type. */
+    VULKAN_DEVICE_SUPPORT_FLAG_DYNAMIC_TOPOLOGY_BIT = 0x2,
+    VULKAN_DEVICE_SUPPORT_FLAG_LINE_SMOOTH_RASTERISATION_BIT = 0x4
+} vulkan_device_support_flag_bits;
+
+/** @brief Bitwise flags for device support. @see vulkan_device_support_flag_bits. */
+typedef u32 vulkan_device_support_flags;
+
+/**
+ * @brief A representation of both the physical and logical
+ * Vulkan devices. Also contains handles to queues, command pools,
+ * and various properties of the devices.
+ */
 typedef struct vulkan_device {
+    /** @brief The supported device-level api major version. */
+    u32 api_major;
+
+    /** @brief The supported device-level api minor version. */
+    u32 api_minor;
+
+    /** @brief The supported device-level api patch version. */
+    u32 api_patch;
+
+    /** @brief The physical device. This is a representation of the GPU itself. */
     VkPhysicalDevice physical_device;
+    /** @brief The logical device. This is the application's view of the device, used for most Vulkan operations. */
     VkDevice logical_device;
+    /** @brief The swapchain support info. */
     vulkan_swapchain_support_info swapchain_support;
+
+    /** @brief The index of the graphics queue. */
     i32 graphics_queue_index;
+    /** @brief The index of the present queue. */
     i32 present_queue_index;
+    /** @brief The index of the transfer queue. */
     i32 transfer_queue_index;
+    /** @brief Indicates if the device supports a memory type that is both host visible and device local. */
     b8 supports_device_local_host_visible;
 
+    /** @brief A handle to a graphics queue. */
     VkQueue graphics_queue;
+    /** @brief A handle to a present queue. */
     VkQueue present_queue;
+    /** @brief A handle to a transfer queue. */
     VkQueue transfer_queue;
 
+    /** @brief A handle to a command pool for graphics operations. */
     VkCommandPool graphics_command_pool;
 
+    /** @brief The physical device properties. */
     VkPhysicalDeviceProperties properties;
+    /** @brief The physical device features. */
     VkPhysicalDeviceFeatures features;
+    /** @brief The physical device memory properties. */
     VkPhysicalDeviceMemoryProperties memory;
 
+    /** @brief The chosen supported depth format. */
     VkFormat depth_format;
     /** @brief The chosen depth format's number of channels.*/
     u8 depth_channel_count;
+
+    /** @brief Indicates support for various features. */
+    vulkan_device_support_flags support_flags;
 } vulkan_device;
 
+/**
+ * @brief A representation of a Vulkan image. This can be thought
+ * of as a texture. Also contains the view and memory used by
+ * the internal image.
+ */
 typedef struct vulkan_image {
+    /** @brief The handle to the internal image object. */
     VkImage handle;
+    /** @brief The memory used by the image. */
     VkDeviceMemory memory;
+    /** @brief The view for the image, which is used to access the image. */
     VkImageView view;
     /** @brief The GPU memory requirements for this image. */
     VkMemoryRequirements memory_requirements;
     /** @brief Memory property flags */
     VkMemoryPropertyFlags memory_flags;
+    /** @brief The image width. */
     u32 width;
+    /** @brief The image height. */
     u32 height;
     /** @brief The name of the image. */
     char* name;
 } vulkan_image;
 
+/** @brief Represents the possible states of a renderpass. */
 typedef enum vulkan_render_pass_state {
+    /** @brief The renderpass is ready to begin. */
     READY,
+    /** @brief The renderpass is currently being recorded to. */
     RECORDING,
+    /** @brief The renderpass is currently active. */
     IN_RENDER_PASS,
+    /** @brief The renderpass is has ended recording. */
     RECORDING_ENDED,
+    /** @brief The renderpass has been submitted to the queue. */
     SUBMITTED,
+    /** @brief The renderpass is not allocated. */
     NOT_ALLOCATED
 } vulkan_render_pass_state;
 
+/**
+ * @brief A representation of the Vulkan renderpass.
+ */
 typedef struct vulkan_renderpass {
+    /** @brief The internal renderpass handle. */
     VkRenderPass handle;
+    /** @brief The current render area of the renderpass. */
 
+    /** @brief The depth clear value. */
     f32 depth;
+    /** @brief The stencil clear value. */
     u32 stencil;
 
+    /** @brief Indicates renderpass state. */
     vulkan_render_pass_state state;
 } vulkan_renderpass;
 
+/**
+ * @brief Representation of the Vulkan swapchain.
+ */
 typedef struct vulkan_swapchain {
+    /** @brief The swapchain image format. */
     VkSurfaceFormatKHR image_format;
+    /**
+     * @brief The maximum number of "images in flight" (images simultaneously being rendered to).
+     * Typically one less than the total number of images available.
+     */
     u8 max_frames_in_flight;
+
     /** @brief Indicates various flags used for swapchain instantiation. */
     renderer_config_flags flags;
+
+    /** @brief The swapchain internal handle. */
     VkSwapchainKHR handle;
+    /** @brief The number of swapchain images. */
     u32 image_count;
-    /** @brief An array of pointers to render targets, which contain swapchain images. */
+    /** @brief An array of render targets, which contain swapchain images. */
     texture* render_textures;
-    /** @brief The depth texture. */
+
+    /** @brief An array of depth textures, one per frame. */
     texture* depth_textures;
 
-    /** 
-     * @brief Render targets used for on-screen rendering, one per frame. 
+    /**
+     * @brief Render targets used for on-screen rendering, one per frame.
      * The images contained in these are created and owned by the swapchain.
      * */
     render_target render_targets[3];
 } vulkan_swapchain;
 
+/**
+ * @brief Represents all of the available states that
+ * a command buffer can be in.
+ */
 typedef enum vulkan_command_buffer_state {
+    /** @brief The command buffer is ready to begin. */
     COMMAND_BUFFER_STATE_READY,
+    /** @brief The command buffer is currently being recorded to. */
     COMMAND_BUFFER_STATE_RECORDING,
+    /** @brief The command buffer is currently active. */
     COMMAND_BUFFER_STATE_IN_RENDER_PASS,
+    /** @brief The command buffer is has ended recording. */
     COMMAND_BUFFER_STATE_RECORDING_ENDED,
+    /** @brief The command buffer has been submitted to the queue. */
     COMMAND_BUFFER_STATE_SUBMITTED,
+    /** @brief The command buffer is not allocated. */
     COMMAND_BUFFER_STATE_NOT_ALLOCATED
 } vulkan_command_buffer_state;
 
+/**
+ * @brief Represents a Vulkan-specific command buffer, which
+ * holds a list of commands and is submitted to a queue
+ * for execution.
+ */
 typedef struct vulkan_command_buffer {
+    /** @brief The internal command buffer handle. */
     VkCommandBuffer handle;
 
-    // command buffer state
+    /** @brief Command buffer state. */
     vulkan_command_buffer_state state;
 } vulkan_command_buffer;
 
+/**
+ * @brief Represents a single shader stage.
+ */
 typedef struct vulkan_shader_stage {
+    /** @brief The shader module creation info. */
     VkShaderModuleCreateInfo create_info;
+    /** @brief The internal shader module handle. */
     VkShaderModule handle;
+    /** @brief The pipeline shader stage creation info. */
     VkPipelineShaderStageCreateInfo shader_stage_create_info;
 } vulkan_shader_stage;
 
@@ -181,30 +305,58 @@ typedef struct vulkan_pipeline_config {
     u32 topology_types;
 } vulkan_pipeline_config;
 
+/**
+ * @brief Holds a Vulkan pipeline and its layout.
+ */
 typedef struct vulkan_pipeline {
+    /** @brief The internal pipeline handle. */
     VkPipeline handle;
+    /** @brief The pipeline layout. */
     VkPipelineLayout pipeline_layout;
     /** @brief Indicates the topology types used by this pipeline. See primitive_topology_type.*/
     u32 supported_topology_types;
 } vulkan_pipeline;
 
-// Max number of material instances
-// TODO: make configurable
+/**
+ * @brief Max number of material instances
+ * @todo TODO: make configurable
+ */
 #define VULKAN_MAX_MATERIAL_COUNT 1024
 
-// Max number of simultaneously uploaded geometries
-// TODO: make configurable
+/**
+ * @brief Max number of simultaneously uploaded geometries
+ * @todo TODO: make configurable
+ */
 #define VULKAN_MAX_GEOMETRY_COUNT 4096
 
 /**
- * @brief Internal buffer data for geometry.
+ * @brief Internal buffer data for geometry. This data gets loaded
+ * directly into a buffer.
  */
 typedef struct vulkan_geometry_data {
+    /** @brief The unique geometry identifier. */
     u32 id;
+    /** @brief The geometry generation. Incremented every time the geometry data changes. */
     u32 generation;
+
+    /** @brief The offset in bytes in the vertex buffer. */
     u64 vertex_buffer_offset;
+
+    /** @brief The offset in bytes in the index buffer. */
     u64 index_buffer_offset;
 } vulkan_geometry_data;
+
+/**
+ * @brief Max number of UI control instances
+ * @todo TODO: make configurable
+ */
+#define VULKAN_MAX_UI_COUNT 1024
+
+/**
+ * @brief Put some hard limits in place for the count of supported textures,
+ * attributes, uniforms, etc. This is to maintain memory locality and avoid
+ * dynamic allocations.
+ */
 
 /** @brief The maximum number of stages (such as vertex, fragment, compute, etc.) allowed. */
 #define VULKAN_SHADER_MAX_STAGES 8
@@ -273,8 +425,10 @@ typedef struct vulkan_shader_config {
 
     /** @brief An array of attribute descriptions for this shader. */
     VkVertexInputAttributeDescription attributes[VULKAN_SHADER_MAX_ATTRIBUTES];
+
     /** @brief Face culling mode, provided by the front end. */
     face_cull_mode cull_mode;
+
 } vulkan_shader_config;
 
 /**
@@ -315,7 +469,7 @@ typedef struct vulkan_shader_instance_state {
     vulkan_shader_descriptor_set_state descriptor_set_state;
 
     /**
-     * @brief Instance texture pointers, which are used during rendering. These
+     * @brief Instance texture map pointers, which are used during rendering. These
      * are set by calls to set_sampler.
      */
     struct texture_map** instance_texture_maps;
@@ -374,20 +528,33 @@ typedef struct vulkan_shader {
     u8 instance_uniform_sampler_count;
     /** @brief The number of local non-sampler uniforms. */
     u8 local_uniform_count;
+
 } vulkan_shader;
 
+/**
+ * @brief The overall Vulkan context for the backend. Holds and maintains
+ * global renderer backend state, Vulkan instance, etc.
+ */
 typedef struct vulkan_context {
-    // the framebuffer's current width
+    /** @brief The instance-level api major version. */
+    u32 api_major;
+
+    /** @brief The instance-level api minor version. */
+    u32 api_minor;
+
+    /** @brief The instance-level api patch version. */
+    u32 api_patch;
+
+    /** @brief The framebuffer's current width. */
     u32 framebuffer_width;
-    // the framebuffer's current height
+
+    /** @brief The framebuffer's current height. */
     u32 framebuffer_height;
 
-    // Current generation of framebuffer size. If it does not match framebuffer_size_last_generation,
-    // a new one should be generated.
+    /** @brief Current generation of framebuffer size. If it does not match framebuffer_size_last_generation, a new one should be generated. */
     u64 framebuffer_size_generation;
 
-    // The generation of the framebuffer when it was last created. Set to framebuffer_size_generation
-    // when updated.
+    /** @brief The generation of the framebuffer when it was last created. Set to framebuffer_size_generation when updated. */
     u64 framebuffer_size_last_generation;
 
     /** @brief The viewport rectangle. */
@@ -396,12 +563,17 @@ typedef struct vulkan_context {
     /** @brief The scissor rectangle. */
     vec4 scissor_rect;
 
+    /** @brief The handle to the internal Vulkan instance. */
     VkInstance instance;
+    /** @brief The internal Vulkan allocator. */
     VkAllocationCallbacks* allocator;
+    /** @brief The internal Vulkan surface for the window to be drawn to. */
     VkSurfaceKHR surface;
 
 #if defined(_DEBUG)
+    /** @brief The debug messenger, if active.. */
     VkDebugUtilsMessengerEXT debug_messenger;
+
     /** @brief The function pointer to set debug object names. */
     PFN_vkSetDebugUtilsObjectNameEXT pfnSetDebugUtilsObjectNameEXT;
 
@@ -412,36 +584,46 @@ typedef struct vulkan_context {
     PFN_vkCmdEndDebugUtilsLabelEXT pfnCmdEndDebugUtilsLabelEXT;
 #endif
 
+    /** @brief The Vulkan device. */
     vulkan_device device;
 
+    /** @brief The swapchain. */
     vulkan_swapchain swapchain;
 
+    /** @brief The object vertex buffer, used to hold geometry vertices. */
     renderbuffer object_vertex_buffer;
+    /** @brief The object index buffer, used to hold geometry indices. */
     renderbuffer object_index_buffer;
 
-    // darray
+    /** @brief The graphics command buffers, one per frame. @note: darray */
     vulkan_command_buffer* graphics_command_buffers;
 
-    // darray
+    /** @brief The semaphores used to indicate image availability, one per frame. @note: darray */
     VkSemaphore* image_available_semaphores;
 
-    // darray
+    /** @brief The semaphores used to indicate queue availability, one per frame. @note: darray */
     VkSemaphore* queue_complete_semaphores;
 
+    /** @brief The current number of in-flight fences. */
     u32 in_flight_fence_count;
+    /** @brief The in-flight fences, used to indicate to the application when a frame is busy/ready. */
     VkFence in_flight_fences[2];
 
-    // Holds pointers to fences which exist and are owned elsewhere. one per frame.
+    /** @brief Holds pointers to fences which exist and are owned elsewhere, one per frame. */
     VkFence images_in_flight[3];
 
+    /** @brief The current image index. */
     u32 image_index;
+
+    /** @brief The current frame. */
     u32 current_frame;
 
+    /** @brief Indicates if the swapchain is currently being recreated. */
     b8 recreating_swapchain;
 
     b8 render_flag_changed;
 
-    // TODO: make dynamic
+    /** @brief The A collection of loaded geometries. @todo TODO: make dynamic */
     vulkan_geometry_data geometries[VULKAN_MAX_GEOMETRY_COUNT];
 
     /** @brief Render targets used for world rendering. @note One per frame. */
@@ -450,5 +632,14 @@ typedef struct vulkan_context {
     /** @brief Indicates if multi-threading is supported by this device. */
     b8 multithreading_enabled;
 
+    /**
+     * @brief A function pointer to find a memory index of the given type and with the given properties.
+     * @param context A pointer to the renderer context.
+     * @param type_filter The types of memory to search for.
+     * @param property_flags The required properties which must be present.
+     * @returns The index of the found memory type. Returns -1 if not found.
+     */
     i32 (*find_memory_index)(struct vulkan_context* context, u32 type_filter, u32 property_flags);
+
+    PFN_vkCmdSetPrimitiveTopologyEXT vkCmdSetPrimitiveTopologyEXT;
 } vulkan_context;

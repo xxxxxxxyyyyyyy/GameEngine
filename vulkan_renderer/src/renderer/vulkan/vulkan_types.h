@@ -538,6 +538,9 @@ typedef struct vulkan_shader {
 
 } vulkan_shader;
 
+// Forward declare shaderc compiler.
+struct shaderc_compiler;
+
 /**
  * @brief The overall Vulkan context for the backend. Holds and maintains
  * global renderer backend state, Vulkan instance, etc.
@@ -653,4 +656,12 @@ typedef struct vulkan_context {
 
     /** @brief A pointer to the currently bound shader. */
     struct shader* bound_shader;
+
+    /** @brief A resusable staging buffer to transfer data from a resource to a GPU-only buffer. */
+    renderbuffer staging;
+
+    /**
+     * Used for dynamic compilation of vulkan shaders (using the shaderc lib.)
+     */
+    struct shaderc_compiler* shader_compiler;
 } vulkan_context;

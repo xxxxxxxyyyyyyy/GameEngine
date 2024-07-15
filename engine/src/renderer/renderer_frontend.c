@@ -584,6 +584,25 @@ b8 renderer_renderbuffer_free(renderbuffer* buffer, u64 size, u64 offset) {
     return freelist_free_block(&buffer->buffer_freelist, size, offset);
 }
 
+b8 renderer_renderbuffer_clear(renderbuffer* buffer, b8 zero_memory) {
+    if (!buffer) {
+        DERROR("renderer_renderbuffer_clear requires valid buffer and a nonzero size.");
+        return false;
+    }
+
+    if (buffer->freelist_memory_requirement != 0) {
+        freelist_clear(&buffer->buffer_freelist);
+    }
+
+    if (zero_memory) {
+        // TODO: zero memory
+        DFATAL("TODO: Zero memory");
+        return false;
+    }
+
+    return true;
+}
+
 b8 renderer_renderbuffer_load_range(renderbuffer* buffer, u64 offset, u64 size, const void* data) {
     renderer_system_state* state_ptr = (renderer_system_state*)systems_manager_get_state(K_SYSTEM_TYPE_RENDERER);
     return state_ptr->plugin.renderbuffer_load_range(&state_ptr->plugin, buffer, offset, size, data);

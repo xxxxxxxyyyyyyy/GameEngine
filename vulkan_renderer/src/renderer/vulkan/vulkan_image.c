@@ -199,12 +199,13 @@ void vulkan_image_copy_from_buffer(
     texture_type type,
     vulkan_image* image,
     VkBuffer buffer,
+    u64 offset,
     vulkan_command_buffer* command_buffer)
 {
     // region to copy
     VkBufferImageCopy region;
     kzero_memory(&region, sizeof(VkBufferImageCopy));
-    region.bufferOffset = 0;
+    region.bufferOffset = offset;
     region.bufferRowLength = 0;
     region.bufferImageHeight = 0;
 

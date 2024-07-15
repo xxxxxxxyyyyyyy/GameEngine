@@ -34,44 +34,54 @@ ifeq ($(OS),Windows_NT)
             # IA32
         endif
     endif
-else
-    UNAME_S := $(shell uname -s)
-    ifeq ($(UNAME_S),Linux)
-        # LINUX
-		BUILD_PLATFORM := linux
-		EXTENSION := 
-		COMPILER_FLAGS := -Wall -Werror -Wvla -Werror=vla -Wgnu-folding-constant -Wno-missing-braces -fdeclspec -fPIC
-		INCLUDE_FLAGS := -I./$(ASSEMBLY)/src $(ADDL_INC_FLAGS)
-		LINKER_FLAGS := -L./$(BUILD_DIR) $(ADDL_LINK_FLAGS) -Wl,-rpath,.
-		# .c files
-		SRC_FILES := $(shell find $(ASSEMBLY) -name *.c)
-		# directories with .h files
-		DIRECTORIES := $(shell find $(ASSEMBLY) -type d)
-		OBJ_FILES := $(SRC_FILES:%=$(OBJ_DIR)/%.o)
-    endif
-    ifeq ($(UNAME_S),Darwin)
-        # OSX
-		BUILD_PLATFORM := macos
-		EXTENSION := 
-		COMPILER_FLAGS := -Wall -Werror -Wvla -Werror=vla -Wgnu-folding-constant -Wno-missing-braces -fdeclspec -fPIC
-		INCLUDE_FLAGS := -I./$(ASSEMBLY)/src $(ADDL_INC_FLAGS)
-		LINKER_FLAGS := -L./$(BUILD_DIR) $(ADDL_LINK_FLAGS) -Wl,-rpath,.
-		# .c files
-		SRC_FILES := $(shell find $(ASSEMBLY) -name *.c)
-		# directories with .h files
-		DIRECTORIES := $(shell find $(ASSEMBLY) -type d)
-		OBJ_FILES := $(SRC_FILES:%=$(OBJ_DIR)/%.o)
-    endif
-    UNAME_P := $(shell uname -p)
-    ifeq ($(UNAME_P),x86_64)
-        # AMD64
-    endif
-    ifneq ($(filter %86,$(UNAME_P)),)
-        # IA32
-    endif
-    ifneq ($(filter arm%,$(UNAME_P)),)
-        # ARM
-    endif
+# else
+#     UNAME_S := $(shell uname -s)
+#     ifeq ($(UNAME_S),Linux)
+#         # LINUX
+# 		BUILD_PLATFORM := linux
+# 		EXTENSION := 
+# 		# NOTE: -fvisibility=hidden hides all symbols by default, and only those that explicitly say
+# 		# otherwise are exported (i.e. via API).
+# 		COMPILER_FLAGS :=-fvisibility=hidden -fpic -Wall -Werror -Wvla -Wno-missing-braces -fdeclspec
+# 		INCLUDE_FLAGS := -I./$(ASSEMBLY)/src $(ADDL_INC_FLAGS)
+# 		# NOTE: --no-undefined and --no-allow-shlib-undefined ensure that symbols linking against are resolved.
+# 		# These are linux-specific, as the default behaviour is the opposite of this, allowing code to compile 
+# 		# here that would not on other platforms from not being exported (i.e. Windows)
+# 		# Discovered the solution here for this: https://github.com/ziglang/zig/issues/8180
+# 		LINKER_FLAGS :=-Wl,--no-undefined,--no-allow-shlib-undefined -L./$(BUILD_DIR) $(ADDL_LINK_FLAGS) -Wl,-rpath,.
+# 		# .c files
+# 		SRC_FILES := $(shell find $(ASSEMBLY) -name *.c)
+# 		# directories with .h files
+# 		DIRECTORIES := $(shell find $(ASSEMBLY) -type d)
+# 		OBJ_FILES := $(SRC_FILES:%=$(OBJ_DIR)/%.o)
+#     endif
+#     ifeq ($(UNAME_S),Darwin)
+#         # OSX
+# 		BUILD_PLATFORM := macos
+# 		EXTENSION := 
+# 		# NOTE: -fvisibility=hidden hides all symbols by default, and only those that explicitly say
+# 		# otherwise are exported (i.e. via API).
+# 		COMPILER_FLAGS :=-fvisibility=hidden -Wall -Werror -Wvla -Werror=vla -Wgnu-folding-constant -Wno-missing-braces -fdeclspec -fPIC
+# 		INCLUDE_FLAGS := -I./$(ASSEMBLY)/src $(ADDL_INC_FLAGS)
+# 		# NOTE: Equivalent of the linux version above, this ensures that symbols linking against are resolved.
+# 		# Discovered this here: https://stackoverflow.com/questions/26971333/what-is-clangs-equivalent-to-no-undefined-gcc-flag
+# 		LINKER_FLAGS :=-Wl,-undefined,error -L./$(BUILD_DIR) $(ADDL_LINK_FLAGS) -Wl,-rpath,.
+# 		# .c files
+# 		SRC_FILES := $(shell find $(ASSEMBLY) -name *.c)
+# 		# directories with .h files
+# 		DIRECTORIES := $(shell find $(ASSEMBLY) -type d)
+# 		OBJ_FILES := $(SRC_FILES:%=$(OBJ_DIR)/%.o)
+#     endif
+#     UNAME_P := $(shell uname -p)
+#     ifeq ($(UNAME_P),x86_64)
+#         # AMD64
+#     endif
+#     ifneq ($(filter %86,$(UNAME_P)),)
+#         # IA32
+#     endif
+#     ifneq ($(filter arm%,$(UNAME_P)),)
+#         # ARM
+#     endif
 endif
 
 # Defaults to debug unless release is specified.

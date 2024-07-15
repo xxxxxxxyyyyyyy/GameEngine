@@ -2,13 +2,6 @@
 
 #include "defines.h"
 
-// Interface for a frame allocator.
-typedef struct frame_allocator_int {
-    void* (*allocate)(u64 size);
-    void (*free)(void* block, u64 size);
-    void (*free_all)(void);
-} frame_allocator_int;
-
 /** @brief Tags to indicate the usage of memory allocations made in this system. */
 typedef enum memory_tag {
     // For temporary use. Should be assigned one of the below or have a new tag created.

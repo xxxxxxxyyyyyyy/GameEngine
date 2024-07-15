@@ -306,7 +306,7 @@ b8 vulkan_renderer_backend_initialize(renderer_plugin *plugin,
     app_info.apiVersion = VK_MAKE_API_VERSION(0, context->api_major, context->api_minor, context->api_patch);
     app_info.pApplicationName = config->application_name;
     app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.pEngineName = "Kohi Engine";
+    app_info.pEngineName = "Dod Engine";
     app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 
     VkInstanceCreateInfo create_info = {VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
@@ -2106,7 +2106,6 @@ b8 vulkan_renderer_shader_initialize(renderer_plugin *plugin, shader *s) {
         pipeline_config.viewport = viewport;
         pipeline_config.scissor = scissor;
         pipeline_config.cull_mode = internal_shader->config.cull_mode;
-        pipeline_config.is_wireframe = false;
         pipeline_config.shader_flags = s->flags;
         pipeline_config.push_constant_range_count = s->push_constant_range_count;
         pipeline_config.push_constant_ranges = s->push_constant_ranges;

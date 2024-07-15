@@ -48,7 +48,9 @@ typedef enum render_target_attachment_store_operation {
 
 typedef enum renderer_projection_matrix_type {
     RENDERER_PROJECTION_MATRIX_TYPE_PERSPECTIVE = 0x0,
-    RENDERER_PROJECTION_MATRIX_TYPE_ORTHOGRAPHIC = 0x1
+    RENDERER_PROJECTION_MATRIX_TYPE_ORTHOGRAPHIC = 0x1,
+    /** @brief An orthographic matrix that is centered around width/height instead of zero-based. Uses fov as a "zoom". */
+    RENDERER_PROJECTION_MATRIX_TYPE_ORTHOGRAPHIC_CENTERED = 0x2
 } renderer_projection_matrix_type;
 
 typedef struct render_target_attachment_config {
@@ -910,7 +912,7 @@ typedef struct render_view {
      * @param p_frame_data A pointer to the current frame's data.
      * @return True on success; otherwise false.
      */
-    b8 (*on_render)(const struct render_view* self, const struct render_view_packet* packet, const struct frame_data* p_frame_data);
+    b8 (*on_render)(const struct render_view* self, const struct render_view_packet* packet, struct frame_data* p_frame_data);
 
     /**
      * @brief Regenerates the resources for the given attachment at the provided pass index.

@@ -68,7 +68,7 @@ API b8 material_system_apply_global(u32 shader_id, const struct frame_data* p_fr
  * @param m A pointer to the material to be applied.
  * @return True on success; otherwise false.
  */
-API b8 material_system_apply_instance(material* m, b8 needs_update);
+API b8 material_system_apply_instance(material* m, struct frame_data* p_frame_data, b8 needs_update);
 
 /**
  * @brief Applies local-level material data (typically just model matrix).

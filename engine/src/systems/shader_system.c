@@ -151,6 +151,9 @@ b8 shader_system_create(renderpass* pass, const shader_config* config) {
     out_shader->push_constant_stride = 128;
     out_shader->push_constant_size = 0;
 
+    // Take a copy of the flags.
+    out_shader->flags = config->flags;
+
     if (!renderer_shader_create(out_shader, config, pass, config->stage_count, (const char**)config->stage_filenames, config->stages)) {
         DERROR("Error creating shader.");
         return false;

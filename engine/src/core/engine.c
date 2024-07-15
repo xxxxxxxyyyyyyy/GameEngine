@@ -15,12 +15,6 @@
 #include "platform/platform.h"
 #include "renderer/renderer_frontend.h"
 
-#include "containers/darray.h"
-
-#include "memory/linear_allocator.h"
-#include "platform/platform.h"
-#include "renderer/renderer_frontend.h"
-
 // systems
 #include "core/systems_manager.h"
 
@@ -32,16 +26,21 @@ typedef struct engine_state_t {
     i16 height;
     clock clock;
     f64 last_time;
+
+    // Indicates if the window is currently being resized.
+    b8 resizing;
+    // The current number of frames since the last resize operation.
+    // Only set if resizing = true. Otherwise 0.
+    u8 frames_since_resize;
+
     systems_manager_state sys_manager_state;
+
     // An allocator used for per-frame allocations, that is reset every frame.
     linear_allocator frame_allocator;
 
     frame_data p_frame_data;
 } engine_state_t;
 
-// safety check, the application initialize times
-static b8 initialized = false;
-// Static
 static engine_state_t* engine_state;
 
 // frame allocator functions.
@@ -52,7 +51,7 @@ static void* frame_allocator_allocate(u64 size) {
 
     return linear_allocator_allocate(&engine_state->frame_allocator, size);
 }
-static void frame_allocator_free(u64 size) {
+static void frame_allocator_free(void* block, u64 size) {
     // NOTE: Linear allocator doesn't free, so this is a no-op
     /* if (engine_state) {
     } */
@@ -64,13 +63,13 @@ static void frame_allocator_free_all(void) {
     }
 }
 
-// event handlers
+// Event handlers
 static b8 engine_on_event(u16 code, void* sender, void* listener_inst, event_context context);
 static b8 engine_on_resized(u16 code, void* sender, void* listener_inst, event_context context);
 
 b8 engine_create(application* game_inst) {
     if (game_inst->engine_state) {
-        DERROR("engine_create called more than once");
+        DERROR("engine_create called more than once.");
         return false;
     }
 
@@ -89,12 +88,15 @@ b8 engine_create(application* game_inst) {
     // Metrics
     metrics_initialize();
 
-    // Stand up the application state.
+    // Stand up the engine state.
     game_inst->engine_state = kallocate(sizeof(engine_state_t), MEMORY_TAG_ENGINE);
     engine_state = game_inst->engine_state;
     engine_state->game_inst = game_inst;
     engine_state->is_running = false;
     engine_state->is_suspended = false;
+    engine_state->resizing = false;
+    engine_state->frames_since_resize = 0;
+
     game_inst->app_config.renderer_plugin = game_inst->render_plugin;
 
     if (!systems_manager_initialize(&engine_state->sys_manager_state, &game_inst->app_config)) {
@@ -124,41 +126,35 @@ b8 engine_create(application* game_inst) {
 
     game_inst->stage = APPLICATION_STAGE_BOOT_COMPLETE;
 
+    if (!systems_manager_post_boot_initialize(&engine_state->sys_manager_state, &game_inst->app_config)) {
+        DFATAL("Post-boot system manager initialization failed!");
+        return false;
+    }
+
     // Report engine version
     DINFO("DOD Engine v. %f", DVERSION);
-
-    if (!systems_manager_post_boot_initialize(&engine_state->sys_manager_state, &game_inst->app_config)) {
-    DFATAL("Post-boot system manager initialization failed!");
-    return false;
-    }
 
     // Initialize the game.
     game_inst->stage = APPLICATION_STAGE_INITIALIZING;
     if (!engine_state->game_inst->initialize(engine_state->game_inst)) {
-        DFATAL("Game failed to initialize");
+        DFATAL("Game failed to initialize.");
         return false;
     }
     game_inst->stage = APPLICATION_STAGE_INITIALIZED;
-
-    // Call resize once to ensure the proper size has been set.
-    renderer_on_resize(engine_state->width, engine_state->height);
-    engine_state->game_inst->on_resize(engine_state->game_inst, engine_state->width, engine_state->height);
-
-    initialized = true;
 
     return true;
 }
 
 b8 engine_run(application* game_inst) {
     game_inst->stage = APPLICATION_STAGE_RUNNING;
-
     engine_state->is_running = true;
     clock_start(&engine_state->clock);
     clock_update(&engine_state->clock);
     engine_state->last_time = engine_state->clock.elapsed;
-    f64 running_time = 0;
+    // f64 running_time = 0;
+    // TODO: frame rate lock
     // u8 frame_count = 0;
-    f64 target_frame_seconds = 1.0f / 30;
+    f64 target_frame_seconds = 1.0f / 60;
     f64 frame_elapsed_time = 0;
 
     DINFO(get_memory_usage_str());
@@ -169,7 +165,7 @@ b8 engine_run(application* game_inst) {
         }
 
         if (!engine_state->is_suspended) {
-            // update clock and get delta time
+            // Update clock and get delta time.
             clock_update(&engine_state->clock);
             f64 current_time = engine_state->clock.elapsed;
             f64 delta = (current_time - engine_state->last_time);
@@ -187,59 +183,88 @@ b8 engine_run(application* game_inst) {
             // update metrics
             metrics_update(frame_elapsed_time);
 
+            // Make sure the window is not currently being resized by waiting a designated
+            // number of frames after the last resize operation before performing the backend updates.
+            if (engine_state->resizing) {
+                engine_state->frames_since_resize++;
+
+                // If the required number of frames have passed since the resize, go ahead and perform the actual updates.
+                if (engine_state->frames_since_resize >= 30) {
+                    renderer_on_resize(engine_state->width, engine_state->height);
+
+                    // NOTE: Don't bother checking the result of this, since this will likely
+                    // recreate the swapchain and boot to the next frame anyway.
+                    renderer_frame_prepare(&engine_state->p_frame_data);
+
+                    // Notify the application of the resize.
+                    engine_state->game_inst->on_resize(engine_state->game_inst, engine_state->width, engine_state->height);
+
+                    engine_state->frames_since_resize = 0;
+                    engine_state->resizing = false;
+                } else {
+                    // Skip rendering the frame and try again next time.
+                    // NOTE: Simulate a frame being "drawn" at 60 FPS.
+                    platform_sleep(16);
+                }
+
+                // Either way, don't process this frame any further while resizing.
+                // Try again next frame.
+                continue;
+            }
+            if (!renderer_frame_prepare(&engine_state->p_frame_data)) {
+                // This can also happen not just from a resize above, but also if a renderer flag
+                // (such as VSync) changed, which may also require resource recreation. To handle this,
+                // Notify the application of a resize event, which it can then pass on to its rendergraph(s)
+                // as needed.
+                engine_state->game_inst->on_resize(engine_state->game_inst, engine_state->width, engine_state->height);
+                continue;
+            }
+
             if (!engine_state->game_inst->update(engine_state->game_inst, &engine_state->p_frame_data)) {
-                DFATAL("Game update failed, shutting down");
+                DFATAL("Game update failed, shutting down.");
                 engine_state->is_running = false;
                 break;
             }
 
-            // this frames render packet
-            render_packet packet = {};
-
             // Have the application generate the render packet.
-            b8 prepare_result = engine_state->game_inst->prepare_render_packet(engine_state->game_inst, &packet, &engine_state->p_frame_data);
+            b8 prepare_result = engine_state->game_inst->prepare_frame(engine_state->game_inst, &engine_state->p_frame_data);
             if (!prepare_result) {
-                DERROR("Application failed to prepare the render packet. Skipping this frame.");
                 continue;
             }
 
             // Call the game's render routine.
-            if (!engine_state->game_inst->render(engine_state->game_inst, &packet, &engine_state->p_frame_data)) {
+            if (!engine_state->game_inst->render_frame(engine_state->game_inst, &engine_state->p_frame_data)) {
                 DFATAL("Game render failed, shutting down.");
                 engine_state->is_running = false;
                 break;
             }
 
-            // Clean-up
-            for (u32 i = 0; i < packet.view_count; ++i) {
-                packet.views[i].view->on_packet_destroy(packet.views[i].view, &packet.views[i]);
-            }
-
-            // figure out how long the frame took
+            // Figure out how long the frame took and, if below
             f64 frame_end_time = platform_get_absolute_time();
             frame_elapsed_time = frame_end_time - frame_start_time;
-            running_time += frame_elapsed_time;
+            // running_time += frame_elapsed_time;
             f64 remaining_seconds = target_frame_seconds - frame_elapsed_time;
 
             if (remaining_seconds > 0) {
                 u64 remaining_ms = (remaining_seconds * 1000);
 
-                // if there is time left, give it back to the os
-                b8 limit_frames = true;
+                // If there is time left, give it back to the OS.
+                b8 limit_frames = false;
                 if (remaining_ms > 0 && limit_frames) {
                     platform_sleep(remaining_ms - 1);
                 }
 
+                // TODO: frame rate lock
                 // frame_count++;
             }
 
-            // NOTE: input update/state copying should always be handled
-            // after any input should be recorded;
-            // as a safety, input is the last thing to be updated before
-            // this frame ends. update input used to next frame
+            // NOTE: Input update/state copying should always be handled
+            // after any input should be recorded; I.E. before this line.
+            // As a safety, input is the last thing to be updated before
+            // this frame ends.
             input_update(&engine_state->p_frame_data);
 
-            // update last time
+            // Update last time
             engine_state->last_time = current_time;
         }
     }
@@ -247,7 +272,10 @@ b8 engine_run(application* game_inst) {
     engine_state->is_running = false;
     game_inst->stage = APPLICATION_STAGE_SHUTTING_DOWN;
 
-    // shutdown event system
+    // Shut down the game.
+    engine_state->game_inst->shutdown(engine_state->game_inst);
+
+    // Unregister from events.
     event_unregister(EVENT_CODE_APPLICATION_QUIT, 0, engine_on_event);
 
     // Shut down all systems.
@@ -258,12 +286,7 @@ b8 engine_run(application* game_inst) {
     return true;
 }
 
-// void application_get_framebuffer_size(u32* width, u32* height) {
-//     *width = engine_state->width;
-//     *height = engine_state->height;
-// }
-
-static void engine_on_event_system_initialized(void) {
+void engine_on_event_system_initialized(void) {
     // Register for engine-level events.
     event_register(EVENT_CODE_APPLICATION_QUIT, 0, engine_on_event);
     event_register(EVENT_CODE_RESIZED, 0, engine_on_resized);
@@ -276,7 +299,7 @@ const struct frame_data* engine_frame_data_get(struct application* game_inst) {
 static b8 engine_on_event(u16 code, void* sender, void* listener_inst, event_context context) {
     switch (code) {
         case EVENT_CODE_APPLICATION_QUIT: {
-            DINFO("EVENT_CODE_APPLICATION_QUIT received, shutting down. \n");
+            DINFO("EVENT_CODE_APPLICATION_QUIT recieved, shutting down.\n");
             engine_state->is_running = false;
             return true;
         }
@@ -285,8 +308,13 @@ static b8 engine_on_event(u16 code, void* sender, void* listener_inst, event_con
     return false;
 }
 
-b8 engine_on_resized(u16 code, void* sender, void* listener_inst, event_context context) {
+static b8 engine_on_resized(u16 code, void* sender, void* listener_inst, event_context context) {
     if (code == EVENT_CODE_RESIZED) {
+        // Flag as resizing and store the change, but wait to regenerate.
+        engine_state->resizing = true;
+        // Also reset the frame count since the last  resize operation.
+        engine_state->frames_since_resize = 0;
+
         u16 width = context.data.u16[0];
         u16 height = context.data.u16[1];
 
@@ -307,8 +335,6 @@ b8 engine_on_resized(u16 code, void* sender, void* listener_inst, event_context 
                     DINFO("Window restored, resuming application.");
                     engine_state->is_suspended = false;
                 }
-                engine_state->game_inst->on_resize(engine_state->game_inst, width, height);
-                renderer_on_resize(width, height);
             }
         }
     }

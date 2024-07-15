@@ -93,7 +93,7 @@ b8 event_unregister(u16 code, void* listener, PFN_on_event on_event) {
         registered_event e = state_ptr->registered[code].events[i];
         if (e.listener == listener && e.callback == on_event) {
             registered_event popped_event;
-            _darray_pop_at(state_ptr->registered[code].events, i, &popped_event);
+            darray_pop_at(state_ptr->registered[code].events, i, &popped_event);
             return true;
         }
     }

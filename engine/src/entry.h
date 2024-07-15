@@ -1,8 +1,8 @@
 #pragma once
 
+#include "application_types.h"
 #include "core/engine.h"
 #include "core/logger.h"
-#include "application_types.h"
 
 // Externally-defined function to create a game.
 // extern means define outside this dll/lib or something.
@@ -20,7 +20,7 @@ int main(void) {
     }
 
     // Ensure the function pointers exist.
-    if (!app_inst.render || !app_inst.update || !app_inst.initialize || !app_inst.on_resize) {
+    if (!app_inst.render_frame || !app_inst.prepare_frame || !app_inst.update || !app_inst.initialize || !app_inst.on_resize) {
         DFATAL("The game's function pointers must be assigned");
         return -2;
     }

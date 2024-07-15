@@ -2,73 +2,129 @@
 
 #include "defines.h"
 
+/**
+ * @brief A 2-element vector.
+ */
 typedef union vec2_u {
-    // An array of x, y
+    /** @brief An array of x, y */
     f32 elements[2];
     struct {
         union {
-            // The first element.
-            f32 x, r, s, u;
+            /** @brief The first element. */
+            f32 x,
+                /** @brief The first element. */
+                r,
+                /** @brief The first element. */
+                s,
+                /** @brief The first element. */
+                u;
         };
         union {
-            // The second element.
-            f32 y, g, t, v;
+            /** @brief The second element. */
+            f32 y,
+                /** @brief The second element. */
+                g,
+                /** @brief The second element. */
+                t,
+                /** @brief The second element. */
+                v;
         };
     };
 } vec2;
 
-typedef struct vec3_u {
-    union {
-        // An array of x, y, z
-        f32 elements[3];
-        struct {
-            union {
-                // The first element.
-                f32 x, r, s, u;
-            };
-            union {
-                // The second element.
-                f32 y, g, t, v;
-            };
-            union {
-                // The third element.
-                f32 z, b, p, w;
-            };
+/**
+ * @brief A 3-element vector.
+ */
+typedef union vec3_u {
+    /** @brief An array of x, y, z */
+    f32 elements[3];
+    struct {
+        union {
+            /** @brief The first element. */
+            f32 x,
+                /** @brief The first element. */
+                r,
+                /** @brief The first element. */
+                s,
+                /** @brief The first element. */
+                u;
+        };
+        union {
+            /** @brief The second element. */
+            f32 y,
+                /** @brief The second element. */
+                g,
+                /** @brief The second element. */
+                t,
+                /** @brief The second element. */
+                v;
+        };
+        union {
+            /** @brief The third element. */
+            f32 z,
+                /** @brief The third element. */
+                b,
+                /** @brief The third element. */
+                p,
+                /** @brief The third element. */
+                w;
         };
     };
 } vec3;
 
+/**
+ * @brief A 4-element vector.
+ */
 typedef union vec4_u {
-#if defined(KUSE_SIMD)
-    // Used for SIMD operations.
-    alignas(16) __m128 data;
-#endif
-    // An array of x, y, z, w
-    // alignas(16) f32 elements[4];
+    /** @brief An array of x, y, z, w */
     f32 elements[4];
     union {
         struct {
             union {
-                // The first element.
-                f32 x, r, s;
+                /** @brief The first element. */
+                f32 x,
+                    /** @brief The first element. */
+                    r,
+                    /** @brief The first element. */
+                    s;
             };
             union {
-                // The second element.
-                f32 y, g, t;
+                /** @brief The second element. */
+                f32 y,
+                    /** @brief The third element. */
+                    g,
+                    /** @brief The third element. */
+                    t;
             };
             union {
-                // The third element.
-                f32 z, b, p;
+                /** @brief The third element. */
+                f32 z,
+                    /** @brief The third element. */
+                    b,
+                    /** @brief The third element. */
+                    p,
+                    /** @brief The third element. */
+                    width;
             };
             union {
-                // The fourth element.
-                f32 w, a, q;
+                /** @brief The fourth element. */
+                f32 w,
+                    /** @brief The fourth element. */
+                    a,
+                    /** @brief The fourth element. */
+                    q,
+                    /** @brief The fourth element. */
+                    height;
             };
         };
     };
 } vec4;
 
+/** @brief A quaterionernion, used to represent rotational orientation. */
 typedef vec4 quaterion;
+
+/** @brief A 2d rectangle. */
+typedef vec4 rect_2d;
 
 /** @brief A 3x3 matrix */
 typedef union mat3_u {
@@ -76,12 +132,10 @@ typedef union mat3_u {
     f32 data[12];
 } matrix3;
 
-typedef union matrix4_u {
-    // alignas(16) f32 data[16];
+/** @brief a 4x4 matrix, typically used to represent object transformations. */
+typedef union mat4_u {
+    /** @brief The matrix elements */
     f32 data[16];
-#if defined(KUSE_SIMD)
-    alignas(16) vec4 rows[4];
-#endif
 } matrix4;
 
 /**
@@ -104,10 +158,15 @@ typedef struct extents_3d {
     vec3 max;
 } extents_3d;
 
+/**
+ * @brief Represents a single vertex in 3D space.
+ */
 typedef struct vertex_3d {
+    /** @brief The position of the vertex */
     vec3 position;
     /** @brief The normal of the vertex. */
     vec3 normal;
+    /** @brief The texture coordinate of the vertex. */
     vec2 texcoord;
     /** @brief The colour of the vertex. */
     vec4 colour;
@@ -115,8 +174,13 @@ typedef struct vertex_3d {
     vec3 tangent;
 } vertex_3d;
 
+/**
+ * @brief Represents a single vertex in 2D space.
+ */
 typedef struct vertex_2d {
+    /** @brief The position of the vertex */
     vec2 position;
+    /** @brief The texture coordinate of the vertex. */
     vec2 texcoord;
 } vertex_2d;
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <renderer/renderer_types.inl>
+#include <renderer/renderer_types.h>
 
 /**
  * @brief Creates a new renderer plugin of the given type.

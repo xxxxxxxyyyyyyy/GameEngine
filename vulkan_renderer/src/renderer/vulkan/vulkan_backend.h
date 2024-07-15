@@ -1,6 +1,6 @@
 #pragma once
 
-#include "renderer/renderer_types.inl"
+#include "renderer/renderer_types.h"
 #include "resources/resource_types.h"
 #include "vulkan_renderer_plugin_main.h"
 
@@ -12,14 +12,18 @@ void vulkan_renderer_backend_shutdown(renderer_plugin* backend);
 
 void vulkan_renderer_backend_on_resized(renderer_plugin* backend, u16 width, u16 height);
 
-b8 vulkan_renderer_backend_frame_begin(renderer_plugin* backend, const struct frame_data* p_frame_data);
-b8 vulkan_renderer_backend_frame_end(renderer_plugin* backend, const struct frame_data* p_frame_data);
+b8 vulkan_renderer_frame_prepare(renderer_plugin* backend, struct frame_data* p_frame_data);
+b8 vulkan_renderer_begin(renderer_plugin* plugin, struct frame_data* p_frame_data);
+b8 vulkan_renderer_end(renderer_plugin* plugin, struct frame_data* p_frame_data);
+b8 vulkan_renderer_present(renderer_plugin* backend, struct frame_data* p_frame_data);
 
 void vulkan_renderer_viewport_set(renderer_plugin* backend, vec4 rect);
 void vulkan_renderer_viewport_reset(renderer_plugin* backend);
 
 void vulkan_renderer_scissor_set(renderer_plugin* backend, vec4 rect);
 void vulkan_renderer_scissor_reset(renderer_plugin* backend);
+
+void vulkan_renderer_winding_set(struct renderer_plugin* plugin, renderer_winding winding);
 
 b8 vulkan_renderer_renderpass_begin(renderer_plugin* backend, renderpass* pass, render_target* target);
 b8 vulkan_renderer_renderpass_end(renderer_plugin* backend, renderpass* pass);

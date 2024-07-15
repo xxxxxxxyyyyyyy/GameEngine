@@ -29,7 +29,7 @@ typedef struct raycast_result {
 } raycast_result;
 
 API ray ray_create(vec3 position, vec3 direction);
-API ray ray_from_screen(vec2 screen_pos, vec2 viewport_size, vec3 origin, matrix4 view, matrix4 projection);
+API ray ray_from_screen(vec2 screen_pos, rect_2d viewport_rect, vec3 origin, matrix4 view, matrix4 projection);
 
 API b8 raycast_aabb(extents_3d bb_extents, const ray* r, vec3* out_point);
 API b8 raycast_oriented_extents(extents_3d bb_extents, matrix4 model, const ray* r, f32* out_dist);

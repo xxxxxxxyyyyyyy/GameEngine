@@ -3,6 +3,7 @@
 #include "containers/darray.h"
 #include "containers/hashtable.h"
 #include "core/kmemory.h"
+#include "core/frame_data.h"
 #include "core/kstring.h"
 #include "core/logger.h"
 #include "defines.h"
@@ -568,12 +569,12 @@ material* material_system_get_default_terrain(void) {
         return false;                                 \
     }
 
-b8 material_system_apply_global(u32 shader_id, u64 renderer_frame_number, const matrix4* projection, const matrix4* view, const vec4* ambient_colour, const vec3* view_position, u32 render_mode) {
+b8 material_system_apply_global(u32 shader_id, const struct frame_data* p_frame_data, const matrix4* projection, const matrix4* view, const vec4* ambient_colour, const vec3* view_position, u32 render_mode) {
     shader* s = shader_system_get_by_id(shader_id);
     if (!s) {
         return false;
     }
-    if (s->render_frame_number == renderer_frame_number) {
+    if (s->render_frame_number == p_frame_data->renderer_frame_number && s->draw_index == p_frame_data->draw_index) {
         return true;
     }
     if (shader_id == state_ptr->material_shader_id || shader_id == state_ptr->terrain_shader_id) {
@@ -592,7 +593,7 @@ b8 material_system_apply_global(u32 shader_id, u64 renderer_frame_number, const 
     MATERIAL_APPLY_OR_FAIL(shader_system_apply_global(true));
 
     // Sync the frame number.
-    s->render_frame_number = renderer_frame_number;
+    s->render_frame_number = p_frame_data->renderer_frame_number;
     return true;
 }
 

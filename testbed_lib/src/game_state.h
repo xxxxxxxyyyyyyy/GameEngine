@@ -6,6 +6,7 @@
 #include <systems/camera_system.h>
 
 #include "editor/editor_gizmo.h"
+#include "renderer/viewport.h"
 #include "resources/simple_scene.h"
 
 // TODO: temp
@@ -29,6 +30,8 @@ typedef struct selected_object {
 typedef struct testbed_game_state {
     b8 running;
     camera* world_camera;
+    // TODO: temp
+    camera* world_camera_2;
 
     u16 width, height;
 
@@ -65,6 +68,11 @@ typedef struct testbed_game_state {
     // Used for visualization of our casts/collisions.
     struct debug_line3d* test_lines;
     struct debug_box3d* test_boxes;
+
+    viewport world_viewport;
+    viewport ui_viewport;
+
+    viewport world_viewport2;
 
     selected_object selection;
     b8 using_gizmo;

@@ -1,10 +1,11 @@
 #pragma once
 
-#include "renderer_types.inl"
+#include "renderer_types.h"
 
 struct shader;
 struct shader_uniform;
 struct frame_data;
+struct viewport;
 
 typedef struct renderer_system_config {
     char* application_name;
@@ -39,13 +40,38 @@ API void renderer_system_shutdown(void* state);
 API void renderer_on_resize(u16 width, u16 height);
 
 /**
- * @brief Draws the next frame using the data provided in the render packet.
+ * @brief Performs setup routines required at the start of a frame.
+ * @note A false result does not necessarily indicate failure. It can also specify that
+ * the backend is simply not in a state capable of drawing a frame at the moment, and
+ * that it should be attempted again on the next loop. End frame does not need to (and
+ * should not) be called if this is the case.
+ * @param p_frame_data A pointer to the current frame's data.
+ * @return True if successful; otherwise false.
+ */
+API b8 renderer_frame_prepare(struct frame_data* p_frame_data);
+
+/**
+ * @brief Begins a render. There must be at least one of these and a matching end per frame.
+ * @param p_frame_data A pointer to the current frame's data.
+ * @return True if successful; otherwise false.
+ */
+API b8 renderer_begin(struct frame_data* p_frame_data);
+
+/**
+ * @brief Ends a render.
+ * @param p_frame_data A pointer to the current frame's data.
+ * @return True if successful; otherwise false.
+ */
+API b8 renderer_end(struct frame_data* p_frame_data);
+
+/**
+ * @brief Performs routines required to draw a frame, such as presentation. Should only be called
+ * after a successful return of begin_frame.
  *
- * @param packet A pointer to the render packet, which contains data on what should be rendered.
  * @param p_frame_data A constant pointer to the current frame's data.
  * @return True on success; otherwise false.
  */
-API b8 renderer_draw_frame(render_packet* packet, const struct frame_data* p_frame_data);
+API b8 renderer_present(struct frame_data* p_frame_data);
 
 /**
  * @brief Sets the renderer viewport to the given rectangle. Must be done within a renderpass.
@@ -72,6 +98,13 @@ API void renderer_scissor_set(vec4 rect);
  * Must be done within a renderpass.
  */
 API void renderer_scissor_reset(void);
+
+/**
+ * @brief Set the renderer to use the given winding direction.
+ *
+ * @param winding The winding direction.
+ */
+API void renderer_winding_set(renderer_winding winding);
 
 /**
  * @brief Creates a new texture.
@@ -139,7 +172,7 @@ API void renderer_texture_read_pixel(texture* t, u32 x, u32 y, u8** out_rgba);
 /**
  * @brief Creates geometry, taking a copy of the provided data and setting up the data structure.
  *
- * @param geometry A pointer to the geometry to acquire resources for.
+ * @param geometry A pointer to the geometry to create.
  * @param vertex_size The size of each vertex.
  * @param vertex_count The number of vertices.
  * @param vertices The vertex array.
@@ -257,6 +290,7 @@ API b8 renderer_shader_bind_instance(struct shader* s, u32 instance_id);
  * @brief Applies global data to the uniform buffer.
  *
  * @param s A pointer to the shader to apply the global data for.
+ * @param needs_update Indicates if the shader uniforms need to be updated or just bound.
  * @return True on success; otherwise false.
  */
 API b8 renderer_shader_apply_globals(struct shader* s, b8 needs_update);
@@ -539,3 +573,15 @@ API b8 renderer_renderbuffer_copy_range(renderbuffer* source, u64 source_offset,
  * @return True on success; otherwise false.
  */
 API b8 renderer_renderbuffer_draw(renderbuffer* buffer, u64 offset, u32 element_count, b8 bind_only);
+
+/**
+ * @brief Returns a pointer to the currently active viewport.
+ */
+API struct viewport* renderer_active_viewport_get(void);
+
+/**
+ * @brief Sets the currently active viewport.
+ *
+ * @param viewport A pointer to the viewport to be set.
+ */
+API void renderer_active_viewport_set(struct viewport* v);

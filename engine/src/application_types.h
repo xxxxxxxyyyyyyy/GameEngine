@@ -56,6 +56,8 @@ typedef struct application {
      * */
     b8 (*update)(struct application* app_inst, struct frame_data* p_frame_data);
 
+    b8 (*prepare_render_packet)(struct application* app_inst, struct render_packet* packet, struct frame_data* p_frame_data);
+
     /** 
      * @brief Function pointer to application's render function. 
      * @param app_inst A pointer to the application instance.

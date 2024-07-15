@@ -1,5 +1,7 @@
+
 #include "vulkan_backend.h"
 
+#include <renderer/renderer_types.h>
 #include <vulkan/vulkan_core.h>
 
 #include "containers/darray.h"
@@ -12,6 +14,7 @@
 #include "platform/platform.h"
 #include "platform/vulkan_platform.h"
 #include "renderer/renderer_frontend.h"
+#include "renderer/viewport.h"
 #include "resources/resource_types.h"
 #include "systems/material_system.h"
 #include "systems/resource_system.h"
@@ -22,7 +25,7 @@
 #include "vulkan_image.h"
 #include "vulkan_pipeline.h"
 #include "vulkan_swapchain.h"
-#include "vulkan_types.inl"
+#include "vulkan_types.h"
 #include "vulkan_utils.h"
 
 // NOTE: If wanting to trace allocations, uncomment this.
@@ -690,8 +693,7 @@ void vulkan_renderer_backend_on_resized(renderer_plugin *plugin, u16 width,
           context->framebuffer_size_generation);
 }
 
-b8 vulkan_renderer_backend_frame_begin(renderer_plugin *plugin,
-                                       const struct frame_data *p_frame_data) {
+b8 vulkan_renderer_frame_prepare(renderer_plugin *plugin, struct frame_data *p_frame_data) {
     // Cold-cast the context
     vulkan_context *context = (vulkan_context *)plugin->internal_context;
     vulkan_device *device = &context->device;
@@ -744,8 +746,7 @@ b8 vulkan_renderer_backend_frame_begin(renderer_plugin *plugin,
         context->device.logical_device, 1,
         &context->in_flight_fences[context->current_frame], true, UINT64_MAX);
     if (!vulkan_result_is_success(result)) {
-        DFATAL("In-flight fence wait failure! error: %s",
-               vulkan_result_string(result, true));
+        DFATAL("In-flight fence wait failure! error: %s", vulkan_result_string(result, true));
         return false;
     }
 
@@ -760,53 +761,53 @@ b8 vulkan_renderer_backend_frame_begin(renderer_plugin *plugin,
         return false;
     }
 
+    return true;
+}
+
+b8 vulkan_renderer_begin(renderer_plugin *plugin, struct frame_data *p_frame_data) {
+    vulkan_context *context = (vulkan_context *)plugin->internal_context;
     // Begin recording commands.
-    vulkan_command_buffer *command_buffer =
-        &context->graphics_command_buffers[context->image_index];
+    vulkan_command_buffer *command_buffer = &context->graphics_command_buffers[context->image_index];
+
+    // Wait for the execution of the current frame to complete. The fence being
+    // free will allow this one to move on.
+    VkResult result = vkWaitForFences(
+        context->device.logical_device, 1,
+        &context->in_flight_fences[context->current_frame], true, UINT64_MAX);
+    if (!vulkan_result_is_success(result)) {
+        DFATAL("In-flight fence wait failure! error: %s", vulkan_result_string(result, true));
+        return false;
+    }
+
     vulkan_command_buffer_reset(command_buffer);
     vulkan_command_buffer_begin(command_buffer, false, false, false);
 
     // Dynamic state
-    context->viewport_rect = (vec4){0.0f, (f32)context->framebuffer_height,
-                                    (f32)context->framebuffer_width,
-                                    -(f32)context->framebuffer_height};
-    vulkan_renderer_viewport_set(plugin, context->viewport_rect);
 
-    context->scissor_rect =
-        (vec4){0, 0, context->framebuffer_width, context->framebuffer_height};
-    vulkan_renderer_scissor_set(plugin, context->scissor_rect);
-
+    vulkan_renderer_winding_set(plugin, RENDERER_WINDING_COUNTER_CLOCKWISE);
     return true;
 }
 
-b8 vulkan_renderer_backend_frame_end(renderer_plugin *plugin,
-                                     const struct frame_data *p_frame_data) {
-    // Cold-cast the context
+b8 vulkan_renderer_end(renderer_plugin *plugin, struct frame_data *p_frame_data) {
     vulkan_context *context = (vulkan_context *)plugin->internal_context;
-    vulkan_command_buffer *command_buffer =
-        &context->graphics_command_buffers[context->image_index];
+    vulkan_command_buffer *command_buffer = &context->graphics_command_buffers[context->image_index];
 
     vulkan_command_buffer_end(command_buffer);
 
     // Make sure the previous frame is not using this image (i.e. its fence is
     // being waited on)
-    if (context->images_in_flight[context->image_index] !=
-        VK_NULL_HANDLE) {  // was frame
-        VkResult result = vkWaitForFences(
-            context->device.logical_device, 1,
-            &context->images_in_flight[context->image_index], true, UINT64_MAX);
+    if (context->images_in_flight[context->image_index] != VK_NULL_HANDLE) {  // was frame
+        VkResult result = vkWaitForFences(context->device.logical_device, 1, &context->images_in_flight[context->image_index], true, UINT64_MAX);
         if (!vulkan_result_is_success(result)) {
             DFATAL("vkWaitForFences error: %s", vulkan_result_string(result, true));
         }
     }
 
     // Mark the image fence as in-use by this frame.
-    context->images_in_flight[context->image_index] =
-        context->in_flight_fences[context->current_frame];
+    context->images_in_flight[context->image_index] = context->in_flight_fences[context->current_frame];
 
     // Reset the fence for use on the next frame
-    VK_CHECK(vkResetFences(context->device.logical_device, 1,
-                           &context->in_flight_fences[context->current_frame]));
+    VK_CHECK(vkResetFences(context->device.logical_device, 1, &context->in_flight_fences[context->current_frame]));
 
     // Submit the queue and wait for the operation to complete.
     // Begin queue submission
@@ -817,22 +818,27 @@ b8 vulkan_renderer_backend_frame_end(renderer_plugin *plugin,
     submit_info.pCommandBuffers = &command_buffer->handle;
 
     // The semaphore(s) to be signaled when the queue is complete.
-    submit_info.signalSemaphoreCount = 1;
-    submit_info.pSignalSemaphores =
-        &context->queue_complete_semaphores[context->current_frame];
+    if (plugin->draw_index == 0) {
+        submit_info.signalSemaphoreCount = 1;
+        submit_info.pSignalSemaphores = &context->queue_complete_semaphores[context->current_frame];
+    } else {
+        submit_info.signalSemaphoreCount = 0;
+    }
 
     // Wait semaphore ensures that the operation cannot begin until the image is
     // available.
-    submit_info.waitSemaphoreCount = 1;
-    submit_info.pWaitSemaphores =
-        &context->image_available_semaphores[context->current_frame];
+    if (plugin->draw_index == 0) {
+        submit_info.waitSemaphoreCount = 1;
+        submit_info.pWaitSemaphores = &context->image_available_semaphores[context->current_frame];
+    } else {
+        submit_info.waitSemaphoreCount = 0;
+    }
 
     // Each semaphore waits on the corresponding pipeline stage to complete. 1:1
     // ratio. VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT prevents subsequent
     // colour attachment writes from executing until the semaphore signals (i.e.
     // one frame is presented at a time)
-    VkPipelineStageFlags flags[1] = {
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    VkPipelineStageFlags flags[1] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submit_info.pWaitDstStageMask = flags;
 
     VkResult result =
@@ -846,6 +852,13 @@ b8 vulkan_renderer_backend_frame_end(renderer_plugin *plugin,
 
     vulkan_command_buffer_update_submitted(command_buffer);
     // End queue submission
+
+    return true;
+}
+
+b8 vulkan_renderer_present(renderer_plugin *plugin, struct frame_data *p_frame_data) {
+    // Cold-cast the context
+    vulkan_context *context = (vulkan_context *)plugin->internal_context;
 
     // Give the image back to the swapchain.
     vulkan_swapchain_present(
@@ -903,6 +916,30 @@ void vulkan_renderer_scissor_reset(renderer_plugin *plugin) {
     vulkan_renderer_scissor_set(plugin, context->scissor_rect);
 }
 
+void vulkan_renderer_winding_set(struct renderer_plugin *plugin, renderer_winding winding) {
+    vulkan_context *context = (vulkan_context *)plugin->internal_context;
+    vulkan_command_buffer *command_buffer = &context->graphics_command_buffers[context->image_index];
+
+    VkFrontFace vk_winding = winding == RENDERER_WINDING_COUNTER_CLOCKWISE ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE;
+    if (context->device.support_flags & VULKAN_DEVICE_SUPPORT_FLAG_NATIVE_DYNAMIC_FRONT_FACE_BIT) {
+        vkCmdSetFrontFace(command_buffer->handle, vk_winding);
+    } else if (context->device.support_flags * VULKAN_DEVICE_SUPPORT_FLAG_DYNAMIC_FRONT_FACE_BIT) {
+        context->vkCmdSetFrontFaceEXT(command_buffer->handle, vk_winding);
+    } else {
+        if (context->bound_shader) {
+            vulkan_shader *internal_shader = context->bound_shader->internal_data;
+            // Bind the correct winding pipeline.
+            if (winding == RENDERER_WINDING_COUNTER_CLOCKWISE) {
+                vulkan_pipeline_bind(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, internal_shader->pipelines[internal_shader->bound_pipeline_index]);
+            } else {
+                vulkan_pipeline_bind(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, internal_shader->clockwise_pipelines[internal_shader->bound_pipeline_index]);
+            }
+        } else {
+            DERROR("Unable to set winding because there is no currently bound shader.");
+        }
+    }
+}
+
 b8 vulkan_renderer_renderpass_begin(renderer_plugin *plugin, renderpass *pass,
                                     render_target *target) {
     // Cold-cast the context
@@ -913,13 +950,15 @@ b8 vulkan_renderer_renderpass_begin(renderer_plugin *plugin, renderpass *pass,
     // Begin the render pass.
     vulkan_renderpass *internal_data = pass->internal_data;
 
+    viewport *v = renderer_active_viewport_get();
+
     VkRenderPassBeginInfo begin_info = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
     begin_info.renderPass = internal_data->handle;
     begin_info.framebuffer = target->internal_framebuffer;
-    begin_info.renderArea.offset.x = pass->render_area.x;
-    begin_info.renderArea.offset.y = pass->render_area.y;
-    begin_info.renderArea.extent.width = pass->render_area.z;
-    begin_info.renderArea.extent.height = pass->render_area.w;
+    begin_info.renderArea.offset.x = v->rect.x;
+    begin_info.renderArea.offset.y = v->rect.y;
+    begin_info.renderArea.extent.width = v->rect.width;
+    begin_info.renderArea.extent.height = v->rect.height;
 
     begin_info.clearValueCount = 0;
     begin_info.pClearValues = 0;
@@ -1987,40 +2026,65 @@ b8 vulkan_renderer_shader_initialize(renderer_plugin *plugin, shader *s) {
         // In this case, one pipeline must be created per topology type.
         pipeline_count = 6;
 
-        // Create an array of pointers to pipelines, one per topology type. Null means not supported for this shader.
+        // Create an array of pointers to pipelines, one per topology type. Counter-clockwise. Null means not supported for this shader.
         internal_shader->pipelines = kallocate(sizeof(vulkan_pipeline *) * pipeline_count, MEMORY_TAG_ARRAY);
+        // Create an array of pointers to pipelines, one per topology type. Clockwise. Null means not supported for this shader.
+        internal_shader->clockwise_pipelines = kallocate(sizeof(vulkan_pipeline *) * pipeline_count, MEMORY_TAG_ARRAY);
 
         // Check each type individually. Will always be in this order.
 
         // Point
         if (s->topology_types & PRIMITIVE_TOPOLOGY_TYPE_POINT_LIST) {
+            // Counter-clockwise
             internal_shader->pipelines[0] = kallocate(sizeof(vulkan_pipeline), MEMORY_TAG_VULKAN);
             internal_shader->pipelines[0]->supported_topology_types = PRIMITIVE_TOPOLOGY_TYPE_POINT_LIST;
+            // Clockwise
+            internal_shader->clockwise_pipelines[0] = kallocate(sizeof(vulkan_pipeline), MEMORY_TAG_VULKAN);
+            internal_shader->clockwise_pipelines[0]->supported_topology_types = PRIMITIVE_TOPOLOGY_TYPE_POINT_LIST;
         }
 
         // Line
         if (s->topology_types & PRIMITIVE_TOPOLOGY_TYPE_LINE_LIST) {
+            // Counter-clockwise
             internal_shader->pipelines[1] = kallocate(sizeof(vulkan_pipeline), MEMORY_TAG_VULKAN);
             internal_shader->pipelines[1]->supported_topology_types = PRIMITIVE_TOPOLOGY_TYPE_LINE_LIST;
+            // Clockwise
+            internal_shader->clockwise_pipelines[1] = kallocate(sizeof(vulkan_pipeline), MEMORY_TAG_VULKAN);
+            internal_shader->clockwise_pipelines[1]->supported_topology_types = PRIMITIVE_TOPOLOGY_TYPE_LINE_LIST;
         }
         if (s->topology_types & PRIMITIVE_TOPOLOGY_TYPE_LINE_STRIP) {
+            // Counter-clockwise
             internal_shader->pipelines[2] = kallocate(sizeof(vulkan_pipeline), MEMORY_TAG_VULKAN);
             internal_shader->pipelines[2]->supported_topology_types = PRIMITIVE_TOPOLOGY_TYPE_LINE_STRIP;
+            // Clockwise
+            internal_shader->clockwise_pipelines[2] = kallocate(sizeof(vulkan_pipeline), MEMORY_TAG_VULKAN);
+            internal_shader->clockwise_pipelines[2]->supported_topology_types = PRIMITIVE_TOPOLOGY_TYPE_LINE_STRIP;
         }
 
         // Triangle
-
         if (s->topology_types & PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE_LIST) {
+            // Clockwise
             internal_shader->pipelines[3] = kallocate(sizeof(vulkan_pipeline), MEMORY_TAG_VULKAN);
             internal_shader->pipelines[3]->supported_topology_types = PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE_LIST;
+            // Clockwise
+            internal_shader->clockwise_pipelines[3] = kallocate(sizeof(vulkan_pipeline), MEMORY_TAG_VULKAN);
+            internal_shader->clockwise_pipelines[3]->supported_topology_types = PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE_LIST;
         }
         if (s->topology_types & PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE_STRIP) {
+            // Clockwise
             internal_shader->pipelines[4] = kallocate(sizeof(vulkan_pipeline), MEMORY_TAG_VULKAN);
             internal_shader->pipelines[4]->supported_topology_types = PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE_STRIP;
+            // Counter-clockwise
+            internal_shader->clockwise_pipelines[4] = kallocate(sizeof(vulkan_pipeline), MEMORY_TAG_VULKAN);
+            internal_shader->clockwise_pipelines[4]->supported_topology_types = PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE_STRIP;
         }
         if (s->topology_types & PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE_FAN) {
+            // Clockwise
             internal_shader->pipelines[5] = kallocate(sizeof(vulkan_pipeline), MEMORY_TAG_VULKAN);
             internal_shader->pipelines[5]->supported_topology_types = PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE_FAN;
+            // Clockwise
+            internal_shader->clockwise_pipelines[5] = kallocate(sizeof(vulkan_pipeline), MEMORY_TAG_VULKAN);
+            internal_shader->clockwise_pipelines[5]->supported_topology_types = PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE_FAN;
         }
     }
 
@@ -2177,6 +2241,7 @@ b8 vulkan_renderer_shader_use(renderer_plugin *plugin, shader *shader) {
     vulkan_command_buffer *command_buffer = &context->graphics_command_buffers[context->image_index];
     vulkan_pipeline_bind(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, s->pipelines[s->bound_pipeline_index]);
 
+    context->bound_shader = shader;
     // Make sure to use the current bound type as well.
     if (context->device.support_flags & VULKAN_DEVICE_SUPPORT_FLAG_NATIVE_DYNAMIC_TOPOLOGY_BIT) {
         vkCmdSetPrimitiveTopology(command_buffer->handle, s->current_topology);

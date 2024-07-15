@@ -16,6 +16,8 @@ typedef struct material_system_config {
     u32 max_material_count;
 } material_system_config;
 
+struct frame_data;
+
 b8 material_system_initialize(u64* memory_requirement, void* state, void* config);
 void material_system_shutdown(void* state);
 
@@ -58,7 +60,7 @@ API material* material_system_get_default(void);
  * @param render_mode The render mode.
  * @return True on success; otherwise false.
  */
-API b8 material_system_apply_global(u32 shader_id, u64 renderer_frame_number, const matrix4* projection, const matrix4* view, const vec4* ambient_colour, const vec3* view_position, u32 render_mode);
+API b8 material_system_apply_global(u32 shader_id, const struct frame_data* p_frame_data, const matrix4* projection, const matrix4* view, const vec4* ambient_colour, const vec3* view_position, u32 render_mode);
 
 /**
  * @brief Applies instance-level material data for the given material.

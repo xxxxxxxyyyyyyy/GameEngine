@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "containers/freelist.h"
@@ -10,11 +9,14 @@ struct shader;
 struct shader_uniform;
 struct frame_data;
 struct terrain;
+struct viewport;
+struct camera;
 
 typedef struct geometry_render_data {
     matrix4 model;
     geometry* geometry;
     u32 unique_id;
+    b8 winding_inverted;
 } geometry_render_data;
 
 typedef enum renderer_debug_view_mode {
@@ -43,6 +45,11 @@ typedef enum render_target_attachment_store_operation {
     RENDER_TARGET_ATTACHMENT_STORE_OPERATION_DONT_CARE = 0x0,
     RENDER_TARGET_ATTACHMENT_STORE_OPERATION_STORE = 0x1
 } render_target_attachment_store_operation;
+
+typedef enum renderer_projection_matrix_type {
+    RENDERER_PROJECTION_MATRIX_TYPE_PERSPECTIVE = 0x0,
+    RENDERER_PROJECTION_MATRIX_TYPE_ORTHOGRAPHIC = 0x1
+} renderer_projection_matrix_type;
 
 typedef struct render_target_attachment_config {
     render_target_attachment_type type;
@@ -187,6 +194,14 @@ typedef struct renderer_backend_config {
     renderer_config_flags flags;
 } renderer_backend_config;
 
+/** @brief The winding order of vertices, used to determine what is the front-face of a triangle. */
+typedef enum renderer_winding {
+    /** @brief Counter-clockwise vertex winding. */
+    RENDERER_WINDING_COUNTER_CLOCKWISE = 0,
+    /** @brief Counter-clockwise vertex winding. */
+    RENDERER_WINDING_CLOCKWISE = 1
+} renderer_winding;
+
 /**
  * @brief A generic "interface" for the renderer plugin. The renderer backend
  * is what is responsible for making calls to the graphics API such as
@@ -195,8 +210,14 @@ typedef struct renderer_backend_config {
  * the way things actually work on the backend.
  */
 typedef struct renderer_plugin {
+    /** @brief The current frame number. */
     u64 frame_number;
 
+    /**
+     * @brief The draw index for the current frame. Typically aligns with the
+     * number of queue submissions per frame.
+     */
+    u8 draw_index;
     /**
      * @brief The size of the plugin-specific renderer context.
      */
@@ -239,10 +260,26 @@ typedef struct renderer_plugin {
      * that it should be attempted again on the next loop. End frame does not need to (and
      * should not) be called if this is the case.
      * @param plugin A pointer to the renderer plugin interface.
-     * @param p_frame_data A constant pointer to the current frame's data.
+     * @param p_frame_data A pointer to the current frame's data.
      * @return True if successful; otherwise false.
      */
-    b8 (*frame_begin)(struct renderer_plugin* plugin, const struct frame_data* p_frame_data);
+    b8 (*frame_prepare)(struct renderer_plugin* plugin, struct frame_data* p_frame_data);
+
+    /**
+     * @brief Begins a render. There must be at least one of these and a matching end per frame.
+     * @param plugin A pointer to the renderer plugin interface.
+     * @param p_frame_data A pointer to the current frame's data.
+     * @return True if successful; otherwise false.
+     */
+    b8 (*begin)(struct renderer_plugin* plugin, struct frame_data* p_frame_data);
+
+    /**
+     * @brief Ends a render.
+     * @param plugin A pointer to the renderer plugin interface.
+     * @param p_frame_data A pointer to the current frame's data.
+     * @return True if successful; otherwise false.
+     */
+    b8 (*end)(struct renderer_plugin* plugin, struct frame_data* p_frame_data);
 
     /**
      * @brief Performs routines required to draw a frame, such as presentation. Should only be called
@@ -252,7 +289,7 @@ typedef struct renderer_plugin {
      * @param p_frame_data A constant pointer to the current frame's data.
      * @return True on success; otherwise false.
      */
-    b8 (*frame_end)(struct renderer_plugin* plugin, const struct frame_data* p_frame_data);
+    b8 (*present)(struct renderer_plugin* plugin, struct frame_data* p_frame_data);
 
     /**
      * @brief Sets the renderer viewport to the given rectangle. Must be done within a renderpass.
@@ -285,6 +322,14 @@ typedef struct renderer_plugin {
      * @param plugin A pointer to the renderer plugin interface.
      */
     void (*scissor_reset)(struct renderer_plugin* plugin);
+
+    /**
+     * @brief Set the renderer to use the given winding direction.
+     *
+     * @param A pointer to the renderer plugin interface.
+     * @param winding The winding direction.
+     */
+    void (*winding_set)(struct renderer_plugin* plugin, renderer_winding winding);
 
     /**
      * @brief Begins a renderpass with the given id.
@@ -847,7 +892,7 @@ typedef struct render_view {
      * @param out_packet A pointer to hold the generated packet.
      * @return True on success; otherwise false.
      */
-    b8 (*on_packet_build)(const struct render_view* self, struct linear_allocator* frame_allocator, void* data, struct render_view_packet* out_packet);
+    b8 (*on_packet_build)(const struct render_view* self, struct frame_data* p_frame_data, struct viewport* v, struct camera* c, void* data, struct render_view_packet* out_packet);
 
     /**
      * @brief Destroys a render view packet.
@@ -862,11 +907,10 @@ typedef struct render_view {
      *
      * @param self A pointer to the view to use.
      * @param packet A pointer to the packet whose data is to be rendered.
-     * @param frame_number The current renderer frame number, typically used for data synchronization.
-     * @param render_target_index The current render target index for renderers that use multiple render targets at once (i.e. Vulkan).
+     * @param p_frame_data A pointer to the current frame's data.
      * @return True on success; otherwise false.
      */
-    b8 (*on_render)(const struct render_view* self, const struct render_view_packet* packet, u64 frame_number, u64 render_target_index, const struct frame_data* p_frame_data);
+    b8 (*on_render)(const struct render_view* self, const struct render_view_packet* packet, const struct frame_data* p_frame_data);
 
     /**
      * @brief Regenerates the resources for the given attachment at the provided pass index.
@@ -879,11 +923,17 @@ typedef struct render_view {
     b8 (*attachment_target_regenerate)(struct render_view* self, u32 pass_index, struct render_target_attachment* attachment);
 } render_view;
 
+typedef struct skybox_packet_data {
+    struct skybox* sb;
+} skybox_packet_data;
+
 /**
  * @brief A packet for and generated by a render view, which contains
  * data about what is to be rendered.
  */
 typedef struct render_view_packet {
+    /** @brief A pointer to the viewport to be used. */
+    struct viewport* vp;
     /** @brief A constant pointer to the view this packet is associated with. */
     const render_view* view;
     /** @brief The current view matrix. */
@@ -894,6 +944,8 @@ typedef struct render_view_packet {
     vec3 view_position;
     /** @brief The current scene ambient colour, if applicable. */
     vec4 ambient_colour;
+    /** @brief The data for the current skybox. */
+    skybox_packet_data skybox_data;
     /** @brief The number of geometries to be drawn. */
     u32 geometry_count;
     /** @brief The geometries to be drawn. */
@@ -943,13 +995,8 @@ typedef struct pick_packet_data {
 
 struct skybox;
 
-typedef struct skybox_packet_data {
-    struct skybox* sb;
-} skybox_packet_data;
-
 /**
- * @brief 
- * 
+ * @brief A structure which is generated by the application and sent once
  * to the renderer to render a given frame. Consists of any data required,
  * such as delta time and a collection of views to be rendered.
  */

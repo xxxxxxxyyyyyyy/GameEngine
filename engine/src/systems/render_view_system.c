@@ -5,7 +5,7 @@
 #include "core/kstring.h"
 #include "core/logger.h"
 #include "renderer/renderer_frontend.h"
-#include "renderer/renderer_types.inl"
+#include "renderer/renderer_types.h"
 
 typedef struct render_view_system_state {
     hashtable lookup;
@@ -151,9 +151,9 @@ render_view* render_view_system_get(const char* name) {
     return 0;
 }
 
-b8 render_view_system_packet_build(const render_view* view, struct linear_allocator* frame_allocator, void* data, struct render_view_packet* out_packet) {
+b8 render_view_system_packet_build(const render_view* view, struct frame_data* p_frame_data, struct viewport* v, struct camera* c, void* data, struct render_view_packet* out_packet) {
     if (view && out_packet) {
-        return view->on_packet_build(view, frame_allocator, data, out_packet);
+        return view->on_packet_build(view, p_frame_data, v, c, data, out_packet);
     }
 
     DERROR("render_view_system_packet_build requires valid pointers to a view and a packet.");
@@ -162,7 +162,7 @@ b8 render_view_system_packet_build(const render_view* view, struct linear_alloca
 
 b8 render_view_system_on_render(const render_view* view, const render_view_packet* packet, u64 frame_number, u64 render_target_index, const struct frame_data* p_frame_data) {
     if (view && packet) {
-        return view->on_render(view, packet, frame_number, render_target_index, p_frame_data);
+        return view->on_render(view, packet, p_frame_data);
     }
 
     DERROR("render_view_system_on_render requires a valid pointer to a data.");

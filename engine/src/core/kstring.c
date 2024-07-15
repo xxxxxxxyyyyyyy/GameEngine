@@ -249,7 +249,7 @@ b8 string_to_transform(const char* str, transform* out_transform) {
         &values[0], &values[1], &values[2], &values[3], &values[4], &values[5], &values[6]);
 
     if (count == 10) {
-        // Treat as quat, load directly.
+        // Treat as quaterion, load directly.
         out_transform->rotation.x = values[0];
         out_transform->rotation.y = values[1];
         out_transform->rotation.z = values[2];

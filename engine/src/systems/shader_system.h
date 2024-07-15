@@ -1,20 +1,8 @@
-/**
- * @file shader_system.h
- * @author DOD
- * @brief A system to manage shaders. Respondible for working with the
- * renderer to create, destroy, bind/unbind and set shader properties
- * such as uniforms.
- * @version 1.0
- * 
- * @copyright DOD Game Engine is Copyright (c) DOD 2024
- * 
- */
-
 #pragma once
 
+#include "containers/hashtable.h"
 #include "defines.h"
 #include "renderer/renderer_types.inl"
-#include "containers/hashtable.h"
 
 /** @brief Configuration for the shader system. */
 typedef struct shader_system_config {
@@ -288,7 +276,7 @@ API b8 shader_system_sampler_set_by_index(u16 index, const struct texture* t);
  * 
  * @return True on success; otherwise false.
  */
-API b8 shader_system_apply_global(void);
+API b8 shader_system_apply_global(b8 needs_update);
 
 /**
  * @brief Applies instance-scoped uniforms.

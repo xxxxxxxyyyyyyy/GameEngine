@@ -137,7 +137,7 @@ API void renderer_texture_read_data(texture* t, u32 offset, u32 size, void** out
 API void renderer_texture_read_pixel(texture* t, u32 x, u32 y, u8** out_rgba);
 
 /**
- * @brief Acquiores GPU resources and uploads geometry data.
+ * @brief Creates geometry, taking a copy of the provided data and setting up the data structure.
  *
  * @param geometry A pointer to the geometry to acquire resources for.
  * @param vertex_size The size of each vertex.
@@ -149,6 +149,14 @@ API void renderer_texture_read_pixel(texture* t, u32 x, u32 y, u8** out_rgba);
  * @return True on success; otherwise false.
  */
 API b8 renderer_geometry_create(geometry* geometry, u32 vertex_size, u32 vertex_count, const void* vertices, u32 index_size, u32 index_count, const void* indices);
+
+/**
+ * @brief Acquires GPU resources and uploads geometry data.
+ *
+ * @param geometry A pointer to the geometry to upload.
+ * @return True on success; otherwise false.
+ */
+API b8 renderer_geometry_upload(geometry* geometry);
 
 /**
  * @brief Updates vertex data in the given geometry with the provided data in the given range.
@@ -251,7 +259,7 @@ API b8 renderer_shader_bind_instance(struct shader* s, u32 instance_id);
  * @param s A pointer to the shader to apply the global data for.
  * @return True on success; otherwise false.
  */
-API b8 renderer_shader_apply_globals(struct shader* s);
+API b8 renderer_shader_apply_globals(struct shader* s, b8 needs_update);
 
 /**
  * @brief Applies data for the currently bound instance.

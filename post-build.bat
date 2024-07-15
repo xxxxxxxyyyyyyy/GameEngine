@@ -1,5 +1,6 @@
 @echo off
 
+echo "staic compile glsl to spv"
 echo "Compiling shaders..."
 
 PUSHD bin

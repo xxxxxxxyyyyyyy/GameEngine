@@ -224,9 +224,20 @@ b8 engine_run(application* game_inst) {
                 engine_state->is_running = false;
                 break;
             }
+            if (!renderer_begin(&engine_state->p_frame_data)) {
+                DFATAL("Failed to begin renderer. Shutting down.");
+                engine_state->is_running = false;
+                break;
+            }
 
+            // Begin "prepare_frame" render event grouping.
+            renderer_begin_debug_label("prepare_frame", (vec3){1.0f, 1.0f, 0.0f});
+
+            systems_manager_renderer_frame_prepare(&engine_state->sys_manager_state, &engine_state->p_frame_data);
             // Have the application generate the render packet.
             b8 prepare_result = engine_state->game_inst->prepare_frame(engine_state->game_inst, &engine_state->p_frame_data);
+            // End "prepare_frame" render event grouping.
+            renderer_end_debug_label();
             if (!prepare_result) {
                 continue;
             }
@@ -238,6 +249,15 @@ b8 engine_run(application* game_inst) {
                 break;
             }
 
+            // End the frame.
+            renderer_end(&engine_state->p_frame_data);
+
+            // Present the frame.
+            if (!renderer_present(&engine_state->p_frame_data)) {
+                DERROR("The call to renderer_present failed. This is likely unrecoverable. Shutting down.");
+                engine_state->is_running = false;
+                break;
+            }
             // Figure out how long the frame took and, if below
             f64 frame_end_time = platform_get_absolute_time();
             frame_elapsed_time = frame_end_time - frame_start_time;

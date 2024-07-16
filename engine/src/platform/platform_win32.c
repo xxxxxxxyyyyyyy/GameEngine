@@ -1,10 +1,10 @@
+#include "core/ksemaphore.h"
 #include "platform/platform.h"
 
 // Windows platform layer.
 #if PLATFORM_WINDOWS
 
 #include "containers/darray.h"
-
 #include "core/event.h"
 #include "core/input.h"
 #include "core/kmemory.h"
@@ -12,7 +12,6 @@
 #include "core/kstring.h"
 #include "core/thread.h"
 #include "core/logger.h"
-
 
 #define WIN32_LEAN_AND_MEAN
 #include <stdlib.h>
@@ -192,12 +191,14 @@ void *platform_set_memory(void *dest, i32 value, u64 size) {
 
 void platform_console_write(const char *message, u8 colour) {
     HANDLE console_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+
     CONSOLE_SCREEN_BUFFER_INFO csbi;
     if (state_ptr) {
         csbi = state_ptr->std_output_csbi;
     } else {
         GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
     }
+
     // FATAL,ERROR,WARN,INFO,DEBUG,TRACE
     static u8 levels[6] = {64, 4, 6, 2, 1, 8};
     SetConsoleTextAttribute(console_handle, levels[colour]);
@@ -211,12 +212,14 @@ void platform_console_write(const char *message, u8 colour) {
 
 void platform_console_write_error(const char *message, u8 colour) {
     HANDLE console_handle = GetStdHandle(STD_ERROR_HANDLE);
+
     CONSOLE_SCREEN_BUFFER_INFO csbi;
     if (state_ptr) {
         csbi = state_ptr->err_output_csbi;
     } else {
         GetConsoleScreenBufferInfo(GetStdHandle(STD_ERROR_HANDLE), &csbi);
     }
+
     // FATAL,ERROR,WARN,INFO,DEBUG,TRACE
     static u8 levels[6] = {64, 4, 6, 2, 1, 8};
     SetConsoleTextAttribute(console_handle, levels[colour]);
@@ -312,6 +315,28 @@ void kthread_cancel(kthread *thread) {
     }
 }
 
+b8 kthread_wait(kthread *thread) {
+    if (thread && thread->internal_data) {
+        DWORD exit_code = WaitForSingleObject(thread->internal_data, INFINITE);
+        if (exit_code == WAIT_OBJECT_0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+b8 kthread_wait_timeout(kthread *thread, u64 wait_ms) {
+    if (thread && thread->internal_data) {
+        DWORD exit_code = WaitForSingleObject(thread->internal_data, wait_ms);
+        if (exit_code == WAIT_OBJECT_0) {
+            return true;
+        } else if (exit_code == WAIT_TIMEOUT) {
+            return false;
+        }
+    }
+    return false;
+}
+
 b8 kthread_is_active(kthread *thread) {
     if (thread && thread->internal_data) {
         DWORD exit_code = WaitForSingleObject(thread->internal_data, 0);
@@ -326,7 +351,7 @@ void kthread_sleep(kthread *thread, u64 ms) {
     platform_sleep(ms);
 }
 
-u64 get_current_thread_id(void) {
+u64 platform_current_thread_id(void) {
     return (u64)GetCurrentThreadId();
 }
 
@@ -386,6 +411,69 @@ b8 kmutex_unlock(kmutex *mutex) {
 }
 
 // NOTE: End mutexes.
+
+b8 ksemaphore_create(ksemaphore *out_semaphore, u32 max_count, u32 start_count) {
+    if (!out_semaphore) {
+        return false;
+    }
+
+    out_semaphore->internal_data = CreateSemaphore(0, start_count, max_count, "semaphore");
+
+    return true;
+}
+
+void ksemaphore_destroy(ksemaphore *semaphore) {
+    if (semaphore && semaphore->internal_data) {
+        CloseHandle(semaphore->internal_data);
+        DTRACE("Destroyed semaphore handle.");
+        semaphore->internal_data = 0;
+    }
+}
+
+b8 ksemaphore_signal(ksemaphore *semaphore) {
+    if (!semaphore || !semaphore->internal_data) {
+        return false;
+    }
+    // W: release/Increment
+    LONG previous_count = 0;
+    // NOTE: release 1 at a time.
+    if (!ReleaseSemaphore(semaphore->internal_data, 1, &previous_count)) {
+        DERROR("Failed to release semaphore.");
+        return false;
+    }
+    return true;
+    // L: post/Increment
+}
+
+b8 ksemaphore_wait(ksemaphore *semaphore, u64 timeout_ms) {
+    if (!semaphore || !semaphore->internal_data) {
+        return false;
+    }
+
+    DWORD result = WaitForSingleObject(semaphore->internal_data, timeout_ms);
+    switch (result) {
+        case WAIT_ABANDONED:
+            DERROR("The specified object is a mutex object that was not released by the thread that owned the mutex object before the owning thread terminated. Ownership of the mutex object is granted to the calling thread and the mutex state is set to nonsignaled. If the mutex was protecting persistent state information, you should check it for consistency.");
+            return false;
+        case WAIT_OBJECT_0:
+            // The state is signaled.
+            return true;
+        case WAIT_TIMEOUT:
+            DERROR("Semaphore wait timeout occurred.");
+            return false;
+        case WAIT_FAILED:
+            DERROR("WaitForSingleObject failed.");
+            // TODO: GetLastError and print message.
+            return false;
+        default:
+            DERROR("An unknown error occurred while waiting on a semaphore.");
+            // TODO: GetLastError and print message.
+            return false;
+    }
+    // W: wait/decrement, blocks when 0
+    // L: wait/decrement, blocks when 0
+    return true;
+}
 
 b8 platform_dynamic_library_load(const char *name, dynamic_library *out_library) {
     if (!out_library) {
@@ -486,7 +574,7 @@ const char *platform_dynamic_library_extension(void) {
     return ".dll";
 }
 
-const char* platform_dynamic_library_prefix(void) {
+const char *platform_dynamic_library_prefix(void) {
     return "";
 }
 
@@ -637,6 +725,7 @@ LRESULT CALLBACK win32_process_message(HWND hwnd, u32 msg, WPARAM w_param, LPARA
             // Store off the device pixel ratio.
             state_ptr->device_pixel_ratio = (f32)x_dpi / USER_DEFAULT_SCREEN_DPI;
             DINFO("Display device pixel ratio is: %.2f", state_ptr->device_pixel_ratio);
+
             return 0;
         case WM_SIZE: {
             // Get the updated size.
@@ -685,6 +774,11 @@ LRESULT CALLBACK win32_process_message(HWND hwnd, u32 msg, WPARAM w_param, LPARA
                 key = scancode == left_shift ? KEY_LSHIFT : KEY_RSHIFT;
             } else if (w_param == VK_CONTROL) {
                 key = is_extended ? KEY_RCONTROL : KEY_LCONTROL;
+            }
+
+            // HACK: This is gross windows keybind crap.
+            if (key == VK_OEM_1) {
+                key = KEY_SEMICOLON;
             }
 
             // Pass to the input subsystem for processing.
@@ -742,4 +836,4 @@ LRESULT CALLBACK win32_process_message(HWND hwnd, u32 msg, WPARAM w_param, LPARA
     return DefWindowProcA(hwnd, msg, w_param, l_param);
 }
 
-#endif  // PLATFORM_WINDOWS
+#endif  // KPLATFORM_WINDOWS

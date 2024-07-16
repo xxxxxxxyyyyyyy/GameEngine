@@ -1,5 +1,4 @@
 #include <containers/darray.h>
-
 #include <core/event.h>
 #include <core/kmemory.h>
 #include <core/kstring.h>
@@ -68,42 +67,42 @@ b8 watched_file_updated(u16 code, void* sender, void* listener_inst, event_conte
         application* app = (application*)listener_inst;
         if (context.data.u32[0] == app->game_library.watch_id) {
             DINFO("Hot-Reloading game library.");
-        }
 
-        // Tell the app it is about to be unloaded.
-        app->lib_on_unload(app);
+            // Tell the app it is about to be unloaded.
+            app->lib_on_unload(app);
 
-        // Actually unload the app's lib.
-        if (!platform_dynamic_library_unload(&app->game_library)) {
-            DERROR("Failed to unload game library");
-            return false;
-        }
-
-        // Wait a bit before trying to copy the file.
-        platform_sleep(100);
-
-        const char* prefix = platform_dynamic_library_prefix();
-        const char* extension = platform_dynamic_library_extension();
-        char source_file[260];
-        char target_file[260];
-        string_format(source_file, "%stestbed_lib%s", prefix, extension);
-        string_format(target_file, "%stestbed_lib_loaded%s", prefix, extension);
-
-        platform_error_code err_code = PLATFORM_ERROR_FILE_LOCKED;
-        while (err_code == PLATFORM_ERROR_FILE_LOCKED) {
-            err_code = platform_copy_file(source_file, target_file, true);
-            if (err_code == PLATFORM_ERROR_FILE_LOCKED) {
-                platform_sleep(100);
+            // Actually unload the app's lib.
+            if (!platform_dynamic_library_unload(&app->game_library)) {
+                DERROR("Failed to unload game library");
+                return false;
             }
-        }
-        if (err_code != PLATFORM_ERROR_SUCCESS) {
-            DERROR("File copy failed!");
-            return false;
-        }
 
-        if (!load_game_lib(app)) {
-            DERROR("Game lib reload failed.");
-            return false;
+            // Wait a bit before trying to copy the file.
+            platform_sleep(100);
+
+            const char* prefix = platform_dynamic_library_prefix();
+            const char* extension = platform_dynamic_library_extension();
+            char source_file[260];
+            char target_file[260];
+            string_format(source_file, "%stestbed_lib%s", prefix, extension);
+            string_format(target_file, "%stestbed_lib_loaded%s", prefix, extension);
+
+            platform_error_code err_code = PLATFORM_ERROR_FILE_LOCKED;
+            while (err_code == PLATFORM_ERROR_FILE_LOCKED) {
+                err_code = platform_copy_file(source_file, target_file, true);
+                if (err_code == PLATFORM_ERROR_FILE_LOCKED) {
+                    platform_sleep(100);
+                }
+            }
+            if (err_code != PLATFORM_ERROR_SUCCESS) {
+                DERROR("File copy failed!");
+                return false;
+            }
+
+            if (!load_game_lib(app)) {
+                DERROR("Game lib reload failed.");
+                return false;
+            }
         }
     }
     return false;
@@ -116,12 +115,7 @@ b8 create_application(application* out_application) {
     out_application->app_config.start_pos_y = 100;
     out_application->app_config.start_width = 1280;
     out_application->app_config.start_height = 720;
-    out_application->app_config.name = "DOD Engine Testbed";
-
-    // Dynamically load game library
-    // if (!platform_dynamic_library_load("libtestbed_lib_loaded", &out_application->game_library)) {
-    //     return false;
-    // }
+    out_application->app_config.name = "Dod Engine Testbed";
 
     platform_error_code err_code = PLATFORM_ERROR_FILE_LOCKED;
     while (err_code == PLATFORM_ERROR_FILE_LOCKED) {
@@ -149,6 +143,7 @@ b8 create_application(application* out_application) {
     out_application->engine_state = 0;
     out_application->state = 0;
 
+    // Load the Vulkan renderer plugin.
     if (!platform_dynamic_library_load("vulkan_renderer", &out_application->renderer_library)) {
         return false;
     }

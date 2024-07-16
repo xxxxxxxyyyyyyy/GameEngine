@@ -1,5 +1,6 @@
 #pragma once
 
+#include "containers/queue.h"
 #include "defines.h"
 
 /**
@@ -10,6 +11,7 @@
 typedef struct kthread {
     void *internal_data;
     u64 thread_id;
+    queue work_queue;
 } kthread;
 
 // A function pointer to be invoked when the thread starts.
@@ -41,6 +43,22 @@ API void kthread_detach(kthread *thread);
 API void kthread_cancel(kthread *thread);
 
 /**
+ * @brief Waits on the thread work to complete. Blocks until work is complete.
+ * @param thread A pointer to the thread to wait for.
+ * True one success; otherwise false;
+ */
+API b8 kthread_wait(kthread *thread);
+
+/**
+ * @brief Waits on the thread work to complete. Blocks until work is complete. This includes
+ * a timeout, which would be a failure if the work exceeds it.
+ * @param thread A pointer to the thread to wait for.
+ * @param wait_ms The amount of time in milliseconds to wait for before timing out.
+ * True one success; otherwise false;
+ */
+API b8 kthread_wait_timeout(kthread *thread, u64 wait_ms);
+
+/**
  * Indicates if the thread is currently active.
  * @returns True if active; otherwise false.
  */
@@ -52,4 +70,4 @@ API b8 kthread_is_active(kthread* thread);
  */
 API void kthread_sleep(kthread* thread, u64 ms);
 
-API u64 get_current_thread_id(void);
+API u64 platform_current_thread_id(void);

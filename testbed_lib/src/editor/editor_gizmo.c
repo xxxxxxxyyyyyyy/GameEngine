@@ -1,3 +1,4 @@
+
 // TODO:
 // - multi-axis rotations.
 // - The gizmo should only be active/visible on a selected object.
@@ -166,6 +167,14 @@ void editor_gizmo_selected_transform_set(editor_gizmo* gizmo, transform* xform) 
 
 void editor_gizmo_update(editor_gizmo* gizmo) {
     if (gizmo) {
+    }
+}
+
+void editor_gizmo_render_frame_prepare(editor_gizmo* gizmo, const struct frame_data* p_frame_data) {
+    if (gizmo && gizmo->is_dirty) {
+        editor_gizmo_mode_data* data = &gizmo->mode_data[gizmo->mode];
+        renderer_geometry_vertex_update(&data->geo, 0, data->vertex_count, data->vertices, true);
+        gizmo->is_dirty = false;
     }
 }
 
@@ -736,7 +745,7 @@ void editor_gizmo_handle_interaction(editor_gizmo* gizmo, struct camera* c, stru
                         data->vertices[15].colour = b;
                     }
                 }
-                renderer_geometry_vertex_update(&data->geo, 0, data->vertex_count, data->vertices);
+                gizmo->is_dirty = true;
             }
         }
     } else if (gizmo->mode == EDITOR_GIZMO_MODE_SCALE) {
@@ -920,7 +929,7 @@ void editor_gizmo_handle_interaction(editor_gizmo* gizmo, struct camera* c, stru
                         data->vertices[9].colour = g;
                     }
                 }
-                renderer_geometry_vertex_update(&data->geo, 0, data->vertex_count, data->vertices);
+                gizmo->is_dirty = true;
             }
         }
     } else if (gizmo->mode == EDITOR_GIZMO_MODE_ROTATE) {
@@ -1037,7 +1046,7 @@ void editor_gizmo_handle_interaction(editor_gizmo* gizmo, struct camera* c, stru
                 }
             }
 
-            renderer_geometry_vertex_update(&data->geo, 0, data->vertex_count, data->vertices);
+            gizmo->is_dirty = true;
         }
     }
 }

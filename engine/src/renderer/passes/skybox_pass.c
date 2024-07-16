@@ -145,6 +145,7 @@ b8 skybox_pass_execute(struct rendergraph_pass* self, struct frame_data* p_frame
         render_data.index_count = ext_data->sb->g->index_count;
         render_data.index_element_size = ext_data->sb->g->index_element_size;
         render_data.index_buffer_offset = ext_data->sb->g->index_buffer_offset;
+
         renderer_geometry_draw(&render_data);
     }
 

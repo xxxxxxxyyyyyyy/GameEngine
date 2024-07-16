@@ -6,7 +6,12 @@
 #include "renderer/renderer_types.h"
 #include "resources/resource_types.h"
 
-struct application;
+#define RG_CHECK(expr)                             \
+    if (!expr) {                                   \
+        DERROR("Failed to execute: '%s'.", #expr); \
+        return false;                              \
+    }
+
 struct texture;
 
 typedef enum rendergraph_source_type {
@@ -79,7 +84,7 @@ typedef struct rendergraph {
     rendergraph_sink backbuffer_global_sink;
 } rendergraph;
 
-API b8 rendergraph_create(const char* name, struct application* app, rendergraph* out_graph);
+API b8 rendergraph_create(const char* name, rendergraph* out_graph);
 API void rendergraph_destroy(rendergraph* graph);
 
 API b8 rendergraph_global_source_add(rendergraph* graph, const char* name, rendergraph_source_type type, rendergraph_source_origin origin);

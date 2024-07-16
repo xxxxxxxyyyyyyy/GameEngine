@@ -82,6 +82,7 @@ typedef struct sui_control {
     void (*unload)(struct sui_control* self);
 
     b8 (*update)(struct sui_control* self, struct frame_data* p_frame_data);
+    void (*render_prepare)(struct sui_control* self, const struct frame_data* p_frame_data);
     b8 (*render)(struct sui_control* self, struct frame_data* p_frame_data, standard_ui_render_data* reneder_data);
 
     /**
@@ -143,6 +144,8 @@ API b8 standard_ui_system_initialize(u64* memory_requirement, void* state, void*
 API void standard_ui_system_shutdown(void* state);
 
 API b8 standard_ui_system_update(void* state, struct frame_data* p_frame_data);
+
+API void standard_ui_system_render_prepare_frame(void* state, const struct frame_data* p_frame_data);
 
 API b8 standard_ui_system_render(void* state, sui_control* root, struct frame_data* p_frame_data, standard_ui_render_data* render_data);
 

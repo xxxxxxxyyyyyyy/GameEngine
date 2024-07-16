@@ -21,14 +21,15 @@
 #include "systems/resource_system.h"
 #include "systems/shader_system.h"
 #include "systems/texture_system.h"
+
 // Version reporting.
-#include "version.h"
+#include "engine_version.h"
 
 static b8 register_known_systems_pre_boot(systems_manager_state* state, application_config* app_config);
 static b8 register_known_systems_post_boot(systems_manager_state* state, application_config* app_config);
 static void shutdown_known_systems(systems_manager_state* state);
-static void shutdown_user_systems(systems_manager_state* state);
 static void shutdown_extension_systems(systems_manager_state* state);
+static void shutdown_user_systems(systems_manager_state* state);
 
 // TODO: Find a way to have this not be static.
 static systems_manager_state* g_state;
@@ -65,12 +66,22 @@ b8 systems_manager_update(systems_manager_state* state, struct frame_data* p_fra
     return true;
 }
 
+void systems_manager_renderer_frame_prepare(systems_manager_state* state, const struct frame_data* p_frame_data) {
+    for (u32 i = 0; i < K_SYSTEM_TYPE_MAX_COUNT; ++i) {
+        k_system* s = &state->systems[i];
+        if (s->render_prepare_frame) {
+            s->render_prepare_frame(s->state, p_frame_data);
+        }
+    }
+}
+
 b8 systems_manager_register(
     systems_manager_state* state,
     u16 type,
     PFN_system_initialize initialize,
     PFN_system_shutdown shutdown,
     PFN_system_update update,
+    PFN_system_render_prepare_frame prepare_frame,
     void* config) {
     k_system* sys = &state->systems[type];
 
@@ -87,7 +98,6 @@ b8 systems_manager_register(
         if (!sys->initialize(&sys->state_size, sys->state, config)) {
             DERROR("Failed to register system - initialize call failed.");
             kzero_memory(sys, sizeof(k_system));
-            DERROR("Failed to register system - initialize call failed.");
             return false;
         }
     } else {
@@ -99,6 +109,7 @@ b8 systems_manager_register(
 
     sys->shutdown = shutdown;
     sys->update = update;
+    sys->render_prepare_frame = prepare_frame;
 
     return true;
 }
@@ -113,31 +124,31 @@ void* systems_manager_get_state(u16 type) {
 
 static b8 register_known_systems_pre_boot(systems_manager_state* state, application_config* app_config) {
     // Memory
-    if (!systems_manager_register(state, K_SYSTEM_TYPE_MEMORY, 0, memory_system_shutdown, 0, 0)) {
+    if (!systems_manager_register(state, K_SYSTEM_TYPE_MEMORY, 0, memory_system_shutdown, 0, 0, 0)) {
         DERROR("Failed to register memory system.");
         return false;
     }
 
     // Console
-    if (!systems_manager_register(state, K_SYSTEM_TYPE_CONSOLE, console_initialize, console_shutdown, 0, 0)) {
+    if (!systems_manager_register(state, K_SYSTEM_TYPE_CONSOLE, console_initialize, console_shutdown, 0, 0, 0)) {
         DERROR("Failed to register console system.");
         return false;
     }
 
     // KVars
-    if (!systems_manager_register(state, K_SYSTEM_TYPE_KVAR, kvar_initialize, kvar_shutdown, 0, 0)) {
+    if (!systems_manager_register(state, K_SYSTEM_TYPE_KVAR, kvar_initialize, kvar_shutdown, 0, 0, 0)) {
         DERROR("Failed to register KVar system.");
         return false;
     }
 
     // Events
-    if (!systems_manager_register(state, K_SYSTEM_TYPE_EVENT, event_system_initialize, event_system_shutdown, 0, 0)) {
+    if (!systems_manager_register(state, K_SYSTEM_TYPE_EVENT, event_system_initialize, event_system_shutdown, 0, 0, 0)) {
         DERROR("Failed to register event system.");
         return false;
     }
 
     // Logging
-    if (!systems_manager_register(state, K_SYSTEM_TYPE_LOGGING, logging_initialize, logging_shutdown, 0, 0)) {
+    if (!systems_manager_register(state, K_SYSTEM_TYPE_LOGGING, logging_initialize, logging_shutdown, 0, 0, 0)) {
         DERROR("Failed to register logging system.");
         return false;
     }
@@ -148,10 +159,10 @@ static b8 register_known_systems_pre_boot(systems_manager_state* state, applicat
 #else
     const char* build_type = "Debug";
 #endif
-    DINFO("Dod  Engine v. %s (%s)", DVERSION, build_type);
+    DINFO("Dod Engine v. %s (%s)", DVERSION, build_type);
 
     // Input
-    if (!systems_manager_register(state, K_SYSTEM_TYPE_INPUT, input_system_initialize, input_system_shutdown, 0, 0)) {
+    if (!systems_manager_register(state, K_SYSTEM_TYPE_INPUT, input_system_initialize, input_system_shutdown, 0, 0, 0)) {
         DERROR("Failed to register input system.");
         return false;
     }
@@ -163,7 +174,7 @@ static b8 register_known_systems_pre_boot(systems_manager_state* state, applicat
     plat_config.y = app_config->start_pos_y;
     plat_config.width = app_config->start_width;
     plat_config.height = app_config->start_height;
-    if (!systems_manager_register(state, K_SYSTEM_TYPE_PLATFORM, platform_system_startup, platform_system_shutdown, 0, &plat_config)) {
+    if (!systems_manager_register(state, K_SYSTEM_TYPE_PLATFORM, platform_system_startup, platform_system_shutdown, 0, 0, &plat_config)) {
         DERROR("Failed to register platform system.");
         return false;
     }
@@ -172,7 +183,7 @@ static b8 register_known_systems_pre_boot(systems_manager_state* state, applicat
     resource_system_config resource_sys_config;
     resource_sys_config.asset_base_path = "../assets";  // TODO: The application should probably configure this.
     resource_sys_config.max_loader_count = 32;
-    if (!systems_manager_register(state, K_SYSTEM_TYPE_RESOURCE, resource_system_initialize, resource_system_shutdown, 0, &resource_sys_config)) {
+    if (!systems_manager_register(state, K_SYSTEM_TYPE_RESOURCE, resource_system_initialize, resource_system_shutdown, 0, 0, &resource_sys_config)) {
         DERROR("Failed to register resource system.");
         return false;
     }
@@ -183,7 +194,7 @@ static b8 register_known_systems_pre_boot(systems_manager_state* state, applicat
     shader_sys_config.max_uniform_count = 128;
     shader_sys_config.max_global_textures = 31;
     shader_sys_config.max_instance_textures = 31;
-    if (!systems_manager_register(state, K_SYSTEM_TYPE_SHADER, shader_system_initialize, shader_system_shutdown, 0, &shader_sys_config)) {
+    if (!systems_manager_register(state, K_SYSTEM_TYPE_SHADER, shader_system_initialize, shader_system_shutdown, 0, 0, &shader_sys_config)) {
         DERROR("Failed to register shader system.");
         return false;
     }
@@ -192,7 +203,7 @@ static b8 register_known_systems_pre_boot(systems_manager_state* state, applicat
     renderer_system_config renderer_sys_config = {0};
     renderer_sys_config.application_name = app_config->name;
     renderer_sys_config.plugin = app_config->renderer_plugin;
-    if (!systems_manager_register(state, K_SYSTEM_TYPE_RENDERER, renderer_system_initialize, renderer_system_shutdown, 0, &renderer_sys_config)) {
+    if (!systems_manager_register(state, K_SYSTEM_TYPE_RENDERER, renderer_system_initialize, renderer_system_shutdown, 0, 0, &renderer_sys_config)) {
         DERROR("Failed to register renderer system.");
         return false;
     }
@@ -238,7 +249,7 @@ static b8 register_known_systems_pre_boot(systems_manager_state* state, applicat
     job_system_config job_sys_config = {0};
     job_sys_config.max_job_thread_count = thread_count;
     job_sys_config.type_masks = job_thread_types;
-    if (!systems_manager_register(state, K_SYSTEM_TYPE_JOB, job_system_initialize, job_system_shutdown, job_system_update, &job_sys_config)) {
+    if (!systems_manager_register(state, K_SYSTEM_TYPE_JOB, job_system_initialize, job_system_shutdown, job_system_update, 0, &job_sys_config)) {
         DERROR("Failed to register job system.");
         return false;
     }
@@ -247,7 +258,7 @@ static b8 register_known_systems_pre_boot(systems_manager_state* state, applicat
     audio_system_config audio_sys_config = {0};
     audio_sys_config.plugin = app_config->audio_plugin;
     audio_sys_config.audio_channel_count = 8;
-    if (!systems_manager_register(state, K_SYSTEM_TYPE_AUDIO, audio_system_initialize, audio_system_shutdown, audio_system_update, &audio_sys_config)) {
+    if (!systems_manager_register(state, K_SYSTEM_TYPE_AUDIO, audio_system_initialize, audio_system_shutdown, audio_system_update, 0, &audio_sys_config)) {
         DERROR("Failed to register audio system.");
         return false;
     }
@@ -262,12 +273,13 @@ static void shutdown_known_systems(systems_manager_state* state) {
     state->systems[K_SYSTEM_TYPE_GEOMETRY].shutdown(state->systems[K_SYSTEM_TYPE_GEOMETRY].state);
     state->systems[K_SYSTEM_TYPE_MATERIAL].shutdown(state->systems[K_SYSTEM_TYPE_MATERIAL].state);
     state->systems[K_SYSTEM_TYPE_TEXTURE].shutdown(state->systems[K_SYSTEM_TYPE_TEXTURE].state);
+
     state->systems[K_SYSTEM_TYPE_AUDIO].shutdown(state->systems[K_SYSTEM_TYPE_AUDIO].state);
     state->systems[K_SYSTEM_TYPE_JOB].shutdown(state->systems[K_SYSTEM_TYPE_JOB].state);
     state->systems[K_SYSTEM_TYPE_SHADER].shutdown(state->systems[K_SYSTEM_TYPE_SHADER].state);
+    state->systems[K_SYSTEM_TYPE_RENDERER].shutdown(state->systems[K_SYSTEM_TYPE_RENDERER].state);
 
     state->systems[K_SYSTEM_TYPE_RESOURCE].shutdown(state->systems[K_SYSTEM_TYPE_RESOURCE].state);
-    state->systems[K_SYSTEM_TYPE_RENDERER].shutdown(state->systems[K_SYSTEM_TYPE_RENDERER].state);
     state->systems[K_SYSTEM_TYPE_PLATFORM].shutdown(state->systems[K_SYSTEM_TYPE_PLATFORM].state);
     state->systems[K_SYSTEM_TYPE_INPUT].shutdown(state->systems[K_SYSTEM_TYPE_INPUT].state);
     state->systems[K_SYSTEM_TYPE_LOGGING].shutdown(state->systems[K_SYSTEM_TYPE_LOGGING].state);
@@ -299,13 +311,13 @@ static b8 register_known_systems_post_boot(systems_manager_state* state, applica
     // Texture system.
     texture_system_config texture_sys_config;
     texture_sys_config.max_texture_count = 65536;
-    if (!systems_manager_register(state, K_SYSTEM_TYPE_TEXTURE, texture_system_initialize, texture_system_shutdown, 0, &texture_sys_config)) {
+    if (!systems_manager_register(state, K_SYSTEM_TYPE_TEXTURE, texture_system_initialize, texture_system_shutdown, 0, 0, &texture_sys_config)) {
         DERROR("Failed to register texture system.");
         return false;
     }
 
     // Font system.
-    if (!systems_manager_register(state, K_SYSTEM_TYPE_FONT, font_system_initialize, font_system_shutdown, 0, &app_config->font_config)) {
+    if (!systems_manager_register(state, K_SYSTEM_TYPE_FONT, font_system_initialize, font_system_shutdown, 0, 0, &app_config->font_config)) {
         DERROR("Failed to register font system.");
         return false;
     }
@@ -313,7 +325,7 @@ static b8 register_known_systems_post_boot(systems_manager_state* state, applica
     // Camera
     camera_system_config camera_sys_config;
     camera_sys_config.max_camera_count = 61;
-    if (!systems_manager_register(state, K_SYSTEM_TYPE_CAMERA, camera_system_initialize, camera_system_shutdown, 0, &camera_sys_config)) {
+    if (!systems_manager_register(state, K_SYSTEM_TYPE_CAMERA, camera_system_initialize, camera_system_shutdown, 0, 0, &camera_sys_config)) {
         DERROR("Failed to register camera system.");
         return false;
     }
@@ -321,7 +333,7 @@ static b8 register_known_systems_post_boot(systems_manager_state* state, applica
     // Material system.
     material_system_config material_sys_config;
     material_sys_config.max_material_count = 4096;
-    if (!systems_manager_register(state, K_SYSTEM_TYPE_MATERIAL, material_system_initialize, material_system_shutdown, 0, &material_sys_config)) {
+    if (!systems_manager_register(state, K_SYSTEM_TYPE_MATERIAL, material_system_initialize, material_system_shutdown, 0, 0, &material_sys_config)) {
         DERROR("Failed to register material system.");
         return false;
     }
@@ -329,13 +341,13 @@ static b8 register_known_systems_post_boot(systems_manager_state* state, applica
     // Geometry system.
     geometry_system_config geometry_sys_config;
     geometry_sys_config.max_geometry_count = 4096;
-    if (!systems_manager_register(state, K_SYSTEM_TYPE_GEOMETRY, geometry_system_initialize, geometry_system_shutdown, 0, &geometry_sys_config)) {
+    if (!systems_manager_register(state, K_SYSTEM_TYPE_GEOMETRY, geometry_system_initialize, geometry_system_shutdown, 0, 0, &geometry_sys_config)) {
         DERROR("Failed to register geometry system.");
         return false;
     }
 
     // Light system.
-    if (!systems_manager_register(state, K_SYSTEM_TYPE_LIGHT, light_system_initialize, light_system_shutdown, 0, 0)) {
+    if (!systems_manager_register(state, K_SYSTEM_TYPE_LIGHT, light_system_initialize, light_system_shutdown, 0, 0, 0)) {
         DERROR("Failed to register light system.");
         return false;
     }

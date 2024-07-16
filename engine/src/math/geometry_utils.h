@@ -3,6 +3,7 @@
 #include "math_types.h"
 
 struct geometry;
+struct frame_data;
 typedef struct nine_slice {
     struct geometry *g;
     // Actual corner w/h
@@ -17,6 +18,8 @@ typedef struct nine_slice {
     vec2i atlas_px_max;
 
     vec2i atlas_px_size;
+
+    b8 is_dirty;
 } nine_slice;
 /**
  * @brief Calculates normals for the given vertex and index data. Modifies
@@ -70,4 +73,5 @@ API void generate_quad_2d(const char *name, f32 width, f32 height, f32 tx_min, f
  * @returns True on success; otherwise false.
  */
 API b8 update_nine_slice(nine_slice *nslice, vertex_2d *vertices);
+API void nine_slice_render_frame_prepare(nine_slice *nslice, const struct frame_data *p_frame_data);
 API b8 generate_nine_slice(const char *name, vec2i size, vec2i atlas_px_size, vec2i atlas_px_min, vec2i atlas_px_max, vec2i corner_px_size, vec2i corner_size, nine_slice *out_nine_slice);

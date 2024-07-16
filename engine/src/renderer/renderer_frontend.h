@@ -1,9 +1,3 @@
-/**
- * @brief The renderer frontend, which is the only thing the rest of the engine sees.
- * This is responsible for transferring any data to and from the renderer backend in an
- * agnostic way.
- */
-
 #pragma once
 
 #include "core/frame_data.h"
@@ -45,6 +39,22 @@ API void renderer_system_shutdown(void* state);
  * @param height The new window height.
  */
 API void renderer_on_resize(u16 width, u16 height);
+
+/**
+ * @brief Begins the marking of a section of commands, listed under a given name and
+ * colour. Becomes a no-op in non-debug builds.
+ * NOTE: Each renderer backend will have different or possibly non-existant implementations of this.
+ *
+ * @param label_text The text to be used for the label.
+ * @param colour The colour to be used for the label.
+ */
+API void renderer_begin_debug_label(const char* label_text, vec3 colour);
+
+/**
+ * @brief Ends the last debug section of commands. Becomes a no-op in non-debug builds.
+ * NOTE: Each renderer backend will have different or possibly non-existant implementations of this.
+ */
+API void renderer_end_debug_label(void);
 
 /**
  * @brief Performs setup routines required at the start of a frame.
@@ -258,7 +268,7 @@ API b8 renderer_geometry_upload(geometry* geometry);
  * @param vertex_count The number of vertices which will be updated.
  * @param vertices The vertex data.
  */
-API void renderer_geometry_vertex_update(geometry* g, u32 offset, u32 vertex_count, void* vertices);
+API void renderer_geometry_vertex_update(geometry* g, u32 offset, u32 vertex_count, void* vertices, b8 include_in_frame_workload);
 
 /**
  * @brief Destroys the given geometry, releasing GPU resources.
@@ -317,6 +327,14 @@ API void renderer_shader_destroy(struct shader* s);
 API b8 renderer_shader_initialize(struct shader* s);
 
 /**
+ * @brief Reloads the internals of the given shader.
+ *
+ * @param s A pointer to the shader to be reloaded.
+ * @return True on success; otherwise false.
+ */
+API b8 renderer_shader_reload(struct shader* s);
+
+/**
  * @brief Uses the given shader, activating it for updates to attributes, uniforms and such,
  * and for use in draw calls.
  *
@@ -324,6 +342,16 @@ API b8 renderer_shader_initialize(struct shader* s);
  * @return True on success; otherwise false.
  */
 API b8 renderer_shader_use(struct shader* s);
+
+/**
+ * @brief Attempts to set wireframe mode on the given shader. If the backend, or the shader
+ * does not support this , it will fail when attempting to enable. Disabling will always succeed.
+ *
+ * @param s A pointer to the shader to be used.
+ * @param wireframe_enabled Indicates if wireframe mode should be enabled.
+ * @return True on success; otherwise false.
+ */
+API b8 renderer_shader_set_wireframe(struct shader* s, b8 wireframe_enabled);
 
 /**
  * @brief Binds global resources for use and updating.
@@ -644,7 +672,7 @@ API b8 renderer_renderbuffer_clear(renderbuffer* buffer, b8 zero_memory);
  * @param data The data to be loaded.
  * @returns True on success; otherwise false.
  */
-API b8 renderer_renderbuffer_load_range(renderbuffer* buffer, u64 offset, u64 size, const void* data);
+API b8 renderer_renderbuffer_load_range(renderbuffer* buffer, u64 offset, u64 size, const void* data, b8 include_in_frame_workload);
 
 /**
  * @brief Copies data in the specified rage fron the source to the destination buffer.
@@ -656,7 +684,7 @@ API b8 renderer_renderbuffer_load_range(renderbuffer* buffer, u64 offset, u64 si
  * @param size The size of the data in bytes to be copied.
  * @returns True on success; otherwise false.
  */
-API b8 renderer_renderbuffer_copy_range(renderbuffer* source, u64 source_offset, renderbuffer* dest, u64 dest_offset, u64 size);
+API b8 renderer_renderbuffer_copy_range(renderbuffer* source, u64 source_offset, renderbuffer* dest, u64 dest_offset, u64 size, b8 include_in_frame_workload);
 
 /**
  * @brief Attempts to draw the contents of the provided buffer at the given offset
@@ -681,3 +709,9 @@ API struct viewport* renderer_active_viewport_get(void);
  * @param viewport A pointer to the viewport to be set.
  */
 API void renderer_active_viewport_set(struct viewport* v);
+
+/**
+ * Waits for the renderer backend to be completely idle of work before returning.
+ * NOTE: This incurs a lot of overhead/waits, and should be used sparingly.
+ */
+API void renderer_wait_for_idle(void);

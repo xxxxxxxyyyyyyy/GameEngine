@@ -1,3 +1,4 @@
+
 #include "vulkan_backend.h"
 
 #include <renderer/renderer_types.h>
@@ -308,7 +309,7 @@ b8 vulkan_renderer_backend_initialize(renderer_plugin *plugin,
     app_info.apiVersion = VK_MAKE_API_VERSION(0, context->api_major, context->api_minor, context->api_patch);
     app_info.pApplicationName = config->application_name;
     app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.pEngineName = "Dod Engine";
+    app_info.pEngineName = "Kohi Engine";
     app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 
     VkInstanceCreateInfo create_info = {VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
@@ -556,43 +557,16 @@ b8 vulkan_renderer_backend_initialize(renderer_plugin *plugin,
                                context->allocator, &context->in_flight_fences[i]));
     }
 
-    // Create buffers
-
-    // Geometry vertex buffer
-    // TODO: make this configurable.
-    char bufname[256];
-    kzero_memory(bufname, 256);
-    string_format(bufname, "renderbuffer_vertexbuffer_globalgeometry");
-    const u64 vertex_buffer_size = sizeof(vertex_3d) * 10 * 1024 * 1024;
-    if (!renderer_renderbuffer_create(bufname, RENDERBUFFER_TYPE_VERTEX, vertex_buffer_size, true, &context->object_vertex_buffer)) {
-        DERROR("Error creating vertex buffer.");
-        return false;
-    }
-    renderer_renderbuffer_bind(&context->object_vertex_buffer, 0);
-
-    // Geometry index buffer
-    // TODO: Make this configurable.
-    kzero_memory(bufname, 256);
-    string_format(bufname, "renderbuffer_indexbuffer_globalgeometry");
-    const u64 index_buffer_size = sizeof(u32) * 100 * 1024 * 1024;
-    if (!renderer_renderbuffer_create(bufname, RENDERBUFFER_TYPE_INDEX, index_buffer_size, true, &context->object_index_buffer)) {
-        DERROR("Error creating index buffer.");
-        return false;
-    }
-    renderer_renderbuffer_bind(&context->object_index_buffer, 0);
+    // Samplers array.
+    context->samplers = darray_create(VkSampler);
 
     // Staging buffer.
     const u64 staging_buffer_size = 256 * 1000 * 1000;
-    if (!renderer_renderbuffer_create("staging", RENDERBUFFER_TYPE_STAGING, staging_buffer_size, true, &context->staging)) {
+    if (!renderer_renderbuffer_create("staging", RENDERBUFFER_TYPE_STAGING, staging_buffer_size, RENDERBUFFER_TRACK_TYPE_LINEAR, &context->staging)) {
         DERROR("Failed to create staging buffer.");
         return false;
     }
     renderer_renderbuffer_bind(&context->staging, 0);
-
-    // Mark all geometries as invalid
-    for (u32 i = 0; i < VULKAN_MAX_GEOMETRY_COUNT; ++i) {
-        context->geometries[i].id = INVALID_ID;
-    }
 
     // Create a shader compiler to be used.
     context->shader_compiler = shaderc_compiler_initialize();
@@ -614,8 +588,6 @@ void vulkan_renderer_backend_shutdown(renderer_plugin *plugin) {
 
     // Destroy in the opposite order of creation.
     // Destroy buffers
-    renderer_renderbuffer_destroy(&context->object_vertex_buffer);
-    renderer_renderbuffer_destroy(&context->object_index_buffer);
     renderer_renderbuffer_destroy(&context->staging);
 
     // Sync objects
@@ -852,6 +824,11 @@ b8 vulkan_renderer_end(renderer_plugin *plugin, struct frame_data *p_frame_data)
     vulkan_command_buffer_update_submitted(command_buffer);
     // End queue submission
 
+    // For timing purposes, wait for the queue to complete.
+    // This gives an accurate picture of how long the render takes, including the
+    // work submitted to the actual queue.
+    vkWaitForFences(context->device.logical_device, 1, &context->in_flight_fences[context->current_frame], true, UINT64_MAX);
+
     return true;
 }
 
@@ -868,10 +845,12 @@ b8 vulkan_renderer_present(renderer_plugin *plugin, struct frame_data *p_frame_d
     present_info.pImageIndices = &context->image_index;
     present_info.pResults = 0;
 
-    // HACK: Waiting on the fence here solves the issue, but this shouldn't
+    // HACK: By waiting on the transfer queue, we avoid a segfault here for some reason. This shouldn't
     // be needed since it _should_ be waiting on the pWaitSemaphores, which _should_ be
-    // signaled by the queue's completion after submission.
-    vkWaitForFences(context->device.logical_device, 1, &context->in_flight_fences[context->current_frame], true, UINT64_MAX);
+    // signaled by the queue's completion after submission. And strangely, it's specifically the
+    // _transfer_ queue, even though the one being used for presentation here is the present queue.
+    // TODO: Need to dive a bit deeper on this to figure it out.
+    vkQueueWaitIdle(context->device.transfer_queue);
     VkResult result = vkQueuePresentKHR(context->device.present_queue, &present_info);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
         // Swapchain is out of date, suboptimal or a framebuffer resize has occurred. Trigger swapchain recreation.
@@ -1352,7 +1331,7 @@ void vulkan_renderer_texture_read_data(renderer_plugin *plugin, texture *t,
     char bufname[256];
     kzero_memory(bufname, 256);
     string_format(bufname, "renderbuffer_texture_read_staging");
-    if (!renderer_renderbuffer_create(bufname, RENDERBUFFER_TYPE_READ, size, false, &staging)) {
+    if (!renderer_renderbuffer_create(bufname, RENDERBUFFER_TYPE_READ, size, RENDERBUFFER_TRACK_TYPE_NONE, &staging)) {
         DERROR("Failed to create staging buffer for texture read.");
         return;
     }
@@ -1409,7 +1388,7 @@ void vulkan_renderer_texture_read_pixel(renderer_plugin *plugin, texture *t,
     char bufname[256];
     kzero_memory(bufname, 256);
     string_format(bufname, "renderbuffer_texture_read_pixel_staging");
-    if (!renderer_renderbuffer_create(bufname, RENDERBUFFER_TYPE_READ, sizeof(u8) * 4, false, &staging)) {
+    if (!renderer_renderbuffer_create(bufname, RENDERBUFFER_TYPE_READ, sizeof(u8) * 4, RENDERBUFFER_TRACK_TYPE_NONE, &staging)) {
         DERROR("Failed to create staging buffer for texture pixel read.");
         return;
     }
@@ -1451,142 +1430,6 @@ void vulkan_renderer_texture_read_pixel(renderer_plugin *plugin, texture *t,
 
     renderer_renderbuffer_unbind(&staging);
     renderer_renderbuffer_destroy(&staging);
-}
-
-b8 vulkan_renderer_geometry_create(renderer_plugin *plugin, geometry *geometry) {
-    // NOTE: This particular backend doesn't need to do anything here.
-    return true;
-}
-
-b8 vulkan_renderer_geometry_upload(renderer_plugin *plugin, geometry *g, u32 vertex_offset, u32 vertex_size, u32 index_offset, u32 index_size) {
-    vulkan_context *context = (vulkan_context *)plugin->internal_context;
-
-    // Check if this is a re-upload. If it is, don't need to allocate resources.
-    b8 is_reupload = g->internal_id != INVALID_ID;
-
-    vulkan_geometry_data *internal_data = 0;
-    if (is_reupload) {
-        internal_data = &context->geometries[g->internal_id];
-    } else {
-        for (u32 i = 0; i < VULKAN_MAX_GEOMETRY_COUNT; ++i) {
-            if (context->geometries[i].id == INVALID_ID) {
-                // Found a free index.
-                g->internal_id = i;
-                context->geometries[i].id = i;
-                internal_data = &context->geometries[i];
-                break;
-            }
-        }
-    }
-    if (!internal_data) {
-        DFATAL("vulkan_renderer_geometry_upload failed to find a free index for a new geometry upload. Adjust config to allow for more.");
-        return false;
-    }
-
-    // Vertex data.
-    if (!is_reupload) {
-        // Allocate space in the buffer.
-        if (!renderer_renderbuffer_allocate(&context->object_vertex_buffer, g->vertex_element_size * g->vertex_count, &internal_data->vertex_buffer_offset)) {
-            DERROR("vulkan_renderer_geometry_upload failed to allocate from the vertex buffer!");
-            return false;
-        }
-    }
-
-    // Load the data.
-    if (!renderer_renderbuffer_load_range(&context->object_vertex_buffer, internal_data->vertex_buffer_offset + vertex_offset, vertex_size, g->vertices + vertex_offset)) {
-        DERROR("vulkan_renderer_geometry_upload failed to upload to the vertex buffer!");
-        return false;
-    }
-
-    // Index data, if applicable
-    if (g->index_count && g->indices && index_size) {
-        if (!is_reupload) {
-            // Allocate space in the buffer.
-            if (!renderer_renderbuffer_allocate(&context->object_index_buffer, g->index_element_size * g->index_count, &internal_data->index_buffer_offset)) {
-                DERROR("vulkan_renderer_geometry_upload failed to allocate from the index buffer!");
-                return false;
-            }
-        }
-
-        // Load the data.
-        if (!renderer_renderbuffer_load_range(&context->object_index_buffer, internal_data->index_buffer_offset + index_offset, index_size, g->indices + index_offset)) {
-            DERROR("vulkan_renderer_geometry_upload failed to upload to the index buffer!");
-            return false;
-        }
-    }
-
-    if (internal_data->generation == INVALID_ID) {
-        internal_data->generation = 0;
-    } else {
-        internal_data->generation++;
-    }
-
-    return true;
-}
-
-void vulkan_renderer_geometry_vertex_update(renderer_plugin *plugin, geometry *g, u32 offset, u32 vertex_count, void *vertices) {
-    vulkan_context *context = (vulkan_context *)plugin->internal_context;
-    vulkan_geometry_data *internal_data = internal_data = &context->geometries[g->internal_id];
-    if (vertex_count > g->vertex_count) {
-        // TODO: realloc is needed.
-        DFATAL("vulkan_renderer_geometry_vertex_update realloc not supported.");
-        return;
-    }
-
-    u32 total_size = vertex_count * g->vertex_element_size;
-
-    // Load the data.
-    if (!renderer_renderbuffer_load_range(&context->object_vertex_buffer, internal_data->vertex_buffer_offset + offset, total_size, vertices + offset)) {
-        DERROR("vulkan_renderer_geometry_vertex_update failed to upload to the vertex buffer!");
-    }
-}
-
-void vulkan_renderer_geometry_destroy(renderer_plugin *plugin, geometry *g) {
-    vulkan_context *context = (vulkan_context *)plugin->internal_context;
-    if (g && g->internal_id != INVALID_ID) {
-        vkDeviceWaitIdle(context->device.logical_device);
-        vulkan_geometry_data *internal_data = &context->geometries[g->internal_id];
-
-        // Free vertex data
-        if (!renderer_renderbuffer_free(&context->object_vertex_buffer, g->vertex_element_size * g->vertex_count, internal_data->vertex_buffer_offset)) {
-            DERROR("vulkan_renderer_destroy_geometry failed to free vertex buffer range.");
-        }
-
-        // Free index data, if applicable
-        if (g->index_element_size > 0) {
-            if (!renderer_renderbuffer_free(&context->object_index_buffer, g->index_element_size * g->index_count, internal_data->index_buffer_offset)) {
-                DERROR("vulkan_renderer_destroy_geometry failed to free index buffer range.");
-            }
-        }
-
-        // Clean up data.
-        kzero_memory(internal_data, sizeof(vulkan_geometry_data));
-        internal_data->id = INVALID_ID;
-        internal_data->generation = INVALID_ID;
-        g->internal_id = INVALID_ID;
-    }
-}
-
-void vulkan_renderer_geometry_draw(renderer_plugin *plugin, geometry_render_data *data) {
-    vulkan_context *context = (vulkan_context *)plugin->internal_context;
-    // Ignore non-uploaded geometries.
-    if (data->geometry && data->geometry->internal_id == INVALID_ID) {
-        return;
-    }
-
-    vulkan_geometry_data *buffer_data = &context->geometries[data->geometry->internal_id];
-    b8 includes_index_data = data->geometry->index_count > 0;
-    if (!vulkan_buffer_draw(plugin, &context->object_vertex_buffer, buffer_data->vertex_buffer_offset, data->geometry->vertex_count, includes_index_data)) {
-        DERROR("vulkan_renderer_draw_geometry failed to draw vertex buffer;");
-        return;
-    }
-
-    if (includes_index_data) {
-        if (!vulkan_buffer_draw(plugin, &context->object_index_buffer, buffer_data->index_buffer_offset, data->geometry->index_count, !includes_index_data)) {
-            DERROR("vulkan_renderer_draw_geometry failed to draw index buffer;");
-            return;
-        }
-    }
 }
 
 // The index of the global descriptor set.
@@ -2201,7 +2044,7 @@ b8 vulkan_renderer_shader_initialize(renderer_plugin *plugin, shader *s) {
     char bufname[256];
     kzero_memory(bufname, 256);
     string_format(bufname, "renderbuffer_global_uniform");
-    if (!renderer_renderbuffer_create(bufname, RENDERBUFFER_TYPE_UNIFORM, total_buffer_size, true, &internal_shader->uniform_buffer)) {
+    if (!renderer_renderbuffer_create(bufname, RENDERBUFFER_TYPE_UNIFORM, total_buffer_size, RENDERBUFFER_TRACK_TYPE_FREELIST, &internal_shader->uniform_buffer)) {
         DERROR("Vulkan buffer creation failed for object shader.");
         return false;
     }
@@ -2235,16 +2078,6 @@ b8 vulkan_renderer_shader_initialize(renderer_plugin *plugin, shader *s) {
 
     return true;
 }
-
-#ifdef _DEBUG
-#define SHADER_VERIFY_SHADER_ID(shader_id)              \
-    if (shader_id == INVALID_ID ||                      \
-        context->shaders[shader_id].id == INVALID_ID) { \
-        return false;                                   \
-    }
-#else
-#define SHADER_VERIFY_SHADER_ID(shader_id)  // do nothing
-#endif
 
 b8 vulkan_renderer_shader_use(renderer_plugin *plugin, shader *shader) {
     vulkan_context *context = (vulkan_context *)plugin->internal_context;
@@ -2439,7 +2272,7 @@ b8 vulkan_renderer_shader_apply_instance(renderer_plugin *plugin, shader *s,
                 vulkan_image *image = (vulkan_image *)t->internal_data;
                 image_infos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 image_infos[i].imageView = image->view;
-                image_infos[i].sampler = (VkSampler)map->internal_data;
+                image_infos[i].sampler = context->samplers[map->internal_id];
 
                 // TODO: change up descriptor state to handle this properly.
                 // Sync frame generation if not using a default texture.
@@ -2551,32 +2384,46 @@ static b8 create_sampler(vulkan_context *context, texture_map *map, VkSampler *s
 
 b8 vulkan_renderer_texture_map_resources_acquire(renderer_plugin *plugin, texture_map *map) {
     vulkan_context *context = (vulkan_context *)plugin->internal_context;
-    if (!create_sampler(context, map, (VkSampler *)&map->internal_data)) {
+    // Find a free sampler.
+    u32 sampler_count = darray_length(context->samplers);
+    u32 selected_id = INVALID_ID;
+    for (u32 i = 0; i < sampler_count; ++i) {
+        if (context->samplers[i] == 0) {
+            selected_id = i;
+            break;
+        }
+    }
+    if (selected_id == INVALID_ID) {
+        // Push an empty entry into the array.
+        darray_push(context->samplers, 0);
+        selected_id = sampler_count;
+    }
+    if (!create_sampler(context, map, &context->samplers[selected_id])) {
         return false;
     }
 
     char formatted_name[TEXTURE_NAME_MAX_LENGTH] = {0};
     string_format(formatted_name, "%s_texmap_sampler", map->texture->name);
-    VK_SET_DEBUG_OBJECT_NAME(context, VK_OBJECT_TYPE_SAMPLER,
-                             (VkSampler)map->internal_data, formatted_name);
+    VK_SET_DEBUG_OBJECT_NAME(context, VK_OBJECT_TYPE_SAMPLER, context->samplers[selected_id], formatted_name);
+    map->internal_id = selected_id;
 
     return true;
 }
 
 void vulkan_renderer_texture_map_resources_release(renderer_plugin *plugin, texture_map *map) {
     vulkan_context *context = (vulkan_context *)plugin->internal_context;
-    if (map && map->internal_data) {
+    if (map && map->internal_id != INVALID_ID) {
         // Make sure there's no way this is in use.
         vkDeviceWaitIdle(context->device.logical_device);
-        vkDestroySampler(context->device.logical_device, map->internal_data,
-                         context->allocator);
-        map->internal_data = 0;
+        vkDestroySampler(context->device.logical_device, context->samplers[map->internal_id], context->allocator);
+        context->samplers[map->internal_id] = 0;
+        map->internal_id = INVALID_ID;
     }
 }
 
 b8 vulkan_renderer_texture_map_resources_refresh(renderer_plugin *plugin, texture_map *map) {
     vulkan_context *context = (vulkan_context *)plugin->internal_context;
-    if (map && map->internal_data) {
+    if (map && map->internal_id != INVALID_ID) {
         // Create a new sampler first.
         VkSampler new_sampler = 0;
         if (!create_sampler(context, map, &new_sampler)) {
@@ -2584,12 +2431,12 @@ b8 vulkan_renderer_texture_map_resources_refresh(renderer_plugin *plugin, textur
         }
 
         // Take a pointer to the current sampler.
-        VkSampler old_sampler = map->internal_data;
+        VkSampler old_sampler = context->samplers[map->internal_id];
 
         // Make sure there's no way this is in use.
         vkDeviceWaitIdle(context->device.logical_device);
         // Assign the new.
-        map->internal_data = new_sampler;
+        context->samplers[map->internal_id] = new_sampler;
         // Destroy the old.
         vkDestroySampler(context->device.logical_device, old_sampler, context->allocator);
     }
@@ -3633,7 +3480,7 @@ b8 vulkan_buffer_read(renderer_plugin *plugin, renderbuffer *buffer, u64 offset,
         char bufname[256];
         kzero_memory(bufname, 256);
         string_format(bufname, "renderbuffer_read");
-        if (!renderer_renderbuffer_create(bufname, RENDERBUFFER_TYPE_READ, size, false, &read)) {
+        if (!renderer_renderbuffer_create(bufname, RENDERBUFFER_TYPE_READ, size, RENDERBUFFER_TRACK_TYPE_NONE, &read)) {
             DERROR("vulkan_buffer_read() - Failed to create read buffer.");
             return false;
         }

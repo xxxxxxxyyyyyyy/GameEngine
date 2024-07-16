@@ -1,9 +1,10 @@
+#include "core/identifier.h"
 #include "defines.h"
 #include "math/math_types.h"
 #include "resources/resource_types.h"
 
 typedef struct debug_box3d {
-    u32 unique_id;
+    identifier id;
     char *name;
     vec3 size;
     vec4 colour;

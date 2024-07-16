@@ -443,7 +443,7 @@ API void renderer_flag_enabled_set(renderer_config_flags flag, b8 enabled);
  * @param out_buffer A pointer to hold the newly created buffer.
  * @return True on success; otherwise false.
  */
-API b8 renderer_renderbuffer_create(const char* name, renderbuffer_type type, u64 total_size, b8 use_freelist, renderbuffer* out_buffer);
+API b8 renderer_renderbuffer_create(const char* name, renderbuffer_type type, u64 total_size, renderbuffer_track_type track_type, renderbuffer* out_buffer);
 
 /**
  * @brief Destroys the given renderbuffer.

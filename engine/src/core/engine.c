@@ -133,9 +133,6 @@ b8 engine_create(application* game_inst) {
         return false;
     }
 
-    // Report engine version
-    DINFO("DOD Engine v. %f", DVERSION);
-
     // Initialize the game.
     game_inst->stage = APPLICATION_STAGE_INITIALIZING;
     if (!engine_state->game_inst->initialize(engine_state->game_inst)) {

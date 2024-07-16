@@ -169,6 +169,6 @@ API struct skybox* simple_scene_skybox_get(simple_scene* scene, const char* name
 
 API struct terrain* simple_scene_terrain_get(simple_scene* scene, const char* name);
 
-API struct transform* simple_scene_transform_get_by_id(simple_scene* scene, u32 unique_id);
+API struct transform* simple_scene_transform_get_by_id(simple_scene* scene, u64 unique_id);
 
 API b8 simple_scene_debug_render_data_query(simple_scene* scene, u32* data_count, struct geometry_render_data** debug_geometries);

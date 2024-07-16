@@ -57,7 +57,6 @@ b8 geometry_system_initialize(u64* memory_requirement, void* state, void* config
     u32 count = state_ptr->config.max_geometry_count;
     for (u32 i = 0; i < count; ++i) {
         state_ptr->registered_geometries[i].geometry.id = INVALID_ID;
-        state_ptr->registered_geometries[i].geometry.internal_id = INVALID_ID;
         state_ptr->registered_geometries[i].geometry.generation = INVALID_ID_U16;
     }
 
@@ -177,7 +176,6 @@ static b8 geometry_create(geometry_system_state* state, geometry_config config, 
         state->registered_geometries[g->id].auto_release = false;
         g->id = INVALID_ID;
         g->generation = INVALID_ID_U16;
-        g->internal_id = INVALID_ID;
         return false;
     }
     // Send the geometry off to the renderer to be uploaded to the GPU.
@@ -188,7 +186,6 @@ static b8 geometry_create(geometry_system_state* state, geometry_config config, 
         state->registered_geometries[g->id].auto_release = false;
         g->id = INVALID_ID;
         g->generation = INVALID_ID_U16;
-        g->internal_id = INVALID_ID;
 
         return false;
     }
@@ -212,7 +209,6 @@ static b8 geometry_create(geometry_system_state* state, geometry_config config, 
 
 static void geometry_destroy(geometry_system_state* state, geometry* g) {
     renderer_geometry_destroy(g);
-    g->internal_id = INVALID_ID;
     g->generation = INVALID_ID_U16;
     g->id = INVALID_ID;
 

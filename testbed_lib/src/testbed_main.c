@@ -572,7 +572,7 @@ b8 application_initialize(struct application* game_inst) {
     ui_config.indices = uiindices;
 
     // Get UI geometry from config.
-    state->ui_meshes[0].unique_id = identifier_aquire_new_id(&state->ui_meshes[0]);
+    state->ui_meshes[0].id = identifier_create();
     state->ui_meshes[0].geometry_count = 1;
     state->ui_meshes[0].geometries = kallocate(sizeof(geometry*), MEMORY_TAG_ARRAY);
     state->ui_meshes[0].geometries[0] = geometry_system_acquire_from_config(ui_config, true);
@@ -580,15 +580,15 @@ b8 application_initialize(struct application* game_inst) {
     state->ui_meshes[0].generation = 0;
 
     // Move and rotate it some.
-    // quat rotation = quat_from_axis_angle((vec3){0, 0, 1}, deg_to_rad(-45.0f), false);
+    // quaterion rotation = quat_from_axis_angle((vec3){0, 0, 1}, deg_to_rad(-45.0f), false);
     // transform_translate_rotate(&state->ui_meshes[0].transform, (vec3){5, 5, 0}, rotation);
     transform_translate(&state->ui_meshes[0].transform, (vec3){650, 5, 0});
 
     // TODO: end temp load/prepare stuff
 
     state->world_camera = camera_system_acquire("world");
-    camera_position_set(state->world_camera, (vec3){6.1, 1.7f, 19.7f});
-    camera_rotation_euler_set(state->world_camera, (vec3){-7.6f, -86.4f, 0.0f});
+    camera_position_set(state->world_camera, (vec3){-24.5, 19.3f, 30.2f});
+    camera_rotation_euler_set(state->world_camera, (vec3){-23.9f, -42.4f, 0.0f});
 
     // TODO: temp test
     state->world_camera_2 = camera_system_acquire("world_2");
@@ -598,10 +598,9 @@ b8 application_initialize(struct application* game_inst) {
     // kzero_memory(&game_inst->frame_data, sizeof(app_frame_data));
 
     kzero_memory(&state->update_clock, sizeof(clock));
+    kzero_memory(&state->prepare_clock, sizeof(clock));
     kzero_memory(&state->render_clock, sizeof(clock));
-
-    kzero_memory(&state->update_clock, sizeof(clock));
-    kzero_memory(&state->render_clock, sizeof(clock));
+    kzero_memory(&state->present_clock, sizeof(clock));
 
     // Load up a test audio file.
     state->test_audio_file = audio_system_chunk_load("Test.ogg");
@@ -665,7 +664,7 @@ b8 application_update(struct application* game_inst, struct frame_data* p_frame_
         editor_gizmo_update(&state->gizmo);
 
         // // Perform a small rotation on the first mesh.
-        // quat rotation = quat_from_axis_angle((vec3){0, 1, 0}, -0.5f * p_frame_data->delta_time, false);
+        // quaterion rotation = quat_from_axis_angle((vec3){0, 1, 0}, -0.5f * p_frame_data->delta_time, false);
         // transform_rotate(&state->meshes[0].transform, rotation);
 
         // // Perform a similar rotation on the second mesh, if it exists.
@@ -707,21 +706,57 @@ b8 application_update(struct application* game_inst, struct frame_data* p_frame_
     f64 fps, frame_time;
     metrics_frame(&fps, &frame_time);
 
+    // Keep a running average of update and render timers over the last ~1 second.
+    static f64 accumulated_ms = 0;
+    static f32 total_update_seconds = 0;
+    static f32 total_prepare_seconds = 0;
+    static f32 total_render_seconds = 0;
+    static f32 total_present_seconds = 0;
+
+    static f32 total_update_avg_us = 0;
+    static f32 total_prepare_avg_us = 0;
+    static f32 total_render_avg_us = 0;
+    static f32 total_present_avg_us = 0;
+    static f32 total_avg = 0;  // total average across the frame
+
+    total_update_seconds += state->last_update_elapsed;
+    total_prepare_seconds += state->prepare_clock.elapsed;
+    total_render_seconds += state->render_clock.elapsed;
+    total_present_seconds += state->present_clock.elapsed;
+    accumulated_ms += frame_time;
+
+    // Once ~1 second has gone by, calculate the average and wipe the accumulators.
+    if (accumulated_ms >= 1000.0f) {
+        total_update_avg_us = (total_update_seconds / accumulated_ms) * K_SEC_TO_US_MULTIPLIER;
+        total_prepare_avg_us = (total_prepare_seconds / accumulated_ms) * K_SEC_TO_US_MULTIPLIER;
+        total_render_avg_us = (total_render_seconds / accumulated_ms) * K_SEC_TO_US_MULTIPLIER;
+        total_present_avg_us = (total_present_seconds / accumulated_ms) * K_SEC_TO_US_MULTIPLIER;
+        total_avg = total_update_avg_us + total_prepare_avg_us + total_render_avg_us + total_present_avg_us;
+        total_render_seconds = 0;
+        total_prepare_seconds = 0;
+        total_update_seconds = 0;
+        total_present_seconds = 0;
+        accumulated_ms = 0;
+    }
+
     char* vsync_text = renderer_flag_enabled_get(RENDERER_CONFIG_FLAG_VSYNC_ENABLED_BIT) ? "YES" : " NO";
     char text_buffer[2048];
     string_format(
         text_buffer,
         "\
 FPS: %5.1f(%4.1fms)        Pos=[%7.3f %7.3f %7.3f] Rot=[%7.3f, %7.3f, %7.3f]\n\
-Upd: %8.3fus, Rend: %8.3fus Mouse: X=%-5d Y=%-5d   L=%s R=%s   NDC: X=%.6f, Y=%.6f\n\
-VSync: %s Drawn: %-5u Hovered: %s%u\n\
-Text",
+Upd: %8.3fus, Prep: %8.3fus, Rend: %8.3fus, Pres: %8.3fus, Tot: %8.3fus \n\
+Mouse: X=%-5d Y=%-5d   L=%s R=%s   NDC: X=%.6f, Y=%.6f\n\
+VSync: %s Drawn: %-5u Hovered: %s%u",
         fps,
         frame_time,
         pos.x, pos.y, pos.z,
         rad_to_deg(rot.x), rad_to_deg(rot.y), rad_to_deg(rot.z),
-        state->last_update_elapsed * K_SEC_TO_US_MULTIPLIER,
-        state->render_clock.elapsed * K_SEC_TO_US_MULTIPLIER,
+        total_update_avg_us,
+        total_prepare_avg_us,
+        total_render_avg_us,
+        total_present_avg_us,
+        total_avg,
         mouse_x, mouse_y,
         left_down ? "Y" : "N",
         right_down ? "Y" : "N",
@@ -786,12 +821,50 @@ static void gdistance_quick_sort(geometry_distance arr[], i32 low_index, i32 hig
         gdistance_quick_sort(arr, partition_index + 1, high_index, ascending);
     }
 }
+static void geometry_swap(geometry_render_data* a, geometry_render_data* b) {
+    geometry_render_data temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+static i32 geometry_partition(geometry_render_data arr[], i32 low_index, i32 high_index, b8 ascending) {
+    geometry_render_data pivot = arr[high_index];
+    i32 i = (low_index - 1);
+
+    for (i32 j = low_index; j <= high_index - 1; ++j) {
+        if (ascending) {
+            if (arr[j].geometry->material->internal_id < pivot.geometry->material->internal_id) {
+                ++i;
+                geometry_swap(&arr[i], &arr[j]);
+            }
+        } else {
+            if (arr[j].geometry->material->internal_id > pivot.geometry->material->internal_id) {
+                ++i;
+                geometry_swap(&arr[i], &arr[j]);
+            }
+        }
+    }
+    geometry_swap(&arr[i + 1], &arr[high_index]);
+    return i + 1;
+}
+
+static void geometry_quick_sort_by_material(geometry_render_data arr[], i32 low_index, i32 high_index, b8 ascending) {
+    if (low_index < high_index) {
+        i32 partition_index = geometry_partition(arr, low_index, high_index, ascending);
+
+        // Independently sort elements before and after the partition index.
+        geometry_quick_sort_by_material(arr, low_index, partition_index - 1, ascending);
+        geometry_quick_sort_by_material(arr, partition_index + 1, high_index, ascending);
+    }
+}
 
 b8 application_prepare_frame(struct application* app_inst, struct frame_data* p_frame_data) {
     testbed_game_state* state = (testbed_game_state*)app_inst->state;
     if (!state->running) {
         return false;
     }
+
+    clock_start(&state->prepare_clock);
 
     // Skybox pass. This pass must always run, as it is what clears the screen.
     skybox_pass_extended_data* skybox_pass_ext_data = state->skybox_pass.pass_data.ext_data;
@@ -801,6 +874,7 @@ b8 application_prepare_frame(struct application* app_inst, struct frame_data* p_
     state->skybox_pass.pass_data.view_position = camera_position_get(current_camera);
     state->skybox_pass.pass_data.projection_matrix = state->world_viewport.projection;
     state->skybox_pass.pass_data.do_execute = true;
+    skybox_pass_ext_data->sb = 0;
 
     // Tell our scene to generate relevant packet data. NOTE: Generates skybox and world packets.
     if (state->main_scene.state == SIMPLE_SCENE_STATE_LOADED) {
@@ -894,7 +968,7 @@ b8 application_prepare_frame(struct application* app_inst, struct frame_data* p_
                                 geometry_render_data data = {0};
                                 data.model = model;
                                 data.geometry = g;
-                                data.unique_id = m->unique_id;
+                                data.unique_id = m->id.uniqueid;
                                 data.winding_inverted = winding_inverted;
 
                                 // Check if transparent. If so, put into a separate, temp array to be
@@ -928,6 +1002,9 @@ b8 application_prepare_frame(struct application* app_inst, struct frame_data* p_
                 }
             }
 
+            // Sort opaque geometries by material.
+            geometry_quick_sort_by_material(ext_data->geometries, 0, darray_length(ext_data->geometries) - 1, true);
+
             // Sort transparent geometries, then add them to the ext_data->geometries array.
             u32 geometry_count = darray_length(transparent_geometries);
             gdistance_quick_sort(transparent_geometries, 0, geometry_count - 1, false);
@@ -945,7 +1022,7 @@ b8 application_prepare_frame(struct application* app_inst, struct frame_data* p_
                 geometry_render_data data = {0};
                 data.model = transform_world_get(&scene->terrains[i].xform);
                 data.geometry = &scene->terrains[i].geo;
-                data.unique_id = scene->terrains[i].unique_id;
+                data.unique_id = scene->terrains[i].id.uniqueid;
 
                 darray_push(ext_data->terrain_geometries, data);
 
@@ -1051,6 +1128,10 @@ b8 application_prepare_frame(struct application* app_inst, struct frame_data* p_
                 return false;
             }
         } */
+    } else {
+        // Do not run these passes if the scene is not loaded.
+        state->scene_pass.pass_data.do_execute = false;
+        state->scene_pass.pass_data.do_execute = false;
     }
 
     // UI
@@ -1118,37 +1199,39 @@ b8 application_prepare_frame(struct application* app_inst, struct frame_data* p_
         }
     }*/
     // TODO: end temp
+
+    clock_update(&state->prepare_clock);
     return true;
 }
 
 b8 application_render_frame(struct application* game_inst, struct frame_data* p_frame_data) {
     // Start the frame
-
-    if (!renderer_begin(p_frame_data)) {
-        //
-    }
-
     testbed_game_state* state = (testbed_game_state*)game_inst->state;
     if (!state->running) {
         return true;
     }
-    // testbed_application_frame_data* app_frame_data = (testbed_application_frame_data*)p_frame_data->application_frame_data;
 
     clock_start(&state->render_clock);
+    if (!renderer_begin(p_frame_data)) {
+        //
+    }
 
     if (!rendergraph_execute_frame(&state->frame_graph, p_frame_data)) {
         DERROR("Failed to execute rendergraph frame.");
         return false;
     }
 
-    clock_update(&state->render_clock);
-
     renderer_end(p_frame_data);
 
+    // NOTE: Stopping the timer before presentation since that can greatly impact this timing.
+    clock_update(&state->render_clock);
+
+    clock_start(&state->present_clock);
     if (!renderer_present(p_frame_data)) {
         DERROR("The call to renderer_present failed. This is likely unrecoverable. Shutting down.");
         return false;
     }
+    clock_update(&state->present_clock);
 
     return true;
 }
@@ -1183,7 +1266,7 @@ void application_on_resize(struct application* game_inst, u32 width, u32 height)
 
     // TODO: temp
     // Move debug text to new bottom of screen.
-    ui_text_position_set(&state->test_text, vec3_create(20, state->height - 75, 0));
+    ui_text_position_set(&state->test_text, vec3_create(20, state->height - 95, 0));
 
     // Pass the resize onto the rendergraph.
     rendergraph_on_resize(&state->frame_graph, state->width, state->height);

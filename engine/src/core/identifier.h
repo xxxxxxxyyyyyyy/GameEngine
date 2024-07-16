@@ -1,28 +1,22 @@
-/**
- * @file identifier.h
- * @author dod
- * @brief Contains a system for creating numeric identifiers.
- * @version 1.0
- * @date 2022-09-22
- *
- */
-
 #pragma once
 
 #include "defines.h"
 
 /**
- * @brief Acquires a new identifier for the given owner.
- *
- * @param owner The owner of the identifier.
- * @return The new identifier.
+ * A Globally/Universally Unique identifier in 64-bit unsigned integer format.
+ * To be used primarily as an identifier for resources. (De)serialization friendly.
  */
-API u32 identifier_aquire_new_id(void* owner);
+typedef struct identifier {
+    // The actual internal identifier.
+    u64 uniqueid;
+} identifier;
 
 /**
- * @brief Releases the given identifier, which can then be used
- * again.
- *
- * @param id The identifier to be released.
+ * @brief Generates a new unique identifier.
  */
-API void identifier_release_id(u32 id);
+API identifier identifier_create(void);
+
+/**
+ * @brief Creates an identifier from a known value. Useful for deserialization.
+ */
+API identifier identifier_from_u64(u64 uniqueid);

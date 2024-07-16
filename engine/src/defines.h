@@ -55,8 +55,6 @@ STATIC_ASSERT(sizeof(b8) == 1, "Expected b32 to be 1 byte");
 #define true 1
 #define false 0
 
-#define DVERSION 0.1
-
 // generic methods
 #define ARRAY_LENGTH(arr) (sizeof(arr) / sizeof(arr[0]))
 

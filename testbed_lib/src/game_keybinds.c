@@ -221,7 +221,7 @@ void game_on_debug_cam_position(keys key, keymap_entry_bind_type type, keymap_mo
     application* game_inst = (application*)user_data;
     testbed_game_state* state = (testbed_game_state*)game_inst->state;
 
-    DDEBUG(
+    DINFO(
         "Pos:[%.2f, %.2f, %.2f",
         state->world_camera->position.x,
         state->world_camera->position.y,
@@ -244,7 +244,7 @@ void game_print_memory_metrics(keys key, keymap_entry_bind_type type, keymap_mod
     char* usage = get_memory_usage_str();
     DINFO(usage);
     string_free(usage);
-    DDEBUG("Allocations: %llu (%llu this frame)", state->alloc_count, state->alloc_count - state->prev_alloc_count);
+    DINFO("Allocations: %llu (%llu this frame)", state->alloc_count, state->alloc_count - state->prev_alloc_count);
 }
 
 void game_setup_keymaps(application* game_inst) {

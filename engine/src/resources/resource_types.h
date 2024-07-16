@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/identifier.h"
 #include "math/math_types.h"
 
 #define TERRAIN_MAX_MATERIAL_COUNT 4
@@ -219,9 +220,8 @@ typedef struct texture_map {
     texture_repeat repeat_v;
     /** @brief The repeat mode on the W axis (or Z, or U) */
     texture_repeat repeat_w;
-    /** @brief A pointer to internal, render API-specific data. Typically the
-     * internal sampler. */
-    void *internal_data;
+    /** @brief An identifier used for internal resource lookups/management. */
+    u32 internal_id;
 } texture_map;
 
 typedef struct font_glyph {
@@ -300,9 +300,6 @@ struct material;
 typedef struct geometry {
     /** @brief The geometry identifier. */
     u32 id;
-    /** @brief The internal geometry identifier, used by the renderer backend to
-     * map to internal resources. */
-    u32 internal_id;
     /** @brief The geometry generation. Incremented every time the geometry
      * changes. */
     u16 generation;
@@ -316,6 +313,8 @@ typedef struct geometry {
     u32 vertex_element_size;
     /** @brief The vertex data. */
     void* vertices;
+    /** @brief The offset from the beginning of the vertex buffer. */
+    u64 vertex_buffer_offset;
 
     /** @brief The index count. */
     u32 index_count;
@@ -323,6 +322,8 @@ typedef struct geometry {
     u32 index_element_size;
     /** @brief The index data. */
     void* indices;
+    /** @brief The offset from the beginning of the index buffer. */
+    u64 index_buffer_offset;
     /** @brief The geometry name. */
     char name[GEOMETRY_NAME_MAX_LENGTH];
     /** @brief A pointer to the material associated with this geometry.. */
@@ -341,7 +342,7 @@ typedef struct mesh_config {
 typedef struct mesh {
     char *name;
     mesh_config config;
-    u32 unique_id;
+    identifier id;
     u8 generation;
     u16 geometry_count;
     geometry **geometries;

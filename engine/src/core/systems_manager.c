@@ -21,6 +21,8 @@
 #include "systems/resource_system.h"
 #include "systems/shader_system.h"
 #include "systems/texture_system.h"
+// Version reporting.
+#include "version.h"
 
 static b8 register_known_systems_pre_boot(systems_manager_state* state, application_config* app_config);
 static b8 register_known_systems_post_boot(systems_manager_state* state, application_config* app_config);
@@ -135,6 +137,14 @@ static b8 register_known_systems_pre_boot(systems_manager_state* state, applicat
         DERROR("Failed to register logging system.");
         return false;
     }
+
+    // Report engine version
+#if KRELEASE
+    const char* build_type = "Release";
+#else
+    const char* build_type = "Debug";
+#endif
+    DINFO("Dod  Engine v. %s (%s)", DVERSION, build_type);
 
     // Input
     if (!systems_manager_register(state, K_SYSTEM_TYPE_INPUT, input_system_initialize, input_system_shutdown, 0, 0)) {

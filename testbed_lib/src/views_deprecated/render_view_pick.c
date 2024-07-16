@@ -1,4 +1,3 @@
-
 #include "render_view_pick.h"
 
 #include "containers/darray.h"
@@ -67,7 +66,7 @@ static b8 render_view_on_event(u16 code, void* sender, void* listener_inst, even
 
     switch (code) {
         case EVENT_CODE_DEFAULT_RENDERTARGET_REFRESH_REQUIRED:
-            // render_view_system_render_targets_regenerate(self);
+            /* render_view_system_render_targets_regenerate(self); */
             // This needs to be consumed by other views, so consider it _not_ handled.
             return false;
     }
@@ -80,18 +79,21 @@ static void acquire_shader_instances(const struct render_view* self) {
 
     // Not saving the instance id because it doesn't matter.
     u32 instance;
+    shader_instance_resource_config instance_resource_config = {0};
+    instance_resource_config.uniform_config_count = 0;  // NOTE: no textures, so this doesn't matter.
+    instance_resource_config.uniform_configs = 0;
     // UI shader
-    if (!renderer_shader_instance_resources_acquire(data->ui_shader_info.s, 0, 0, &instance)) {
+    if (!renderer_shader_instance_resources_acquire(data->ui_shader_info.s, &instance_resource_config, &instance)) {
         DFATAL("render_view_pick failed to acquire UI shader resources.");
         return;
     }
     // World shader
-    if (!renderer_shader_instance_resources_acquire(data->world_shader_info.s, 0, 0, &instance)) {
+    if (!renderer_shader_instance_resources_acquire(data->world_shader_info.s, &instance_resource_config, &instance)) {
         DFATAL("render_view_pick failed to acquire World shader resources.");
         return;
     }
     // Terrain shader
-    if (!renderer_shader_instance_resources_acquire(data->terrain_shader_info.s, 0, 0, &instance)) {
+    if (!renderer_shader_instance_resources_acquire(data->terrain_shader_info.s, &instance_resource_config, &instance)) {
         DFATAL("render_view_pick failed to acquire Terrain shader resources.");
         return;
     }
@@ -150,10 +152,10 @@ b8 render_view_pick_on_registered(struct render_view* self) {
         data->ui_shader_info.s = shader_system_get(ui_shader_name);
 
         // Extract uniform locations
-        data->ui_shader_info.id_colour_location = shader_system_uniform_index(data->ui_shader_info.s, "id_colour");
-        data->ui_shader_info.model_location = shader_system_uniform_index(data->ui_shader_info.s, "model");
-        data->ui_shader_info.projection_location = shader_system_uniform_index(data->ui_shader_info.s, "projection");
-        data->ui_shader_info.view_location = shader_system_uniform_index(data->ui_shader_info.s, "view");
+        data->ui_shader_info.id_colour_location = shader_system_uniform_location(data->ui_shader_info.s, "id_colour");
+        data->ui_shader_info.model_location = shader_system_uniform_location(data->ui_shader_info.s, "model");
+        data->ui_shader_info.projection_location = shader_system_uniform_location(data->ui_shader_info.s, "projection");
+        data->ui_shader_info.view_location = shader_system_uniform_location(data->ui_shader_info.s, "view");
 
         // Default UI properties
         data->ui_shader_info.view = mat4_identity();
@@ -173,10 +175,10 @@ b8 render_view_pick_on_registered(struct render_view* self) {
         data->world_shader_info.s = shader_system_get(world_shader_name);
 
         // Extract uniform locations.
-        data->world_shader_info.id_colour_location = shader_system_uniform_index(data->world_shader_info.s, "id_colour");
-        data->world_shader_info.model_location = shader_system_uniform_index(data->world_shader_info.s, "model");
-        data->world_shader_info.projection_location = shader_system_uniform_index(data->world_shader_info.s, "projection");
-        data->world_shader_info.view_location = shader_system_uniform_index(data->world_shader_info.s, "view");
+        data->world_shader_info.id_colour_location = shader_system_uniform_location(data->world_shader_info.s, "id_colour");
+        data->world_shader_info.model_location = shader_system_uniform_location(data->world_shader_info.s, "model");
+        data->world_shader_info.projection_location = shader_system_uniform_location(data->world_shader_info.s, "projection");
+        data->world_shader_info.view_location = shader_system_uniform_location(data->world_shader_info.s, "view");
 
         // Default World properties
         data->world_shader_info.view = mat4_identity();
@@ -196,10 +198,10 @@ b8 render_view_pick_on_registered(struct render_view* self) {
         data->terrain_shader_info.s = shader_system_get(terrain_shader_name);
 
         // Extract uniform locations.
-        data->terrain_shader_info.id_colour_location = shader_system_uniform_index(data->terrain_shader_info.s, "id_colour");
-        data->terrain_shader_info.model_location = shader_system_uniform_index(data->terrain_shader_info.s, "model");
-        data->terrain_shader_info.projection_location = shader_system_uniform_index(data->terrain_shader_info.s, "projection");
-        data->terrain_shader_info.view_location = shader_system_uniform_index(data->terrain_shader_info.s, "view");
+        data->terrain_shader_info.id_colour_location = shader_system_uniform_location(data->terrain_shader_info.s, "id_colour");
+        data->terrain_shader_info.model_location = shader_system_uniform_location(data->terrain_shader_info.s, "model");
+        data->terrain_shader_info.projection_location = shader_system_uniform_location(data->terrain_shader_info.s, "projection");
+        data->terrain_shader_info.view_location = shader_system_uniform_location(data->terrain_shader_info.s, "view");
 
         // Default terrain properties.
         data->terrain_shader_info.view = mat4_identity();
@@ -268,11 +270,6 @@ b8 render_view_pick_on_packet_build(const struct render_view* self, struct frame
     internal_data->world_shader_info.view = camera_view_get(c);
     internal_data->terrain_shader_info.view = camera_view_get(c);
 
-    // TODO: Get active camera.
-    camera* world_camera = camera_system_get_default();
-    internal_data->world_shader_info.view = camera_view_get(world_camera);
-    internal_data->terrain_shader_info.view = camera_view_get(world_camera);
-
     // Set the pick packet data to extended data.
     packet_data->ui_geometry_count = 0;
     out_packet->extended_data = p_frame_data->allocator.allocate(sizeof(pick_packet_data));
@@ -326,11 +323,11 @@ b8 render_view_pick_on_packet_build(const struct render_view* self, struct frame
     }
 
     // Count texts as well.
-    // for (u32 i = 0; i < packet_data->text_count; ++i) {
-    //     if (packet_data->texts[i]->id.uniqueid > highest_instance_id) {
-    //         highest_instance_id = packet_data->texts[i]->id.uniqueid;
-    //     }
-    // }
+    /* for (u32 i = 0; i < packet_data->text_count; ++i) {
+        if (packet_data->texts[i]->id.uniqueid > highest_instance_id) {
+            highest_instance_id = packet_data->texts[i]->id.uniqueid;
+        }
+    } */
 
     i32 required_instance_count = highest_instance_id + 1;
 
@@ -391,13 +388,13 @@ b8 render_view_pick_on_render(const struct render_view* self, const struct rende
 
         // Apply globals
         viewport* v = renderer_active_viewport_get();
-        if (!shader_system_uniform_set_by_index(data->world_shader_info.projection_location, &v->projection)) {
+        if (!shader_system_uniform_set_by_location(data->world_shader_info.projection_location, &v->projection)) {
             DERROR("Failed to apply projection matrix");
         }
-        if (!shader_system_uniform_set_by_index(data->world_shader_info.view_location, &data->world_shader_info.view)) {
+        if (!shader_system_uniform_set_by_location(data->world_shader_info.view_location, &data->world_shader_info.view)) {
             DERROR("Failed to apply view matrix");
         }
-        shader_system_apply_global(true);
+        shader_system_apply_global(true, p_frame_data);
 
         // Draw geometries. Start from 0 since world geometries are added first, and stop at the world geometry count.
         u32 world_geometry_count = !packet_data->world_mesh_data ? 0 : darray_length(packet_data->world_mesh_data);
@@ -412,17 +409,17 @@ b8 render_view_pick_on_render(const struct render_view* self, const struct rende
             u32 r, g, b;
             u32_to_rgb(geo->unique_id, &r, &g, &b);
             rgb_u32_to_vec3(r, g, b, &id_colour);
-            if (!shader_system_uniform_set_by_index(data->world_shader_info.id_colour_location, &id_colour)) {
+            if (!shader_system_uniform_set_by_location(data->world_shader_info.id_colour_location, &id_colour)) {
                 DERROR("Failed to apply id colour uniform.");
                 return false;
             }
 
             b8 needs_update = !data->instance_updated[current_instance_id];
-            shader_system_apply_instance(needs_update);
+            shader_system_apply_instance(needs_update, p_frame_data);
             data->instance_updated[current_instance_id] = true;
 
             // Apply the locals
-            if (!shader_system_uniform_set_by_index(data->world_shader_info.model_location, &geo->model)) {
+            if (!shader_system_uniform_set_by_location(data->world_shader_info.model_location, &geo->model)) {
                 DERROR("Failed to apply model matrix for world geometry.");
             }
 
@@ -438,13 +435,13 @@ b8 render_view_pick_on_render(const struct render_view* self, const struct rende
         }
 
         // Apply globals
-        if (!shader_system_uniform_set_by_index(data->terrain_shader_info.projection_location, &v->projection)) {
+        if (!shader_system_uniform_set_by_location(data->terrain_shader_info.projection_location, &v->projection)) {
             DERROR("Failed to apply projection matrix");
         }
-        if (!shader_system_uniform_set_by_index(data->terrain_shader_info.view_location, &data->terrain_shader_info.view)) {
+        if (!shader_system_uniform_set_by_location(data->terrain_shader_info.view_location, &data->terrain_shader_info.view)) {
             DERROR("Failed to apply view matrix");
         }
-        shader_system_apply_global(true);
+        shader_system_apply_global(true, p_frame_data);
 
         // Draw geometries. Start from 0 since terrain geometries are added first, and stop at the terrain geometry count.
         u32 terrain_geometry_count = !packet_data->terrain_mesh_data ? 0 : darray_length(packet_data->terrain_mesh_data);
@@ -459,17 +456,17 @@ b8 render_view_pick_on_render(const struct render_view* self, const struct rende
             u32 r, g, b;
             u32_to_rgb(geo->unique_id, &r, &g, &b);
             rgb_u32_to_vec3(r, g, b, &id_colour);
-            if (!shader_system_uniform_set_by_index(data->terrain_shader_info.id_colour_location, &id_colour)) {
+            if (!shader_system_uniform_set_by_location(data->terrain_shader_info.id_colour_location, &id_colour)) {
                 DERROR("Failed to apply id colour uniform.");
                 return false;
             }
 
             b8 needs_update = !data->instance_updated[current_instance_id];
-            shader_system_apply_instance(needs_update);
+            shader_system_apply_instance(needs_update, p_frame_data);
             data->instance_updated[current_instance_id] = true;
 
             // Apply the locals
-            if (!shader_system_uniform_set_by_index(data->terrain_shader_info.model_location, &geo->model)) {
+            if (!shader_system_uniform_set_by_location(data->terrain_shader_info.model_location, &geo->model)) {
                 DERROR("Failed to apply model matrix for terrain geometry.");
             }
 
@@ -502,13 +499,13 @@ b8 render_view_pick_on_render(const struct render_view* self, const struct rende
         // Throwing an error if we try to use this in the meantime.
         DFATAL("Cannot use pick pass without it being split into UI/World first due to viewport changes.");
         // TODO: Get the projection from the current viewport once split up.
-        // if (!shader_system_uniform_set_by_index(data->ui_shader_info.projection_location, &data->ui_shader_info.projection)) {
+        // if (!shader_system_uniform_set_by_location(data->ui_shader_info.projection_location, &data->ui_shader_info.projection)) {
         // DERROR("Failed to apply projection matrix");
         // }
-        if (!shader_system_uniform_set_by_index(data->ui_shader_info.view_location, &data->ui_shader_info.view)) {
+        if (!shader_system_uniform_set_by_location(data->ui_shader_info.view_location, &data->ui_shader_info.view)) {
             DERROR("Failed to apply view matrix");
         }
-        shader_system_apply_global(true);
+        shader_system_apply_global(true, p_frame_data);
 
         // Draw geometries. Start off where world geometries left off.
         for (u32 i = world_geometry_count; i < packet->geometry_count; ++i) {
@@ -522,17 +519,17 @@ b8 render_view_pick_on_render(const struct render_view* self, const struct rende
             u32 r, g, b;
             u32_to_rgb(geo->unique_id, &r, &g, &b);
             rgb_u32_to_vec3(r, g, b, &id_colour);
-            if (!shader_system_uniform_set_by_index(data->ui_shader_info.id_colour_location, &id_colour)) {
+            if (!shader_system_uniform_set_by_location(data->ui_shader_info.id_colour_location, &id_colour)) {
                 DERROR("Failed to apply id colour uniform.");
                 return false;
             }
 
             b8 needs_update = !data->instance_updated[current_instance_id];
-            shader_system_apply_instance(needs_update);
+            shader_system_apply_instance(needs_update, p_frame_data);
             data->instance_updated[current_instance_id] = true;
 
             // Apply the locals
-            if (!shader_system_uniform_set_by_index(data->ui_shader_info.model_location, &geo->model)) {
+            if (!shader_system_uniform_set_by_location(data->ui_shader_info.model_location, &geo->model)) {
                 DERROR("Failed to apply model matrix for text");
             }
 
@@ -541,31 +538,31 @@ b8 render_view_pick_on_render(const struct render_view* self, const struct rende
         }
 
         // Draw bitmap text
-        // for (u32 i = 0; i < packet_data->text_count; ++i) {
-        //     ui_text* text = packet_data->texts[i];
-        //     current_instance_id = text->id.uniqueid;
-        //     shader_system_bind_instance(current_instance_id);
+        /* for (u32 i = 0; i < packet_data->text_count; ++i) {
+            ui_text* text = packet_data->texts[i];
+            current_instance_id = text->id.uniqueid;
+            shader_system_bind_instance(current_instance_id);
 
-        //     // Get colour based on id
-        //     vec3 id_colour;
-        //     u32 r, g, b;
-        //     u32_to_rgb(text->id.uniqueid, &r, &g, &b);
-        //     rgb_u32_to_vec3(r, g, b, &id_colour);
-        //     if (!shader_system_uniform_set_by_index(data->ui_shader_info.id_colour_location, &id_colour)) {
-        //         DERROR("Failed to apply id colour uniform.");
-        //         return false;
-        //     }
+            // Get colour based on id
+            vec3 id_colour;
+            u32 r, g, b;
+            u32_to_rgb(text->id.uniqueid, &r, &g, &b);
+            rgb_u32_to_vec3(r, g, b, &id_colour);
+            if (!shader_system_uniform_set_by_location(data->ui_shader_info.id_colour_location, &id_colour)) {
+                DERROR("Failed to apply id colour uniform.");
+                return false;
+            }
 
-        //     shader_system_apply_instance(true);
+            shader_system_apply_instance(true);
 
-        //     // Apply the locals
-        //     matrix4 model = transform_world_get(&text->transform);
-        //     if (!shader_system_uniform_set_by_index(data->ui_shader_info.model_location, &model)) {
-        //         DERROR("Failed to apply model matrix for text");
-        //     }
+            // Apply the locals
+            matrix4 model = transform_world_get(&text->transform);
+            if (!shader_system_uniform_set_by_location(data->ui_shader_info.model_location, &model)) {
+                DERROR("Failed to apply model matrix for text");
+            }
 
-        //     ui_text_draw(text);
-        // }
+            ui_text_draw(text);
+        } */
 
         if (!renderer_renderpass_end(pass)) {
             DERROR("render_view_ui_on_render pass index %u failed to end.", p);

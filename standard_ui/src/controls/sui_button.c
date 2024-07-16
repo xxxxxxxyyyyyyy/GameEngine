@@ -10,7 +10,7 @@
 #include <renderer/renderer_frontend.h>
 #include <systems/shader_system.h>
 
-#include "standard_ui_system.h"
+#include "../standard_ui_system.h"
 
 b8 sui_button_control_create(const char* name, struct sui_control* out_control) {
     if (!sui_base_control_create(name, out_control)) {
@@ -89,7 +89,18 @@ b8 sui_button_control_load(struct sui_control* self) {
     // Acquire instance resources for this control.
     texture_map* maps[1] = {&typed_state->ui_atlas};
     shader* s = shader_system_get("Shader.StandardUI");
-    renderer_shader_instance_resources_acquire(s, 1, maps, &typed_data->instance_id);
+    u16 atlas_location = s->uniforms[s->instance_sampler_indices[0]].index;
+    shader_instance_resource_config instance_resource_config = {0};
+    // Map count for this type is known.
+    shader_instance_uniform_texture_config atlas_texture = {0};
+    atlas_texture.uniform_location = atlas_location;
+    atlas_texture.texture_map_count = 1;
+    atlas_texture.texture_maps = maps;
+
+    instance_resource_config.uniform_config_count = 1;
+    instance_resource_config.uniform_configs = &atlas_texture;
+
+    renderer_shader_instance_resources_acquire(s, &instance_resource_config, &typed_data->instance_id);
 
     return true;
 }

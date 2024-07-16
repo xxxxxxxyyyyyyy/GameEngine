@@ -108,6 +108,24 @@ API i32 string_index_of(const char* str, char c);
  */
 API i32 string_index_of_str(const char* str_0, const char* str_1);
 
+/**
+ * @brief Indicates if str_0 starts with str_1. Case-sensitive.
+ *
+ * @param str_0 The string to be scanned.
+ * @param str_1 The substring to search for.
+ * @return True if str_0 starts with str_1; otherwise false.
+ */
+API b8 string_starts_with(const char* str_0, const char* str_1);
+
+/**
+ * @brief Indicates if str_0 starts with str_1. Case-insensitive.
+ *
+ * @param str_0 The string to be scanned.
+ * @param str_1 The substring to search for.
+ * @return True if str_0 starts with str_1; otherwise false.
+ */
+API b8 string_starts_withi(const char* str_0, const char* str_1);
+
 API void string_insert_char_at(char* dest, const char* src, u32 pos, char c);
 API void string_insert_str_at(char* dest, const char* src, u32 pos, const char* str);
 API void string_remove_at(char* dest, const char* src, u32 pos, u32 length);
@@ -351,6 +369,14 @@ API void string_filename_from_path(char* dest, const char* path);
  * @param path The full path to extract from.
  */
 API void string_filename_no_extension_from_path(char* dest, const char* path);
+
+/**
+ * @brief Attempts to extract an array length from a given string. Ex: a string of sampler2D[4] will return True and set out_length to 4.
+ * @param str The string to examine.
+ * @param out_length A pointer to hold the length, if extracted successfully.
+ * @returns True if an array length was found and parsed; otherwise false.
+ */
+API b8 string_parse_array_length(const char* str, u32* out_length);
 
 // ----------------------
 // KString implementation

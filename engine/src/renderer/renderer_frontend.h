@@ -1,5 +1,12 @@
+/**
+ * @brief The renderer frontend, which is the only thing the rest of the engine sees.
+ * This is responsible for transferring any data to and from the renderer backend in an
+ * agnostic way.
+ */
+
 #pragma once
 
+#include "core/frame_data.h"
 #include "renderer_types.h"
 
 struct shader;
@@ -290,12 +297,9 @@ API b8 renderer_renderpass_end(renderpass* pass);
  * @param s A pointer to the shader.
  * @param config A constant pointer to the shader config.
  * @param pass A pointer to the renderpass to be associated with the shader.
- * @param stage_count The total number of stages.
- * @param stage_filenames An array of shader stage filenames to be loaded. Should align with stages array.
- * @param stages A array of shader_stages indicating what render stages (vertex, fragment, etc.) used in this shader.
  * @return b8 True on success; otherwise false.
  */
-API b8 renderer_shader_create(struct shader* s, const shader_config* config, renderpass* pass, u8 stage_count, const char** stage_filenames, shader_stage* stages);
+API b8 renderer_shader_create(struct shader* s, const shader_config* config, renderpass* pass);
 
 /**
  * @brief Destroys the given shader and releases any resources held by it.
@@ -339,13 +343,21 @@ API b8 renderer_shader_bind_globals(struct shader* s);
 API b8 renderer_shader_bind_instance(struct shader* s, u32 instance_id);
 
 /**
+ * @brief Binds local resources for use and updating.
+ *
+ * @param s A pointer to the shader whose local resources are to be bound.
+ * @return True on success; otherwise false.
+ */
+API b8 renderer_shader_bind_local(struct shader* s);
+
+/**
  * @brief Applies global data to the uniform buffer.
  *
  * @param s A pointer to the shader to apply the global data for.
  * @param needs_update Indicates if the shader uniforms need to be updated or just bound.
  * @return True on success; otherwise false.
  */
-API b8 renderer_shader_apply_globals(struct shader* s, b8 needs_update);
+API b8 renderer_shader_apply_globals(struct shader* s, b8 needs_update, frame_data* p_frame_data);
 
 /**
  * @brief Applies data for the currently bound instance.
@@ -354,18 +366,17 @@ API b8 renderer_shader_apply_globals(struct shader* s, b8 needs_update);
  * @param needs_update Indicates if the shader uniforms need to be updated or just bound.
  * @return True on success; otherwise false.
  */
-API b8 renderer_shader_apply_instance(struct shader* s, b8 needs_update);
+API b8 renderer_shader_apply_instance(struct shader* s, b8 needs_update, frame_data* p_frame_data);
 
 /**
  * @brief Acquires internal instance-level resources and provides an instance id.
  *
  * @param s A pointer to the shader to acquire resources from.
- * @param texture_map_count The number of texture maps used.
- * @param maps An array of texture map pointers. Must be one per texture in the instance.
+ * @param config A constant pointer to the configuration of the instance to be used while acquiring resources.
  * @param out_instance_id A pointer to hold the new instance identifier.
  * @return True on success; otherwise false.
  */
-API b8 renderer_shader_instance_resources_acquire(struct shader* s, u32 texture_map_count, texture_map** maps, u32* out_instance_id);
+API b8 renderer_shader_instance_resources_acquire(struct shader* s, const shader_instance_resource_config* config, u32* out_instance_id);
 
 /**
  * @brief Releases internal instance-level resources for the given instance id.
@@ -377,14 +388,37 @@ API b8 renderer_shader_instance_resources_acquire(struct shader* s, u32 texture_
 API b8 renderer_shader_instance_resources_release(struct shader* s, u32 instance_id);
 
 /**
+ * Attempts to get a pointer to a uniform from the given shader at the given location.
+ * @param s A pointer to the shader to get the uniform for.
+ * @param name The location of the uniform to obtain.
+ * @returns A pointer to a uniform if found; otherwise null/0.
+ */
+API struct shader_uniform* renderer_shader_uniform_get_by_location(struct shader* s, u16 location);
+
+/**
+ * Attempts to get a pointer to a uniform from the given shader of the provided name.
+ * @param s A pointer to the shader to get the uniform for.
+ * @param name The name of the uniform to obtain.
+ * @returns A pointer to a uniform if found; otherwise null/0.
+ */
+API struct shader_uniform* renderer_shader_uniform_get(struct shader* s, const char* name);
+
+/**
  * @brief Sets the uniform of the given shader to the provided value.
  *
  * @param s A ponter to the shader.
  * @param uniform A constant pointer to the uniform.
+ * @param array_index The index of the uniform array to be set, if it is an array. For non-array types, this value is ignored.
  * @param value A pointer to the value to be set.
  * @return b8 True on success; otherwise false.
  */
-API b8 renderer_shader_uniform_set(struct shader* s, struct shader_uniform* uniform, const void* value);
+API b8 renderer_shader_uniform_set(struct shader* s, struct shader_uniform* uniform, u32 array_index, const void* value);
+
+/**
+ * @brief Triggers the upload of local uniform data to the GPU.
+ * @param s A ponter to the shader.
+ */
+API b8 renderer_shader_apply_local(struct shader* s, frame_data* p_frame_data);
 
 /**
  * @brief Acquires internal resources for the given texture map.
@@ -409,9 +443,10 @@ API void renderer_texture_map_resources_release(struct texture_map* map);
  * @param renderpass A pointer to the renderpass the render target is associated with.
  * @param width The width of the render target in pixels.
  * @param height The height of the render target in pixels.
+ * @param layer_index The index of the layer to use if the texture is an arrayed texture. Otherwise ignored.
  * @param out_target A pointer to hold the newly created render target.
  */
-API void renderer_render_target_create(u8 attachment_count, render_target_attachment* attachments, renderpass* pass, u32 width, u32 height, render_target* out_target);
+API void renderer_render_target_create(u8 attachment_count, render_target_attachment* attachments, renderpass* pass, u32 width, u32 height, u16 layer_index, render_target* out_target);
 
 /**
  * @brief Destroys the provided render target.
@@ -491,7 +526,7 @@ API void renderer_flag_enabled_set(renderer_config_flags flag, b8 enabled);
  * @param name The name of the renderbuffer, used for debugging purposes.
  * @param type The type of buffer, indicating it's use (i.e. vertex/index data, uniforms, etc.)
  * @param total_size The total size in bytes of the buffer.
- * @param use_freelist Indicates if the buffer should use a freelist to track allocations.
+ * @param track_type Indicates what type of allocation tracking should be used.
  * @param out_buffer A pointer to hold the newly created buffer.
  * @return True on success; otherwise false.
  */

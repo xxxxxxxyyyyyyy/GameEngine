@@ -498,6 +498,7 @@ static b8 import_obj_file(file_handle *obj_file, const char *out_ksm_filename,
         char full_mtl_path[512];
         kzero_memory(full_mtl_path, sizeof(char) * 512);
         string_directory_from_path(full_mtl_path, out_ksm_filename);
+        string_trim(full_mtl_path);
         string_append_string(full_mtl_path, full_mtl_path, material_file_name);
 
         // Process material library file.
@@ -633,9 +634,9 @@ static void process_subobject(vec3 *positions, vec3 *normals, vec2 *tex_coords,
 }
 
 // TODO: Load the material library file, and create material definitions from
-// it. These definitions should be output to .mt files. These .mt files are
+// it. These definitions should be output to .kmt files. These .kmt files are
 // then loaded when the material is acquired on mesh load. NOTE: This should
-// eventually account for duplicate materials. When the .mt files are written,
+// eventually account for duplicate materials. When the .kmt files are written,
 // if the file already exists the material should have something such as a
 // number appended to its name and a warning thrown to the console. The artist
 // should make sure material names are unique. When the material is acquired,
@@ -754,10 +755,17 @@ static b8 import_obj_material_library_file(const char *mtl_file_path) {
                 // map name/type
                 if (strings_nequali(substr, "map_Kd", 6)) {
                     // Is a diffuse texture map
-                    map.name = "diffuse";
-                } else if (strings_nequali(substr, "map_Ks", 6)) {
-                    // Is a specular texture map
-                    map.name = "specular";
+                    map.name = "albedo";
+                } else if (strings_nequali(substr, "map_Pm", 6)) {
+                    // TODO: Combine these maps on import.
+                    // Is a metallic texture map
+                    map.name = "metallic";
+                } else if (strings_nequali(substr, "map_Pr", 6)) {
+                    // Is a roughness texture map
+                    map.name = "rougness";
+                } else if (strings_nequali(substr, "map_Ke", 6)) {
+                    // Is a emissive texture map
+                    map.name = "emissive";
                 } else if (strings_nequali(substr, "map_bump", 8)) {
                     // Is a bump texture map
                     map.name = "normal";
@@ -799,7 +807,7 @@ static b8 import_obj_material_library_file(const char *mtl_file_path) {
 
                     // NOTE: Hardcoding default material shader name because all objects
                     // imported this way will be treated the same.
-                    current_config.shader_name = "Shader.Builtin.Material";
+                    current_config.shader_name = "Shader.PBRMaterial";
                     if (hit_name) {
                         //  Write out a kmt file and move on.
                         if (!write_kmt_file(mtl_file_path, &current_config)) {
@@ -815,6 +823,10 @@ static b8 import_obj_material_library_file(const char *mtl_file_path) {
                             kfree(current_config.name, len + 1, MEMORY_TAG_STRING);
                         }
                         kzero_memory(&current_config, sizeof(current_config));
+
+                        // Recreate.
+                        current_config.properties = darray_create(material_config_prop);
+                        current_config.maps = darray_create(material_map);
                     }
 
                     hit_name = true;
@@ -831,7 +843,7 @@ static b8 import_obj_material_library_file(const char *mtl_file_path) {
     // Write out the remaining kmt file.
     // NOTE: Hardcoding default material shader name because all objects imported
     // this way will be treated the same.
-    current_config.shader_name = "Shader.Builtin.Material";
+    current_config.shader_name = "Shader.PBRMaterial";
     if (!write_kmt_file(mtl_file_path, &current_config)) {
         DERROR("Unable to write kmt file.");
         return false;
@@ -898,18 +910,16 @@ static b8 write_kmt_file(const char *mtl_file_path, material_config *config) {
     // NOTE: The .obj file this came from (and resulting .mtl file) sit in the
     // models directory. This moves up a level and back into the materials folder.
     // TODO: Read from config and get an absolute path for output.
-    char *format_str = "%s../materials/%s%s";
+    char *format_str = "%s%s%s";
     file_handle f;
-    char directory[320];
-    string_directory_from_path(directory, mtl_file_path);
 
     char full_file_path[512];
-    string_format(full_file_path, format_str, directory, config->name, ".mt");
+    string_format(full_file_path, format_str, resource_system_base_path_for_type(RESOURCE_TYPE_MATERIAL), config->name, ".kmt");
     if (!filesystem_open(full_file_path, FILE_MODE_WRITE, false, &f)) {
         DERROR("Error opening material file for writing: '%s'", full_file_path);
         return false;
     }
-    DDEBUG("Writing .mt file '%s'...", full_file_path);
+    DDEBUG("Writing .kmt file '%s'...", full_file_path);
 
     char line_buffer[512];
     // File header
@@ -918,7 +928,7 @@ static b8 write_kmt_file(const char *mtl_file_path, material_config *config) {
     filesystem_write_line(&f, "version=2");
 
     filesystem_write_line(&f, "# Types can be phong,pbr,custom");
-    filesystem_write_line(&f, "type=phong");  // TODO: Other material types
+    filesystem_write_line(&f, "type=pbr");  // TODO: Other material types
 
     string_format(line_buffer, "name=%s", config->name);
     filesystem_write_line(&f, line_buffer);
@@ -1012,9 +1022,9 @@ static b8 write_kmt_file(const char *mtl_file_path, material_config *config) {
                               config->properties[i].value_mat4.data[14],
                               config->properties[i].value_mat4.data[15]);
                 break;
-            case SHADER_UNIFORM_TYPE_SAMPLER:
             case SHADER_UNIFORM_TYPE_CUSTOM:
             default:
+                // NOTE: All sampler types are included in this.
                 DERROR("Unsupported material property type.");
                 break;
         }

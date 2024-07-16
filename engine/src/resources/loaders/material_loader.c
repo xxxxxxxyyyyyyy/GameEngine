@@ -110,9 +110,9 @@ static void material_prop_assign_value(material_config_prop *prop, const char *v
             string_to_mat4(value, &prop->value_mat4);
             prop->size = sizeof(matrix4);
             break;
-        case SHADER_UNIFORM_TYPE_SAMPLER:
         case SHADER_UNIFORM_TYPE_CUSTOM:
         default:
+            // NOTE: all sampler types are included in this as unsupported property types.
             prop->size = 0;
             DERROR("Unsupported material property type.");
             break;
@@ -177,7 +177,7 @@ static b8 material_loader_load(struct resource_loader *self, const char *name,
 
     material_config *resource_data = kallocate(sizeof(material_config), MEMORY_TAG_RESOURCE);
     // Set some defaults.
-    resource_data->shader_name = "Shader.Builtin.Material";  // Default material.
+    resource_data->shader_name = "Shader.PBRMaterial"; // Default materials are PBR.
     resource_data->auto_release = true;
     resource_data->maps = darray_create(material_map);
     resource_data->properties = darray_create(material_config_prop);
@@ -348,12 +348,12 @@ static b8 material_loader_load(struct resource_loader *self, const char *name,
             if (resource_data->version >= 2) {
                 if (parse_mode == MATERIAL_PARSE_MODE_GLOBAL) {
                     if (strings_equali(trimmed_value, "phong")) {
-                        resource_data->type = MATERIAL_TYPE_PHONG;
+                        DERROR("Phong materials are no longer supported. Attempting to convert to PBR.");
+                        resource_data->type = MATERIAL_TYPE_PBR;
+                        // resource_data->type = MATERIAL_TYPE_PHONG;
                     } else if (strings_equali(trimmed_value, "pbr")) {
                         resource_data->type = MATERIAL_TYPE_PBR;
-                    } else if (strings_equali(trimmed_value, "ui")) {
-                        resource_data->type = MATERIAL_TYPE_UI;
-                    } else if (strings_equali(trimmed_value, "terrain")){
+                    } else if (strings_equali(trimmed_value, "terrain")) {
                         resource_data->type = MATERIAL_TYPE_TERRAIN;
                     } else if (strings_equali(trimmed_value, "custom")) {
                         resource_data->type = MATERIAL_TYPE_CUSTOM;
@@ -408,7 +408,8 @@ static b8 material_loader_load(struct resource_loader *self, const char *name,
 
     // If version 1 and unknown material type, default to "phong"
     if (resource_data->version == 1 && resource_data->type == MATERIAL_TYPE_UNKNOWN) {
-        resource_data->type = MATERIAL_TYPE_PHONG;
+        // resource_data->type = MATERIAL_TYPE_PHONG;
+        resource_data->type = MATERIAL_TYPE_PBR;
     }
 
     filesystem_close(&f);

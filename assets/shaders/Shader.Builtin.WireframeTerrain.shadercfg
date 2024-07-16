@@ -1,4 +1,4 @@
-# shader config file
+#  shader config file
 version=1.0
 name=Shader.Builtin.WireframeTerrain
 renderpass=Renderpass.Builtin.Wireframe

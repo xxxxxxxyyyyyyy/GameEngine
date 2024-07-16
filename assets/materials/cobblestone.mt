@@ -1,11 +1,9 @@
 #material file
 
 version=2
-# types can be phong,pbr,custom
-type=phong
+# types can be pbr,custom
+type=pbr
 name=cobblestone
-# If custom, shader is required.
-shader=Shader.Builtin.Material
 
 [map]
 name=diffuse
@@ -48,3 +46,5 @@ name=shininess
 type=f32
 value=15.0
 [/prop]
+
+

@@ -711,4 +711,4 @@ LRESULT CALLBACK win32_process_message(HWND hwnd, u32 msg, WPARAM w_param, LPARA
     return DefWindowProcA(hwnd, msg, w_param, l_param);
 }
 
-#endif  // KPLATFORM_WINDOWS
+#endif  // PLATFORM_WINDOWS

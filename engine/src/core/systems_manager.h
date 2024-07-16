@@ -7,7 +7,7 @@ struct frame_data;
 
 typedef b8 (*PFN_system_initialize)(u64* memory_requirement, void* memory, void* config);
 typedef void (*PFN_system_shutdown)(void* state);
-typedef b8 (*PFN_system_update)(void* state, const struct frame_data* p_frame_data);
+typedef b8 (*PFN_system_update)(void* state, struct frame_data* p_frame_data);
 
 typedef struct k_system {
     u64 state_size;
@@ -39,6 +39,7 @@ typedef enum k_system_type {
     K_SYSTEM_TYPE_MATERIAL,
     K_SYSTEM_TYPE_GEOMETRY,
     K_SYSTEM_TYPE_LIGHT,
+    K_SYSTEM_TYPE_AUDIO,
 
     // NOTE: Anything beyond this is in user space.
     K_SYSTEM_TYPE_KNOWN_MAX = 255,
@@ -60,7 +61,7 @@ b8 systems_manager_initialize(systems_manager_state* state, struct application_c
 b8 systems_manager_post_boot_initialize(systems_manager_state* state, struct application_config* app_config);
 void systems_manager_shutdown(systems_manager_state* state);
 
-b8 systems_manager_update(systems_manager_state* state, const struct frame_data* p_frame_data);
+b8 systems_manager_update(systems_manager_state* state, struct frame_data* p_frame_data);
 
 b8 systems_manager_register(
     systems_manager_state* state,

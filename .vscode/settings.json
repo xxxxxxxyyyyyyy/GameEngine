@@ -121,7 +121,6 @@
         "memory": "c",
         "ratio": "c",
         "xtr1common": "c",
-        "renderer_types.h": "c",
         "renderer_backend.h": "c",
         "string.h": "c",
         "stdarg.h": "c",
@@ -132,7 +131,6 @@
         "event.h": "c",
         "vulkan_device.h": "c",
         "system_error": "c",
-        "vulkan_types.h": "c",
         "asserts.h": "c",
         "math_types.h": "c",
         "kalgorithm": "c",
@@ -177,7 +175,8 @@
         "xloctime": "c",
         "charconv": "c",
         "resource_system.h": "c",
-        "simple_scene.h": "c"
+        "simple_scene.h": "c",
+        "mesh.h": "c"
     },
     // File copyright documentation tag.  Array of strings will be converted to one line per element.  Can template {year}.
     "doxdocgen.file.copyrightTag": [

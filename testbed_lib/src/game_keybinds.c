@@ -1,10 +1,8 @@
 #include "game_keybinds.h"
-#include "game_state.h"
 
-#include <defines.h>
+#include <application_types.h>
 #include <core/input.h>
 #include <core/keymap.h>
-#include <application_types.h>
 #include <core/event.h>
 #include <core/logger.h>
 #include <core/kmemory.h>
@@ -13,8 +11,10 @@
 #include <core/console.h>
 #include <core/engine.h>
 #include <core/frame_data.h>
+#include <defines.h>
 #include <renderer/renderer_frontend.h>
 #include "debug_console.h"
+#include "game_state.h"
 
 void game_on_escape_callback(keys key, keymap_entry_bind_type type, keymap_modifier modifiers, void* user_data) {
     DDEBUG("game_on_escape_callback");
@@ -162,6 +162,13 @@ void game_on_unload_scene(keys key, keymap_entry_bind_type type, keymap_modifier
     event_execute(EVENT_CODE_DEBUG2, (application*)user_data, (event_context){});
 }
 
+void game_on_play_sound(keys key, keymap_entry_bind_type type, keymap_modifier modifiers, void* user_data) {
+    event_execute(EVENT_CODE_DEBUG3, (application*)user_data, (event_context){});
+}
+void game_on_toggle_sound(keys key, keymap_entry_bind_type type, keymap_modifier modifiers, void* user_data) {
+    event_execute(EVENT_CODE_DEBUG4, (application*)user_data, (event_context){});
+}
+
 void game_on_console_scroll(keys key, keymap_entry_bind_type type, keymap_modifier modifiers, void* user_data) {
     application* app = (application*)user_data;
     testbed_game_state* state = (testbed_game_state*)app->state;
@@ -274,6 +281,9 @@ void game_setup_keymaps(application* game_inst) {
 
     keymap_binding_add(&testbed_keymap, KEY_L, KEYMAP_BIND_TYPE_PRESS, KEYMAP_MODIFIER_NONE_BIT, game_inst, game_on_load_scene);
     keymap_binding_add(&testbed_keymap, KEY_U, KEYMAP_BIND_TYPE_PRESS, KEYMAP_MODIFIER_NONE_BIT, game_inst, game_on_unload_scene);
+
+    keymap_binding_add(&testbed_keymap, KEY_F, KEYMAP_BIND_TYPE_PRESS, KEYMAP_MODIFIER_NONE_BIT, game_inst, game_on_play_sound);
+    keymap_binding_add(&testbed_keymap, KEY_R, KEYMAP_BIND_TYPE_PRESS, KEYMAP_MODIFIER_NONE_BIT, game_inst, game_on_toggle_sound);
 
     keymap_binding_add(&testbed_keymap, KEY_T, KEYMAP_BIND_TYPE_PRESS, KEYMAP_MODIFIER_NONE_BIT, game_inst, game_on_debug_texture_swap);
     keymap_binding_add(&testbed_keymap, KEY_P, KEYMAP_BIND_TYPE_PRESS, KEYMAP_MODIFIER_NONE_BIT, game_inst, game_on_debug_cam_position);

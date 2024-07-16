@@ -23,33 +23,33 @@ typedef u32 (*pfn_thread_start)(void *);
  * @param out_thread A pointer to hold the created thread, if auto_detach is false.
  * @returns true if successfully created; otherwise false.
  */
-b8 kthread_create(pfn_thread_start start_function_ptr, void *params, b8 auto_detach, kthread *out_thread);
+API b8 kthread_create(pfn_thread_start start_function_ptr, void *params, b8 auto_detach, kthread *out_thread);
 
 /**
  * Destroys the given thread.
  */
-void kthread_destroy(kthread *thread);
+API void kthread_destroy(kthread *thread);
 
 /**
  * Detaches the thread, automatically releasing resources when work is complete.
  */
-void kthread_detach(kthread *thread);
+API void kthread_detach(kthread *thread);
 
 /**
  * Cancels work on the thread, if possible, and releases resources when possible.
  */
-void kthread_cancel(kthread *thread);
+API void kthread_cancel(kthread *thread);
 
 /**
  * Indicates if the thread is currently active.
  * @returns True if active; otherwise false.
  */
-b8 kthread_is_active(kthread* thread);
+API b8 kthread_is_active(kthread* thread);
 
 /**
  * Sleeps on the given thread for a given number of milliseconds. Should be called from the
  * thread requiring the sleep.
  */
-void kthread_sleep(kthread* thread, u64 ms);
+API void kthread_sleep(kthread* thread, u64 ms);
 
-u64 get_current_thread_id(void);
+API u64 get_current_thread_id(void);

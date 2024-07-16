@@ -1,10 +1,10 @@
 #include "core/kmemory.h"
 
-#include "logger.h"
-#include "memory/dynamic_allocator.h"
-#include "platform/platform.h"
 #include "core/kstring.h"
 #include "core/mutex.h"
+#include "core/logger.h"
+#include "memory/dynamic_allocator.h"
+#include "platform/platform.h"
 
 // TODO: Custom string lib
 #include <stdio.h>

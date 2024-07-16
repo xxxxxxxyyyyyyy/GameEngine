@@ -1,11 +1,12 @@
 #include "job_system.h"
 
+#include "containers/ring_queue.h"
+
+#include "core/frame_data.h"
 #include "core/thread.h"
 #include "core/mutex.h"
 #include "core/kmemory.h"
 #include "core/logger.h"
-#include "core/frame_data.h"
-#include "containers/ring_queue.h"
 
 typedef struct job_thread {
     u8 index;
@@ -283,7 +284,7 @@ static void process_queue(ring_queue* queue, kmutex* queue_mutex) {
     }
 }
 
-b8 job_system_update(void* state, const struct frame_data* p_frame_data) {
+b8 job_system_update(void* state, struct frame_data* p_frame_data) {
     if (!state_ptr || !state_ptr->running) {
         return false;
     }

@@ -1,4 +1,5 @@
 #include "core/input.h"
+
 #include "containers/stack.h"
 #include "core/event.h"
 #include "core/frame_data.h"
@@ -22,12 +23,15 @@ typedef struct input_state {
     keyboard_state keyboard_previous;
     mouse_state mouse_current;
     mouse_state mouse_previous;
+
     stack keymap_stack;
     // keymap active_keymap;
+    b8 allow_key_repeats;
 } input_state;
 
 // Internal input state pointer
 static input_state* state_ptr;
+
 static b8 check_modifiers(keymap_modifier modifiers);
 
 b8 input_system_initialize(u64* memory_requirement, void* state, void* config) {
@@ -42,7 +46,10 @@ b8 input_system_initialize(u64* memory_requirement, void* state, void* config) {
     stack_create(&state_ptr->keymap_stack, sizeof(keymap));
     // state_ptr->active_keymap = keymap_create();
 
+    state_ptr->allow_key_repeats = false;
+
     DINFO("Input subsystem initialized.");
+
     return true;
 }
 
@@ -87,7 +94,7 @@ void input_update(const struct frame_data* p_frame_data) {
         }
     }
 
-    // copy current states to previous one
+    // Copy current states to previous states.
     kcopy_memory(&state_ptr->keyboard_previous, &state_ptr->keyboard_current, sizeof(keyboard_state));
     kcopy_memory(&state_ptr->mouse_previous, &state_ptr->mouse_current, sizeof(mouse_state));
 }
@@ -113,10 +120,16 @@ static b8 check_modifiers(keymap_modifier modifiers) {
 }
 
 void input_process_key(keys key, b8 pressed) {
+    if (!state_ptr) {
+        return;
+    }
     // keymap_entry* map_entry = &state_ptr->active_keymap.entries[key];
-    // Only handle this if the state actually changed.
-    if (state_ptr && state_ptr->keyboard_current.keys[key] != pressed) {
-        // update internal state
+
+    // Only handle this if the state actually changed, or if repeats are allowed.
+    b8 is_repeat = pressed && state_ptr->keyboard_current.keys[key];
+    b8 changed = state_ptr->keyboard_current.keys[key] != pressed;
+    if (state_ptr->allow_key_repeats || changed) {
+        // Update internal state.
         state_ptr->keyboard_current.keys[key] = pressed;
 
         // if (key == KEY_LALT) {
@@ -168,19 +181,20 @@ void input_process_key(keys key, b8 pressed) {
             }
         }
 
-        // fire off an event for immediate processing
+        // Fire off an event for immediate processing.
         event_context context;
         context.data.u16[0] = key;
+        context.data.u16[1] = is_repeat ? 1 : 0;
         event_execute(pressed ? EVENT_CODE_KEY_PRESSED : EVENT_CODE_KEY_RELEASED, 0, context);
     }
 }
 
 void input_process_button(buttons button, b8 pressed) {
-    // if the state changed, fire an event
+    // If the state changed, fire an event.
     if (state_ptr->mouse_current.buttons[button] != pressed) {
         state_ptr->mouse_current.buttons[button] = pressed;
 
-        // fire event
+        // Fire the event.
         event_context context;
         context.data.u16[0] = button;
         context.data.i16[1] = state_ptr->mouse_current.x;
@@ -189,31 +203,42 @@ void input_process_button(buttons button, b8 pressed) {
     }
 
     // Check for drag releases.
-    if (!pressed && state_ptr->mouse_current.dragging[button]) {
-        // Issue a drag end event.
+    if (!pressed) {
+        if (state_ptr->mouse_current.dragging[button]) {
+            // Issue a drag end event.
 
-        state_ptr->mouse_current.dragging[button] = false;
-        // DTRACE("mouse drag ended at: x:%hi, y:%hi, button: %hu", state_ptr->mouse_current.x, state_ptr->mouse_current.y, button);
+            state_ptr->mouse_current.dragging[button] = false;
+            // DTRACE("mouse drag ended at: x:%hi, y:%hi, button: %hu", state_ptr->mouse_current.x, state_ptr->mouse_current.y, button);
 
-        event_context context;
-        context.data.i16[0] = state_ptr->mouse_current.x;
-        context.data.i16[1] = state_ptr->mouse_current.y;
-        context.data.u16[2] = button;
-        event_execute(EVENT_CODE_MOUSE_DRAG_END, 0, context);
+            event_context context;
+            context.data.i16[0] = state_ptr->mouse_current.x;
+            context.data.i16[1] = state_ptr->mouse_current.y;
+            context.data.u16[2] = button;
+            event_execute(EVENT_CODE_MOUSE_DRAG_END, 0, context);
+        } else {
+            // If not a drag release, then it is a click.
+
+            // Fire the event.
+            event_context context;
+            context.data.u16[0] = button;
+            context.data.i16[1] = state_ptr->mouse_current.x;
+            context.data.i16[2] = state_ptr->mouse_current.y;
+            event_execute(EVENT_CODE_BUTTON_CLICKED, 0, context);
+        }
     }
 }
 
 void input_process_mouse_move(i16 x, i16 y) {
-    // only process if actually different
+    // Only process if actually different
     if (state_ptr->mouse_current.x != x || state_ptr->mouse_current.y != y) {
-        // NOTE: enable this if debugging
-        // DDEBUG("Mouse pos: %i, %i.", x, y);
+        // NOTE: Enable this if debugging.
+        // DDEBUG("Mouse pos: %i, %i!", x, y);
 
-        // update internal state
+        // Update internal state_ptr->
         state_ptr->mouse_current.x = x;
         state_ptr->mouse_current.y = y;
 
-        // fire event
+        // Fire the event.
         event_context context;
         context.data.i16[0] = x;
         context.data.i16[1] = y;
@@ -247,31 +272,19 @@ void input_process_mouse_move(i16 x, i16 y) {
     }
 }
 
-void input_keymap_push(const keymap* map) {
-    if (state_ptr && map) {
-        // Add the keymap to the stack, then apply it.
-        if (!stack_push(&state_ptr->keymap_stack, (void*)map)) {
-            DERROR("Failed to push keymap!");
-            return;
-        }
-    }
-}
-
-b8 input_keymap_pop(void) {
-    if (state_ptr) {
-        // Pop the keymap from the stack, then re-apply the stack.
-        keymap popped;
-        return stack_pop(&state_ptr->keymap_stack, &popped);
-    }
-
-    return false;
-}
-
 void input_process_mouse_wheel(i8 z_delta) {
-    // fire envet
+    // NOTE: no internal state to update.
+
+    // Fire the event.
     event_context context;
     context.data.i8[0] = z_delta;
     event_execute(EVENT_CODE_MOUSE_WHEEL, 0, context);
+}
+
+void input_key_repeats_enable(b8 enable) {
+    if (state_ptr) {
+        state_ptr->allow_key_repeats = enable;
+    }
 }
 
 b8 input_is_key_down(keys key) {
@@ -357,4 +370,303 @@ void input_get_previous_mouse_position(i32* x, i32* y) {
     }
     *x = state_ptr->mouse_previous.x;
     *y = state_ptr->mouse_previous.y;
+}
+
+const char* input_keycode_str(keys key) {
+    switch (key) {
+        case KEY_BACKSPACE:
+            return "backspace";
+        case KEY_ENTER:
+            return "enter";
+        case KEY_TAB:
+            return "tab";
+        case KEY_SHIFT:
+            return "shift";
+        case KEY_CONTROL:
+            return "ctrl";
+        case KEY_PAUSE:
+            return "pause";
+        case KEY_CAPITAL:
+            return "capslock";
+        case KEY_ESCAPE:
+            return "esc";
+
+        case KEY_CONVERT:
+            return "ime_convert";
+        case KEY_NONCONVERT:
+            return "ime_noconvert";
+        case KEY_ACCEPT:
+            return "ime_accept";
+        case KEY_MODECHANGE:
+            return "ime_modechange";
+
+        case KEY_SPACE:
+            return "space";
+        case KEY_PAGEUP:
+            return "pageup";
+        case KEY_PAGEDOWN:
+            return "pagedown";
+        case KEY_END:
+            return "end";
+        case KEY_HOME:
+            return "home";
+        case KEY_LEFT:
+            return "left";
+        case KEY_UP:
+            return "up";
+        case KEY_RIGHT:
+            return "right";
+        case KEY_DOWN:
+            return "down";
+        case KEY_SELECT:
+            return "select";
+        case KEY_PRINT:
+            return "print";
+        case KEY_EXECUTE:
+            return "execute";
+        case KEY_PRINTSCREEN:
+            return "printscreen";
+        case KEY_INSERT:
+            return "insert";
+        case KEY_DELETE:
+            return "delete";
+        case KEY_HELP:
+            return "help";
+
+        case KEY_0:
+            return "0";
+        case KEY_1:
+            return "1";
+        case KEY_2:
+            return "2";
+        case KEY_3:
+            return "3";
+        case KEY_4:
+            return "4";
+        case KEY_5:
+            return "5";
+        case KEY_6:
+            return "6";
+        case KEY_7:
+            return "7";
+        case KEY_8:
+            return "8";
+        case KEY_9:
+            return "9";
+
+        case KEY_A:
+            return "a";
+        case KEY_B:
+            return "b";
+        case KEY_C:
+            return "c";
+        case KEY_D:
+            return "d";
+        case KEY_E:
+            return "e";
+        case KEY_F:
+            return "f";
+        case KEY_G:
+            return "g";
+        case KEY_H:
+            return "h";
+        case KEY_I:
+            return "i";
+        case KEY_J:
+            return "j";
+        case KEY_K:
+            return "k";
+        case KEY_L:
+            return "l";
+        case KEY_M:
+            return "m";
+        case KEY_N:
+            return "n";
+        case KEY_O:
+            return "o";
+        case KEY_P:
+            return "p";
+        case KEY_Q:
+            return "q";
+        case KEY_R:
+            return "r";
+        case KEY_S:
+            return "s";
+        case KEY_T:
+            return "t";
+        case KEY_U:
+            return "u";
+        case KEY_V:
+            return "v";
+        case KEY_W:
+            return "w";
+        case KEY_X:
+            return "x";
+        case KEY_Y:
+            return "y";
+        case KEY_Z:
+            return "z";
+
+        case KEY_LSUPER:
+            return "l_super";
+        case KEY_RSUPER:
+            return "r_super";
+        case KEY_APPS:
+            return "apps";
+
+        case KEY_SLEEP:
+            return "sleep";
+
+            // Numberpad keys
+        case KEY_NUMPAD0:
+            return "numpad_0";
+        case KEY_NUMPAD1:
+            return "numpad_1";
+        case KEY_NUMPAD2:
+            return "numpad_2";
+        case KEY_NUMPAD3:
+            return "numpad_3";
+        case KEY_NUMPAD4:
+            return "numpad_4";
+        case KEY_NUMPAD5:
+            return "numpad_5";
+        case KEY_NUMPAD6:
+            return "numpad_6";
+        case KEY_NUMPAD7:
+            return "numpad_7";
+        case KEY_NUMPAD8:
+            return "numpad_8";
+        case KEY_NUMPAD9:
+            return "numpad_9";
+        case KEY_MULTIPLY:
+            return "numpad_mult";
+        case KEY_ADD:
+            return "numpad_add";
+        case KEY_SEPARATOR:
+            return "numpad_sep";
+        case KEY_SUBTRACT:
+            return "numpad_sub";
+        case KEY_DECIMAL:
+            return "numpad_decimal";
+        case KEY_DIVIDE:
+            return "numpad_div";
+
+        case KEY_F1:
+            return "f1";
+        case KEY_F2:
+            return "f2";
+        case KEY_F3:
+            return "f3";
+        case KEY_F4:
+            return "f4";
+        case KEY_F5:
+            return "f5";
+        case KEY_F6:
+            return "f6";
+        case KEY_F7:
+            return "f7";
+        case KEY_F8:
+            return "f8";
+        case KEY_F9:
+            return "f9";
+        case KEY_F10:
+            return "f10";
+        case KEY_F11:
+            return "f11";
+        case KEY_F12:
+            return "f12";
+        case KEY_F13:
+            return "f13";
+        case KEY_F14:
+            return "f14";
+        case KEY_F15:
+            return "f15";
+        case KEY_F16:
+            return "f16";
+        case KEY_F17:
+            return "f17";
+        case KEY_F18:
+            return "f18";
+        case KEY_F19:
+            return "f19";
+        case KEY_F20:
+            return "f20";
+        case KEY_F21:
+            return "f21";
+        case KEY_F22:
+            return "f22";
+        case KEY_F23:
+            return "f23";
+        case KEY_F24:
+            return "f24";
+
+        case KEY_NUMLOCK:
+            return "num_lock";
+        case KEY_SCROLL:
+            return "scroll_lock";
+        case KEY_NUMPAD_EQUAL:
+            return "numpad_equal";
+
+        case KEY_LSHIFT:
+            return "l_shift";
+        case KEY_RSHIFT:
+            return "r_shift";
+        case KEY_LCONTROL:
+            return "l_ctrl";
+        case KEY_RCONTROL:
+            return "r_ctrl";
+        case KEY_LALT:
+            return "l_alt";
+        case KEY_RALT:
+            return "r_alt";
+
+        case KEY_SEMICOLON:
+            return ";";
+
+        case KEY_APOSTROPHE:
+            return "'";
+        case KEY_EQUAL:
+            return "=";
+        case KEY_COMMA:
+            return ",";
+        case KEY_MINUS:
+            return "-";
+        case KEY_PERIOD:
+            return ".";
+        case KEY_SLASH:
+            return "/";
+
+        case KEY_GRAVE:
+            return "`";
+
+        case KEY_LBRACKET:
+            return "[";
+        case KEY_PIPE:
+            return "\\";
+        case KEY_RBRACKET:
+            return "]";
+
+        default:
+            return "undefined";
+    }
+}
+
+void input_keymap_push(const keymap* map) {
+    if (state_ptr && map) {
+        // Add the keymap to the stack, then apply it.
+        if (!stack_push(&state_ptr->keymap_stack, (void*)map)) {
+            DERROR("Failed to push keymap!");
+            return;
+        }
+    }
+}
+
+b8 input_keymap_pop(void) {
+    if (state_ptr) {
+        // Pop the keymap from the stack, then re-apply the stack.
+        keymap popped;
+        return stack_pop(&state_ptr->keymap_stack, &popped);
+    }
+
+    return false;
 }

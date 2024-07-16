@@ -41,8 +41,11 @@ typedef enum k_system_type {
     K_SYSTEM_TYPE_LIGHT,
     K_SYSTEM_TYPE_AUDIO,
 
+    // NOTE: Anything between 127-254 is extension space.
+    K_SYSTEM_TYPE_KNOWN_MAX = 127,
+
     // NOTE: Anything beyond this is in user space.
-    K_SYSTEM_TYPE_KNOWN_MAX = 255,
+    K_SYSTEM_TYPE_EXT_MAX = 255,
 
     // The user-space max
     K_SYSTEM_TYPE_USER_MAX = K_SYSTEM_TYPE_MAX_COUNT,
@@ -63,7 +66,7 @@ void systems_manager_shutdown(systems_manager_state* state);
 
 b8 systems_manager_update(systems_manager_state* state, struct frame_data* p_frame_data);
 
-b8 systems_manager_register(
+API b8 systems_manager_register(
     systems_manager_state* state,
     u16 type,
     PFN_system_initialize initialize,

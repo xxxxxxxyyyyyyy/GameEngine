@@ -6,9 +6,6 @@
 
 #define DEFAULT_MATERIAL_NAME "default"
 
-/** @brief The name of the default UI material. */
-#define DEFAULT_UI_MATERIAL_NAME "default_ui"
-
 /** @brief The name of the default terrain material. */
 #define DEFAULT_TERRAIN_MATERIAL_NAME "default_terrain"
 
@@ -36,11 +33,6 @@ API material* material_system_acquire(const char* name);
 API material* material_system_acquire_terrain_material(const char* material_name, u32 material_count, const char** material_names, b8 auto_release);
 API material* material_system_acquire_from_config(material_config* config);
 API void material_system_release(const char* name);
-
-/**
- * @brief Gets a pointer to the default UI material. Does not reference count.
- */
-API material* material_system_get_default_ui(void);
 
 /**
  * @brief Gets a pointer to the default terrain material. Does not reference count.

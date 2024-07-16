@@ -178,6 +178,12 @@ b8 input_system_initialize(u64* memory_requirement, void* state, void* config);
 void input_system_shutdown(void* state);
 void input_update(const struct frame_data* p_frame_data);
 
+/**
+ * @brief Enables/disables keyboard key repeats.
+ * @param enable Indicates if key repeats should be enabled.
+ */
+API void input_key_repeats_enable(b8 enable);
+
 // keyboard input
 API b8 input_is_key_down(keys key);
 API b8 input_is_key_up(keys key);

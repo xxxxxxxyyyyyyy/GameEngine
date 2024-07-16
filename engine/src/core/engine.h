@@ -7,6 +7,7 @@
 
 struct application;
 struct frame_data;
+struct systems_manager_state;
 
 // Application configuration
 typedef struct application_config {
@@ -49,3 +50,11 @@ API b8 engine_run(struct application* game_inst);
 void engine_on_event_system_initialized(void);
 
 API const struct frame_data* engine_frame_data_get(struct application* game_inst);
+
+/**
+ * @brief Obtains a pointer to the systems manager state.
+ *
+ * @param game_inst A pointer to the application instance.
+ * @return A pointer to the systems manager state.
+ */
+API struct systems_manager_state* engine_systems_manager_state_get(struct application* game_inst);

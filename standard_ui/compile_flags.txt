@@ -1,0 +1,5 @@
+-I..\standard_ui\src
+-I..\engine\src
+-DKEXPORT
+-D_CRT_SECURE_NO_WARNINGS
+-D_DEBUG

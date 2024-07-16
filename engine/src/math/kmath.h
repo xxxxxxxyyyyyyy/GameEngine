@@ -1940,3 +1940,7 @@ API b8 plane_intersects_aabb(const plane_3d *p, const vec3 *center,
  */
 API b8 frustum_intersects_aabb(const frustum *f, const vec3 *center,
                                 const vec3 *extents);
+
+INLINE b8 rect_2d_contains_point(rect_2d rect, vec2 point) {
+    return (point.x >= rect.x && point.x <= rect.x + rect.width) && (point.y >= rect.y && point.y <= rect.y + rect.height);
+}

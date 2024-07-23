@@ -78,6 +78,7 @@ typedef struct geometry_distance {
     f32 distance;
 } geometry_distance;
 
+struct application* temp_app;
 void application_register_events(struct application* game_inst);
 void application_unregister_events(struct application* game_inst);
 static b8 load_main_scene(struct application* game_inst);
@@ -187,9 +188,7 @@ b8 game_on_debug_event(u16 code, void* sender, void* listener_inst, event_contex
     } else if (code == EVENT_CODE_DEBUG1) {
         if (state->main_scene.state < SIMPLE_SCENE_STATE_LOADING) {
             DDEBUG("Loading main scene...");
-            if (!load_main_scene(game_inst)) {
-                DERROR("Error loading main scene");
-            }
+
         }
         return true;
     } else if (code == EVENT_CODE_DEBUG2) {
@@ -373,6 +372,19 @@ b8 game_on_button(u16 code, void* sender, void* listener_inst, event_context con
 }
 
 static b8 game_on_mouse_move(u16 code, void* sender, void* listener_inst, event_context context) {
+
+    if (code == EVENT_CODE_MOUSE_MOVED && input_is_button_dragging(BUTTON_RIGHT)) {
+
+        i16 x = context.data.i16[0];
+        i16 y = context.data.i16[1];
+
+        testbed_game_state* state = (testbed_game_state*)listener_inst;
+        i32 p_x, p_y = 0;
+        input_get_previous_mouse_position(&p_x, &p_y);
+        camera_yaw(state->world_camera, -(x - p_x) * 0.1f * 0.02f);
+        camera_pitch(state->world_camera, -(y - p_y) * 0.1f * 0.02f);
+    }
+
     if (code == EVENT_CODE_MOUSE_MOVED && !input_is_button_dragging(BUTTON_LEFT)) {
         i16 x = context.data.i16[0];
         i16 y = context.data.i16[1];
@@ -396,8 +408,15 @@ static b8 game_on_mouse_move(u16 code, void* sender, void* listener_inst, event_
 }
 
 static void sui_test_button_on_click(struct sui_control* self, struct sui_mouse_event event) {
+    // application* game_inst = (application*)inst;
     if (self) {
         DDEBUG("Clicked '%s'!", self->name);
+        testbed_game_state* temp_state = (testbed_game_state*)temp_app->state;
+        if (temp_state->main_scene.state < SIMPLE_SCENE_STATE_LOADING) {
+            if (!load_main_scene(temp_app)) {
+                DERROR("Error loading main scene");
+            }
+        }
     }
 }
 
@@ -458,7 +477,6 @@ b8 application_boot(struct application* game_inst) {
 
 b8 application_initialize(struct application* game_inst) {
     DDEBUG("game_initialize() called!");
-
     testbed_game_state* state = (testbed_game_state*)game_inst->state;
 
     if (!initialize_rendergraphs(game_inst)) {
@@ -691,7 +709,7 @@ b8 application_initialize(struct application* game_inst) {
         DERROR("Failed to play test emitter.");
     }
     audio_system_channel_play(7, state->test_music, true);
-
+    temp_app = game_inst;
     state->running = true;
 
     return true;
@@ -711,9 +729,9 @@ b8 application_update(struct application* game_inst, struct frame_data* p_frame_
     clock_start(&state->update_clock);
 
     // TODO: testing resize
-    static f32 button_height = 50.0f;
-    button_height = 50.0f + (ksin(p_frame_data->total_time) * 20.0f);
-    sui_button_control_height_set(&state->test_button, (i32)button_height);
+    // static f32 button_height = 50.0f;
+    // button_height = 50.0f + (ksin(p_frame_data->total_time) * 20.0f);
+    // sui_button_control_height_set(&state->test_button, (i32)button_height);
 
     // Update the bitmap text with camera position. NOTE: just using the default camera for now.
     vec3 pos = camera_position_get(state->world_camera);

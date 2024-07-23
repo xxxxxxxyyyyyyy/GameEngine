@@ -634,9 +634,9 @@ static void process_subobject(vec3 *positions, vec3 *normals, vec2 *tex_coords,
 }
 
 // TODO: Load the material library file, and create material definitions from
-// it. These definitions should be output to .kmt files. These .kmt files are
+// it. These definitions should be output to .mt files. These .mt files are
 // then loaded when the material is acquired on mesh load. NOTE: This should
-// eventually account for duplicate materials. When the .kmt files are written,
+// eventually account for duplicate materials. When the .mt files are written,
 // if the file already exists the material should have something such as a
 // number appended to its name and a warning thrown to the console. The artist
 // should make sure material names are unique. When the material is acquired,
@@ -914,12 +914,12 @@ static b8 write_kmt_file(const char *mtl_file_path, material_config *config) {
     file_handle f;
 
     char full_file_path[512];
-    string_format(full_file_path, format_str, resource_system_base_path_for_type(RESOURCE_TYPE_MATERIAL), config->name, ".kmt");
+    string_format(full_file_path, format_str, resource_system_base_path_for_type(RESOURCE_TYPE_MATERIAL), config->name, ".mt");
     if (!filesystem_open(full_file_path, FILE_MODE_WRITE, false, &f)) {
         DERROR("Error opening material file for writing: '%s'", full_file_path);
         return false;
     }
-    DDEBUG("Writing .kmt file '%s'...", full_file_path);
+    DDEBUG("Writing .mt file '%s'...", full_file_path);
 
     char line_buffer[512];
     // File header

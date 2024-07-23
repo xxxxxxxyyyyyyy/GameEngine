@@ -682,7 +682,7 @@ b8 application_initialize(struct application* game_inst) {
     // Looping audio file.
     state->test_loop_audio_file = audio_system_chunk_load("Fire_loop.ogg");
     // Test music
-    state->test_music = audio_system_stream_load("Woodland Fantasy.mp3");
+    state->test_music = audio_system_stream_load("MapleStory.mp3");
     if (!state->test_music) {
         DERROR("Failed to load test music file.");
     }
